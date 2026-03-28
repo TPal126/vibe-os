@@ -11,12 +11,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **LAYOUT-01**: App displays a three-column resizable layout (left 22%, center 40%, right 38%) with minimum widths enforced
 - [ ] **LAYOUT-02**: Each column has a tab strip for switching between panels within that column
-- [ ] **LAYOUT-03**: All panels have a consistent PanelHeader with title, icon, and optional action buttons
-- [ ] **LAYOUT-04**: Custom title bar displays "VIBE OS" branding, session status badge, active repo/skill counts, and total context tokens
-- [ ] **LAYOUT-05**: Status bar displays Python status, Claude status, session elapsed time, decision count, and action count
-- [ ] **LAYOUT-06**: Full dark theme implemented with the specified color palette (bg through cyanDim)
-- [ ] **LAYOUT-07**: Typography uses Instrument Sans (UI), JetBrains Mono (code), and Space Mono (branding)
-- [ ] **LAYOUT-08**: Shared components (Badge, Dot with pulse animation, IconButton, Tooltip) are reusable across all panels
+- [x] **LAYOUT-03**: All panels have a consistent PanelHeader with title, icon, and optional action buttons
+- [x] **LAYOUT-04**: Custom title bar displays "VIBE OS" branding, session status badge, active repo/skill counts, and total context tokens
+- [x] **LAYOUT-05**: Status bar displays Python status, Claude status, session elapsed time, decision count, and action count
+- [x] **LAYOUT-06**: Full dark theme implemented with the specified color palette (bg through cyanDim)
+- [x] **LAYOUT-07**: Typography uses Instrument Sans (UI), JetBrains Mono (code), and Space Mono (branding)
+- [x] **LAYOUT-08**: Shared components (Badge, Dot with pulse animation, IconButton, Tooltip) are reusable across all panels
 
 ### Code Editor
 
@@ -91,7 +91,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Platform & Infrastructure
 
 - [x] **PLAT-01**: App builds and runs on Windows, macOS, and Linux via Tauri v2
-- [ ] **PLAT-02**: Tauri shell plugin permissions properly scoped in capabilities/default.json for subprocess spawning
+- [x] **PLAT-02**: Tauri shell plugin permissions properly scoped in capabilities/default.json for subprocess spawning
 - [x] **PLAT-03**: File paths resolved via Tauri path API, never hardcoded
 - [ ] **PLAT-04**: Default skill .md files bundled and copied to ~/.vibe-os/skills/ on first launch
 - [x] **PLAT-05**: All Tauri commands return Result<T, String> with frontend error handling
@@ -139,12 +139,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | LAYOUT-01 | Phase 2 | Pending |
 | LAYOUT-02 | Phase 2 | Pending |
-| LAYOUT-03 | Phase 2 | Pending |
-| LAYOUT-04 | Phase 2 | Pending |
-| LAYOUT-05 | Phase 2 | Pending |
-| LAYOUT-06 | Phase 2 | Pending |
-| LAYOUT-07 | Phase 2 | Pending |
-| LAYOUT-08 | Phase 2 | Pending |
+| LAYOUT-03 | Phase 2 | Complete |
+| LAYOUT-04 | Phase 2 | Complete |
+| LAYOUT-05 | Phase 2 | Complete |
+| LAYOUT-06 | Phase 2 | Complete |
+| LAYOUT-07 | Phase 2 | Complete |
+| LAYOUT-08 | Phase 2 | Complete |
 | EDIT-01 | Phase 4 | Pending |
 | EDIT-02 | Phase 4 | Pending |
 | EDIT-03 | Phase 4 | Pending |
@@ -192,7 +192,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DB-03 | Phase 3 | Pending |
 | DB-04 | Phase 3 | Pending |
 | PLAT-01 | Phase 1 | Complete |
-| PLAT-02 | Phase 1 | Pending |
+| PLAT-02 | Phase 1 | Complete |
 | PLAT-03 | Phase 1 | Complete |
 | PLAT-04 | Phase 4 | Pending |
 | PLAT-05 | Phase 1 | Complete |

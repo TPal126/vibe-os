@@ -12,7 +12,7 @@ VIBE OS delivers a Tauri v2 desktop IDE where developers can see, direct, and au
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - Tauri v2 scaffold, Tailwind v4 CSS config, SQLite with WAL mode, shell plugin validation, production build proof
+- [x] **Phase 1: Foundation** - Tauri v2 scaffold, Tailwind v4 CSS config, SQLite with WAL mode, shell plugin validation, production build proof
 - [ ] **Phase 2: Layout Shell** - Three-column resizable layout, custom title bar, status bar, shared components, dark theme, typography
 - [ ] **Phase 3: Context Assembly** - Repo manager, skills panel, prompt composer, prompt layer display, token budget bar
 - [ ] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
@@ -36,7 +36,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md -- Scaffold Tauri v2 project, configure Tailwind v4 @theme, set up SQLite backend with WAL mode and migrations
-- [ ] 01-02-PLAN.md -- Shell plugin permissions, subprocess spawn/read/kill validation, production build proof
+- [x] 01-02-PLAN.md -- Shell plugin permissions, subprocess spawn/read/kill validation, production build proof
 
 ### Phase 2: Layout Shell
 **Goal**: Users see a fully themed, three-column resizable IDE layout with custom title bar, status bar, tab strips, and reusable shared components -- all panels present as labeled placeholders ready to receive content
@@ -48,11 +48,11 @@ Plans:
   3. Custom title bar displays "VIBE OS" branding and is draggable on the current OS; minimize/maximize/close buttons work
   4. Status bar renders at the bottom with placeholder slots for Python status, Claude status, session time, decision count, and action count
   5. Dark theme applies globally: background colors, text colors, accent colors all match the specified hex palette; Instrument Sans (UI), JetBrains Mono (code), and Space Mono (branding) fonts load correctly
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [x] 02-01-PLAN.md -- Install dependencies, configure custom title bar, build shared components (Badge/Dot/IconButton/Tooltip), layout components (PanelHeader/TabStrip/TitleBar/StatusBar), bundle fonts
+- [ ] 02-02-PLAN.md -- Three-column resizable layout with nested vertical splits, tab strips wired to placeholder panels, App.tsx integration
 
 ### Phase 3: Context Assembly
 **Goal**: Users can activate repos and skills via checkboxes, see their composed prompt update in real time, and monitor token usage against a visual budget -- the full context pipeline from raw inputs to debuggable prompt output
@@ -143,8 +143,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/2 | In progress | - |
-| 2. Layout Shell | 0/? | Not started | - |
+| 1. Foundation | 2/2 | Complete | 2026-03-28 |
+| 2. Layout Shell | 1/2 | In Progress | - |
 | 3. Context Assembly | 0/? | Not started | - |
 | 4. Python REPL + Monaco Editor | 0/? | Not started | - |
 | 5. Agent Integration | 0/? | Not started | - |
