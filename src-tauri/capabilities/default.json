@@ -37,6 +37,11 @@
           "name": "run-claude",
           "cmd": "claude",
           "args": true
+        },
+        {
+          "name": "git",
+          "cmd": "git",
+          "args": true
         }
       ]
     },
@@ -52,10 +57,16 @@
           "name": "test-echo-unix",
           "cmd": "echo",
           "args": true
+        },
+        {
+          "name": "git",
+          "cmd": "git",
+          "args": true
         }
       ]
     },
     "shell:allow-stdin-write",
-    "shell:allow-kill"
+    "shell:allow-kill",
+    "clipboard-manager:allow-write-text"
   ]
 }

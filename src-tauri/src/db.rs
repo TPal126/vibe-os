@@ -57,8 +57,20 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Migration v1 failed: {}", e))?;
     }
 
+    if version < 2 {
+        conn.execute_batch(
+            "BEGIN;
+             ALTER TABLE sessions ADD COLUMN system_prompt TEXT DEFAULT '';
+             ALTER TABLE sessions ADD COLUMN active_repos TEXT DEFAULT '[]';
+             ALTER TABLE sessions ADD COLUMN active_skills TEXT DEFAULT '[]';
+             PRAGMA user_version = 2;
+             COMMIT;",
+        )
+        .map_err(|e| format!("Migration v2 failed: {}", e))?;
+    }
+
     // Future migrations:
-    // if version < 2 { ... }
+    // if version < 3 { ... }
 
     Ok(())
 }

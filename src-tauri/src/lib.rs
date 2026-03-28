@@ -4,6 +4,7 @@ use tauri::Manager;
 mod commands;
 mod db;
 
+use commands::context_commands;
 use commands::db_commands;
 use commands::shell_commands;
 
@@ -11,6 +12,7 @@ use commands::shell_commands;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
             // Resolve the app data directory using Tauri's path API
             let app_data_dir = app
@@ -32,7 +34,21 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             db_commands::test_db_write,
             db_commands::test_db_read,
+            db_commands::create_session,
+            db_commands::end_session,
+            db_commands::get_active_session,
+            db_commands::update_session_repos,
+            db_commands::update_session_skills,
+            db_commands::update_session_prompt,
+            db_commands::get_setting,
+            db_commands::save_setting,
+            db_commands::delete_setting,
             shell_commands::test_spawn,
+            context_commands::discover_skills,
+            context_commands::clone_repo,
+            context_commands::get_repos,
+            context_commands::index_repo,
+            context_commands::compose_prompt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
