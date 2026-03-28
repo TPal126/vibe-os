@@ -1,15 +1,39 @@
 import { useState } from "react";
+import { commands } from "./lib/tauri";
+import { appDataDir } from "@tauri-apps/api/path";
 
 function App() {
-  const [dbResult, setDbResult] = useState<string>("");
-  const [pathResult, setPathResult] = useState<string>("");
+  const [results, setResults] = useState<
+    Array<{ prefix: string; color: string; message: string }>
+  >([]);
+
+  const addResult = (prefix: string, color: string, message: string) => {
+    setResults((prev) => [...prev, { prefix, color, message }]);
+  };
 
   const handleTestDatabase = async () => {
-    setDbResult("Database commands not wired yet -- wiring in Task 2");
+    try {
+      const writeResult = await commands.testDbWrite();
+      addResult("db", "text-v-accent", writeResult);
+
+      const readResult = await commands.testDbRead();
+      addResult("db", "text-v-accent", `Read back: ${readResult}`);
+    } catch (err) {
+      addResult("err", "text-v-red", String(err));
+    }
   };
 
   const handleTestPaths = async () => {
-    setPathResult("Path commands not wired yet -- wiring in Task 2");
+    try {
+      const dataDir = await appDataDir();
+      addResult("path", "text-v-green", `appDataDir: ${dataDir}`);
+    } catch (err) {
+      addResult("err", "text-v-red", String(err));
+    }
+  };
+
+  const handleClear = () => {
+    setResults([]);
   };
 
   return (
@@ -111,6 +135,12 @@ function App() {
           >
             Test Paths
           </button>
+          <button
+            onClick={handleClear}
+            className="px-4 py-2 bg-v-surfaceHi text-v-dim rounded hover:text-v-text transition-colors font-mono text-sm border border-v-border"
+          >
+            Clear
+          </button>
         </div>
       </section>
 
@@ -118,19 +148,14 @@ function App() {
       <section>
         <h2 className="text-lg font-semibold text-v-textHi mb-3">Results</h2>
         <div className="bg-v-surface border border-v-border rounded p-4 font-mono text-sm min-h-[120px]">
-          {dbResult && (
-            <div className="mb-2">
-              <span className="text-v-accent">db&gt;</span>{" "}
-              <span className="text-v-textHi">{dbResult}</span>
-            </div>
-          )}
-          {pathResult && (
-            <div>
-              <span className="text-v-green">path&gt;</span>{" "}
-              <span className="text-v-textHi">{pathResult}</span>
-            </div>
-          )}
-          {!dbResult && !pathResult && (
+          {results.length > 0 ? (
+            results.map((r, i) => (
+              <div key={i} className="mb-1">
+                <span className={r.color}>{r.prefix}&gt;</span>{" "}
+                <span className="text-v-textHi">{r.message}</span>
+              </div>
+            ))
+          ) : (
             <span className="text-v-dim">
               Click a test button to see results...
             </span>
