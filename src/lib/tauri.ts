@@ -10,4 +10,7 @@ export const commands = {
 
   /** Read the test row back from the settings table */
   testDbRead: () => invoke<string>("test_db_read"),
+
+  /** Spawn a test subprocess from the Rust backend and capture stdout */
+  testSpawn: () => invoke<string>("test_spawn"),
 };

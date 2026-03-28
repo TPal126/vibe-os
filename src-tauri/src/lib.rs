@@ -5,6 +5,7 @@ mod commands;
 mod db;
 
 use commands::db_commands;
+use commands::shell_commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -31,6 +32,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             db_commands::test_db_write,
             db_commands::test_db_read,
+            shell_commands::test_spawn,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

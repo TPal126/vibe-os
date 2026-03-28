@@ -4,6 +4,53 @@
   "description": "Default capabilities for VIBE OS",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    {
+      "identifier": "shell:allow-spawn",
+      "allow": [
+        {
+          "name": "test-echo",
+          "cmd": "cmd",
+          "args": ["/C", "echo", { "validator": "\\S+" }]
+        },
+        {
+          "name": "test-echo-unix",
+          "cmd": "echo",
+          "args": true
+        },
+        {
+          "name": "run-python",
+          "cmd": "python3",
+          "args": true
+        },
+        {
+          "name": "run-python-win",
+          "cmd": "python",
+          "args": true
+        },
+        {
+          "name": "run-claude",
+          "cmd": "claude",
+          "args": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "test-echo",
+          "cmd": "cmd",
+          "args": ["/C", "echo", { "validator": "\\S+" }]
+        },
+        {
+          "name": "test-echo-unix",
+          "cmd": "echo",
+          "args": true
+        }
+      ]
+    },
+    "shell:allow-stdin-write",
+    "shell:allow-kill"
   ]
 }
