@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Tauri v2 scaffold, Tailwind v4 CSS config, SQLite with WAL mode, shell plugin validation, production build proof
 - [x] **Phase 2: Layout Shell** - Three-column resizable layout, custom title bar, status bar, shared components, dark theme, typography
-- [ ] **Phase 3: Context Assembly** - Repo manager, skills panel, prompt composer, prompt layer display, token budget bar
+- [x] **Phase 3: Context Assembly** - Repo manager, skills panel, prompt composer, prompt layer display, token budget bar
 - [ ] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
 - [ ] **Phase 5: Agent Integration** - Claude CLI subprocess, event stream parser, chat panel with streaming, agent event display, working indicator
 - [ ] **Phase 6: Decisions, Audit & Scripts** - Micro-decision log, append-only audit trail, decision/audit export, scripts tracker, skills feedback loop
@@ -68,8 +68,8 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md -- Backend infrastructure: install dependencies, SQLite schema v2, Rust commands (session CRUD, skill discovery, repo management, prompt composition), Zustand store with 4 slices + SQLite storage adapter
-- [ ] 03-02-PLAN.md -- RepoManager panel with checkbox rows + AddRepoModal, SkillsPanel with checkbox rows + token budget bar, wire into MainLayout
-- [ ] 03-03-PLAN.md -- PromptLayer panel with sub-tabs + clipboard copy, app-level initialization (session/repos/skills on launch), complete left column wiring
+- [x] 03-02-PLAN.md -- RepoManager panel with checkbox rows + AddRepoModal, SkillsPanel with checkbox rows + token budget bar, wire into MainLayout
+- [x] 03-03-PLAN.md -- PromptLayer panel with sub-tabs + clipboard copy, app-level initialization (session/repos/skills on launch), complete left column wiring
 
 ### Phase 4: Python REPL + Monaco Editor
 **Goal**: Users can write Python code in a themed Monaco editor and run it in an integrated REPL console -- validating the subprocess management pattern that Claude CLI integration will reuse in Phase 5
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-03-28 |
 | 2. Layout Shell | 2/2 | Complete | 2026-03-28 |
-| 3. Context Assembly | 0/3 | In progress | - |
+| 3. Context Assembly | 2/3 | In progress | - |
 | 4. Python REPL + Monaco Editor | 0/? | Not started | - |
 | 5. Agent Integration | 0/? | Not started | - |
 | 6. Decisions, Audit & Scripts | 0/? | Not started | - |

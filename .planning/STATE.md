@@ -9,19 +9,19 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 ## Current Position
 
-Phase: 3 of 7 (Context Assembly)
-Plan: 2 of 3 in current phase
-Status: Executing -- 03-01 complete, 03-02 and 03-03 remaining (Wave 2, parallel)
-Last activity: 2026-03-28 -- 03-01 backend infrastructure + Zustand store completed
+Phase: 3 of 7 (Context Assembly) -- COMPLETE
+Plan: 3 of 3 in current phase (all complete)
+Status: Phase 3 complete. Ready for Phase 4.
+Last activity: 2026-03-28 -- 03-03 PromptLayer + App init + session wiring completed
 
-Progress: [=====.....] 36%
+Progress: [=====.....] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: ~11m
-- Total execution time: ~0.84 hours
+- Total plans completed: 7
+- Average duration: ~9m
+- Total execution time: ~0.94 hours
 
 **By Phase:**
 
@@ -29,11 +29,11 @@ Progress: [=====.....] 36%
 |-------|-------|-------|----------|
 | 1. Foundation | 2/2 | ~40m | ~20m |
 | 2. Layout Shell | 2/2 | ~5m | ~2.5m |
-| 3. Context Assembly | 1/3 | ~5.5m | ~5.5m |
+| 3. Context Assembly | 3/3 | ~11.4m | ~3.8m |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (~25m), 02-01 (3m 9s), 02-02 (1m 40s), 03-01 (5m 30s)
-- Trend: Phase 3 moderate (Rust compilation + TypeScript store setup)
+- Last 5 plans: 02-02 (1m 40s), 03-01 (5m 30s), 03-02 (2m 24s), 03-03 (3m 25s)
+- Trend: Pure frontend plans fast (~2.5m avg), backend+frontend moderate (~5.5m), mixed ~3m
 
 *Updated after each plan completion*
 
@@ -60,6 +60,11 @@ Recent decisions affecting current work:
 - [03-01]: Deterministic repo IDs via path-based hashing, not random UUIDs -- session-linked IDs persist across restarts
 - [03-01]: Zustand partialize persists only systemPrompt and activeSession -- repos/skills loaded fresh from backend
 - [03-01]: Optimistic UI updates with rollback on error for repo/skill toggles
+- [03-02]: Inline subcomponents (RepoRow, SkillRow) co-located with parent panel files
+- [03-02]: overflow-hidden on panel wrapper so RepoManager/SkillsPanel manage own scrolling
+- [03-03]: useShallow for PromptLayer store access -- prevents unnecessary re-renders on unrelated slice changes
+- [03-03]: Local state + 500ms debounced sync for system prompt textarea -- avoids SQLite writes on every keystroke
+- [03-03]: App init uses useAppStore.getState() for post-async state reads to avoid stale closures
 
 ### Pending Todos
 
@@ -74,5 +79,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-28
-Stopped at: Completed 03-01-PLAN.md. Ready to execute 03-02 + 03-03 (Wave 2, parallel).
+Stopped at: Completed 03-03-PLAN.md. Phase 3 (Context Assembly) complete. Ready for Phase 4.
 Resume file: None
