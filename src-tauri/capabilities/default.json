@@ -11,7 +11,7 @@
         {
           "name": "test-echo",
           "cmd": "cmd",
-          "args": ["/C", "echo", { "validator": "\\S+" }]
+          "args": ["/C", "echo", { "validator": ".+" }]
         },
         {
           "name": "test-echo-unix",
@@ -41,7 +41,7 @@
         {
           "name": "test-echo",
           "cmd": "cmd",
-          "args": ["/C", "echo", { "validator": "\\S+" }]
+          "args": ["/C", "echo", { "validator": ".+" }]
         },
         {
           "name": "test-echo-unix",
