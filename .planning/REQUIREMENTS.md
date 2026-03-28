@@ -9,8 +9,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Layout & Shell
 
-- [ ] **LAYOUT-01**: App displays a three-column resizable layout (left 22%, center 40%, right 38%) with minimum widths enforced
-- [ ] **LAYOUT-02**: Each column has a tab strip for switching between panels within that column
+- [x] **LAYOUT-01**: App displays a three-column resizable layout (left 22%, center 40%, right 38%) with minimum widths enforced
+- [x] **LAYOUT-02**: Each column has a tab strip for switching between panels within that column
 - [x] **LAYOUT-03**: All panels have a consistent PanelHeader with title, icon, and optional action buttons
 - [x] **LAYOUT-04**: Custom title bar displays "VIBE OS" branding, session status badge, active repo/skill counts, and total context tokens
 - [x] **LAYOUT-05**: Status bar displays Python status, Claude status, session elapsed time, decision count, and action count
@@ -137,8 +137,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LAYOUT-01 | Phase 2 | Pending |
-| LAYOUT-02 | Phase 2 | Pending |
+| LAYOUT-01 | Phase 2 | Complete |
+| LAYOUT-02 | Phase 2 | Complete |
 | LAYOUT-03 | Phase 2 | Complete |
 | LAYOUT-04 | Phase 2 | Complete |
 | LAYOUT-05 | Phase 2 | Complete |

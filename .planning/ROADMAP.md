@@ -13,7 +13,7 @@ VIBE OS delivers a Tauri v2 desktop IDE where developers can see, direct, and au
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - Tauri v2 scaffold, Tailwind v4 CSS config, SQLite with WAL mode, shell plugin validation, production build proof
-- [ ] **Phase 2: Layout Shell** - Three-column resizable layout, custom title bar, status bar, shared components, dark theme, typography
+- [x] **Phase 2: Layout Shell** - Three-column resizable layout, custom title bar, status bar, shared components, dark theme, typography
 - [ ] **Phase 3: Context Assembly** - Repo manager, skills panel, prompt composer, prompt layer display, token budget bar
 - [ ] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
 - [ ] **Phase 5: Agent Integration** - Claude CLI subprocess, event stream parser, chat panel with streaming, agent event display, working indicator
@@ -52,7 +52,7 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md -- Install dependencies, configure custom title bar, build shared components (Badge/Dot/IconButton/Tooltip), layout components (PanelHeader/TabStrip/TitleBar/StatusBar), bundle fonts
-- [ ] 02-02-PLAN.md -- Three-column resizable layout with nested vertical splits, tab strips wired to placeholder panels, App.tsx integration
+- [x] 02-02-PLAN.md -- Three-column resizable layout with nested vertical splits, tab strips wired to placeholder panels, App.tsx integration
 
 ### Phase 3: Context Assembly
 **Goal**: Users can activate repos and skills via checkboxes, see their composed prompt update in real time, and monitor token usage against a visual budget -- the full context pipeline from raw inputs to debuggable prompt output
@@ -144,7 +144,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-03-28 |
-| 2. Layout Shell | 1/2 | In Progress | - |
+| 2. Layout Shell | 2/2 | Complete | 2026-03-28 |
 | 3. Context Assembly | 0/? | Not started | - |
 | 4. Python REPL + Monaco Editor | 0/? | Not started | - |
 | 5. Agent Integration | 0/? | Not started | - |
