@@ -26,4 +26,66 @@
   --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
   --font-brand: "Space Mono", "JetBrains Mono", ui-monospace, monospace;
+
+  /* ── Custom Animations ── */
+  --animate-dot-pulse: dot-pulse 2s infinite;
+  --animate-fade-slide-in: fade-slide-in 0.3s ease;
+
+  @keyframes dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @keyframes fade-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* ── Base Styles ── */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background-color: var(--color-v-bg);
+  color: var(--color-v-text);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* ── Custom Scrollbars (5px, dark theme) ── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-v-borderHi);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-v-dim);
+}
+
+/* ── Resize Handle Styling ── */
+[data-resize-handle] {
+  background: var(--color-v-border);
+  transition: background-color 150ms;
+}
+
+[data-resize-handle]:hover,
+[data-resize-handle-active] {
+  background: var(--color-v-accent);
 }
