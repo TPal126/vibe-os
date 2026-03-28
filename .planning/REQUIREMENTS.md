@@ -29,16 +29,16 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Context Management
 
 - [ ] **CTX-01**: Repo manager displays repos with checkbox activation, org label, branch name, file count, and language badge
-- [ ] **CTX-02**: Toggling a repo ON triggers file indexing (modules, functions, classes) and updates the prompt composer
+- [x] **CTX-02**: Toggling a repo ON triggers file indexing (modules, functions, classes) and updates the prompt composer
 - [ ] **CTX-03**: User can add repos by pasting a git URL in a dialog
 - [ ] **CTX-04**: Skills panel displays .md skill files with checkbox toggles, category badges (data/ml/core/web/infra/viz), and token counts
 - [ ] **CTX-05**: Token budget bar shows total loaded skill tokens vs 20k soft limit with color thresholds (accent/orange/red)
-- [ ] **CTX-06**: Checked skills inject their content into the prompt via the prompt composer
-- [ ] **CTX-07**: Skills are discovered from ~/.vibe-os/skills/ and project-local {repo}/.vibe/skills/
+- [x] **CTX-06**: Checked skills inject their content into the prompt via the prompt composer
+- [x] **CTX-07**: Skills are discovered from ~/.vibe-os/skills/ and project-local {repo}/.vibe/skills/
 - [ ] **CTX-08**: Prompt Layer panel shows composed prompt in three sub-tabs (System, Task, Repo) with monospace readonly textarea
-- [ ] **CTX-09**: System prompt tab is editable and persists to SQLite
+- [x] **CTX-09**: System prompt tab is editable and persists to SQLite
 - [ ] **CTX-10**: "Copy Full Prompt" button copies the entire composed prompt to clipboard
-- [ ] **CTX-11**: Prompt composer assembles system + task + skill + repo context deterministically
+- [x] **CTX-11**: Prompt composer assembles system + task + skill + repo context deterministically
 
 ### AI Agent Integration
 
@@ -85,8 +85,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **DB-01**: SQLite database stores sessions, decisions, audit log, and settings with WAL mode enabled
 - [x] **DB-02**: Schema migrations run automatically on app startup
-- [ ] **DB-03**: Frontend Zustand store hydrates from SQLite on launch and writes through on user actions
-- [ ] **DB-04**: Session management: create, end, get active session with linked repos, skills, and system prompt
+- [x] **DB-03**: Frontend Zustand store hydrates from SQLite on launch and writes through on user actions
+- [x] **DB-04**: Session management: create, end, get active session with linked repos, skills, and system prompt
 
 ### Platform & Infrastructure
 
@@ -151,16 +151,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDIT-04 | Phase 5 | Pending |
 | EDIT-05 | Phase 7 | Pending |
 | CTX-01 | Phase 3 | Pending |
-| CTX-02 | Phase 3 | Pending |
+| CTX-02 | Phase 3 | Complete |
 | CTX-03 | Phase 3 | Pending |
 | CTX-04 | Phase 3 | Pending |
 | CTX-05 | Phase 3 | Pending |
-| CTX-06 | Phase 3 | Pending |
-| CTX-07 | Phase 3 | Pending |
+| CTX-06 | Phase 3 | Complete |
+| CTX-07 | Phase 3 | Complete |
 | CTX-08 | Phase 3 | Pending |
-| CTX-09 | Phase 3 | Pending |
+| CTX-09 | Phase 3 | Complete |
 | CTX-10 | Phase 3 | Pending |
-| CTX-11 | Phase 3 | Pending |
+| CTX-11 | Phase 3 | Complete |
 | AGENT-01 | Phase 5 | Pending |
 | AGENT-02 | Phase 5 | Pending |
 | AGENT-03 | Phase 5 | Pending |
@@ -189,8 +189,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VIZ-05 | Phase 7 | Pending |
 | DB-01 | Phase 1 | Complete |
 | DB-02 | Phase 1 | Complete |
-| DB-03 | Phase 3 | Pending |
-| DB-04 | Phase 3 | Pending |
+| DB-03 | Phase 3 | Complete |
+| DB-04 | Phase 3 | Complete |
 | PLAT-01 | Phase 1 | Complete |
 | PLAT-02 | Phase 1 | Complete |
 | PLAT-03 | Phase 1 | Complete |

@@ -67,7 +67,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Backend infrastructure: install dependencies, SQLite schema v2, Rust commands (session CRUD, skill discovery, repo management, prompt composition), Zustand store with 4 slices + SQLite storage adapter
+- [x] 03-01-PLAN.md -- Backend infrastructure: install dependencies, SQLite schema v2, Rust commands (session CRUD, skill discovery, repo management, prompt composition), Zustand store with 4 slices + SQLite storage adapter
 - [ ] 03-02-PLAN.md -- RepoManager panel with checkbox rows + AddRepoModal, SkillsPanel with checkbox rows + token budget bar, wire into MainLayout
 - [ ] 03-03-PLAN.md -- PromptLayer panel with sub-tabs + clipboard copy, app-level initialization (session/repos/skills on launch), complete left column wiring
 
