@@ -16,6 +16,9 @@ import {
 import { TabStrip, type Tab } from "./TabStrip";
 import { PanelHeader } from "./PanelHeader";
 import { PlaceholderPanel } from "../panels/PlaceholderPanel";
+import { RepoManager } from "../panels/RepoManager";
+import { SkillsPanel } from "../panels/SkillsPanel";
+import { PromptLayer } from "../panels/PromptLayer";
 
 /* ── Tab definitions ──────────────────────────────────────────────── */
 
@@ -38,12 +41,6 @@ const rightTabs: Tab[] = [
 ];
 
 /* ── Placeholder content per tab ──────────────────────────────────── */
-
-const leftContent: Record<string, { title: string; description: string }> = {
-  repos: { title: "Repos", description: "Repository browser will appear here" },
-  skills: { title: "Skills", description: "Skill catalog will appear here" },
-  prompt: { title: "Prompt Layer", description: "Prompt layer editor will appear here" },
-};
 
 const centerContent: Record<string, { title: string; description: string }> = {
   preview: { title: "Preview", description: "Live preview will appear here" },
@@ -93,11 +90,17 @@ export function MainLayout() {
               <Panel defaultSize={55} minSize={30}>
                 <div className="flex flex-col h-full overflow-hidden">
                   <TabStrip tabs={leftTabs} activeId={leftTab} onChange={setLeftTab} />
-                  <div className="flex-1 overflow-auto">
-                    <PlaceholderPanel
-                      title={leftContent[leftTab].title}
-                      description={leftContent[leftTab].description}
-                    />
+                  <div className="flex-1 overflow-hidden">
+                    {leftTab === "repos" ? (
+                      <RepoManager />
+                    ) : leftTab === "skills" ? (
+                      <SkillsPanel />
+                    ) : (
+                      <PlaceholderPanel
+                        title={leftContent[leftTab].title}
+                        description={leftContent[leftTab].description}
+                      />
+                    )}
                   </div>
                 </div>
               </Panel>
