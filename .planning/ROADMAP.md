@@ -64,12 +64,12 @@ Plans:
   3. Token budget bar shows total loaded skill tokens vs 20k soft limit, changing color at thresholds (accent/orange/red)
   4. Prompt Layer panel shows the composed prompt across System/Task/Repo sub-tabs in monospace readonly textareas, updating deterministically when repos or skills are toggled; "Copy Full Prompt" copies to clipboard
   5. System prompt tab is editable and persists to SQLite; session management (create, end, get active) works with linked repos, skills, and system prompt
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
+- [ ] 03-01-PLAN.md -- Backend infrastructure: install dependencies, SQLite schema v2, Rust commands (session CRUD, skill discovery, repo management, prompt composition), Zustand store with 4 slices + SQLite storage adapter
+- [ ] 03-02-PLAN.md -- RepoManager panel with checkbox rows + AddRepoModal, SkillsPanel with checkbox rows + token budget bar, wire into MainLayout
+- [ ] 03-03-PLAN.md -- PromptLayer panel with sub-tabs + clipboard copy, app-level initialization (session/repos/skills on launch), complete left column wiring
 
 ### Phase 4: Python REPL + Monaco Editor
 **Goal**: Users can write Python code in a themed Monaco editor and run it in an integrated REPL console -- validating the subprocess management pattern that Claude CLI integration will reuse in Phase 5
@@ -145,7 +145,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-03-28 |
 | 2. Layout Shell | 2/2 | Complete | 2026-03-28 |
-| 3. Context Assembly | 0/? | Not started | - |
+| 3. Context Assembly | 0/3 | In progress | - |
 | 4. Python REPL + Monaco Editor | 0/? | Not started | - |
 | 5. Agent Integration | 0/? | Not started | - |
 | 6. Decisions, Audit & Scripts | 0/? | Not started | - |
