@@ -95,12 +95,9 @@ export function MainLayout() {
                       <RepoManager />
                     ) : leftTab === "skills" ? (
                       <SkillsPanel />
-                    ) : (
-                      <PlaceholderPanel
-                        title={leftContent[leftTab].title}
-                        description={leftContent[leftTab].description}
-                      />
-                    )}
+                    ) : leftTab === "prompt" ? (
+                      <PromptLayer />
+                    ) : null}
                   </div>
                 </div>
               </Panel>
