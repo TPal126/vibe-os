@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── VIBE OS Color Palette ── */
+  --color-v-bg: #08090d;
+  --color-v-bgAlt: #0c0e14;
+  --color-v-surface: #12141c;
+  --color-v-surfaceHi: #181b26;
+  --color-v-border: #232738;
+  --color-v-borderHi: #2e3347;
+  --color-v-text: #b8bdd4;
+  --color-v-textHi: #e1e4f0;
+  --color-v-dim: #5a6080;
+  --color-v-accent: #5b7cfa;
+  --color-v-accentHi: #7d9bff;
+  --color-v-green: #34d399;
+  --color-v-greenDim: #065f46;
+  --color-v-red: #f87171;
+  --color-v-redDim: #7f1d1d;
+  --color-v-orange: #fbbf24;
+  --color-v-orangeDim: #78350f;
+  --color-v-cyan: #22d3ee;
+  --color-v-cyanDim: #164e63;
+
+  /* ── Typography ── */
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", monospace;
+  --font-brand: "Space Mono", "JetBrains Mono", ui-monospace, monospace;
+}
