@@ -10,15 +10,14 @@ use tokio::sync::Mutex as TokioMutex;
 
 use crate::services::event_stream::{self, AgentEvent, AgentEventType};
 
+use super::db_commands::DbState;
+use super::decision_commands;
+
 // ── Process State ──
 
 /// Managed state for active Claude CLI processes.
 /// Key: a unique invocation ID (UUID), Value: the CommandChild handle.
 pub type ClaudeProcesses = Arc<TokioMutex<HashMap<String, CommandChild>>>;
-
-// ── Types ──
-
-type DbState = std::sync::Mutex<rusqlite::Connection>;
 
 #[derive(Debug, Deserialize)]
 pub struct StartClaudeArgs {
@@ -224,6 +223,7 @@ fn get_or_init_processes(app: &AppHandle) -> ClaudeProcesses {
 }
 
 /// Log an AgentEvent to the audit_log table.
+/// Decision-type events are also persisted to the decisions table.
 fn log_to_audit(app: &AppHandle, event: &AgentEvent) {
     // Skip Raw events and empty content to avoid noise
     if event.event_type == AgentEventType::Raw && event.content.is_empty() {
@@ -253,6 +253,29 @@ fn log_to_audit(app: &AppHandle, event: &AgentEvent) {
                     "INSERT INTO audit_log (id, session_id, timestamp, action_type, detail, actor, metadata) VALUES (?1, ?2, ?3, ?4, ?5, 'agent', ?6)",
                     rusqlite::params![id, session_id, event.timestamp, action_type, event.content, metadata_str],
                 );
+
+                // Also persist Decision-type events to the decisions table
+                if event.event_type == AgentEventType::Decision {
+                    let decision = decision_commands::Decision {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        session_id: session_id.clone(),
+                        timestamp: event.timestamp.clone(),
+                        decision: event.content.clone(),
+                        rationale: "Auto-captured from agent stream".to_string(),
+                        confidence: 0.8,
+                        impact_category: "architecture".to_string(),
+                        reversible: true,
+                        related_files: event
+                            .metadata
+                            .as_ref()
+                            .and_then(|m| m.get("path"))
+                            .and_then(|v| v.as_str())
+                            .map(|p| vec![p.to_string()])
+                            .unwrap_or_default(),
+                        related_tickets: Vec::new(),
+                    };
+                    let _ = decision_commands::insert_decision(&conn, &decision);
+                }
             }
         }
     }

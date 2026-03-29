@@ -7,6 +7,8 @@ import { createPromptSlice } from "./slices/promptSlice";
 import { createEditorSlice } from "./slices/editorSlice";
 import { createConsoleSlice } from "./slices/consoleSlice";
 import { createAgentSlice } from "./slices/agentSlice";
+import { createDecisionSlice } from "./slices/decisionSlice";
+import { createAuditSlice } from "./slices/auditSlice";
 import { tauriSqliteStorage } from "./storage";
 import type { AppState } from "./types";
 
@@ -20,6 +22,8 @@ export const useAppStore = create<AppState>()(
       ...createEditorSlice(...a),
       ...createConsoleSlice(...a),
       ...createAgentSlice(...a),
+      ...createDecisionSlice(...a),
+      ...createAuditSlice(...a),
     }),
     {
       name: "vibe-os-store",
@@ -35,4 +39,11 @@ export const useAppStore = create<AppState>()(
 );
 
 // Re-export types for convenience
-export type { AppState, Repo, Skill } from "./types";
+export type {
+  AppState,
+  Repo,
+  Skill,
+  Decision,
+  AuditEntry,
+  ScriptEntry,
+} from "./types";

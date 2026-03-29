@@ -101,6 +101,62 @@ export interface ConsoleSlice {
   clearEntries: () => void;
 }
 
+// ── Decision, Audit & Script Types ──
+
+export interface Decision {
+  id: string;
+  sessionId: string;
+  timestamp: string;
+  decision: string;
+  rationale: string;
+  confidence: number;
+  impactCategory: "perf" | "accuracy" | "dx" | "security" | "architecture";
+  reversible: boolean;
+  relatedFiles: string[];
+  relatedTickets: string[];
+}
+
+export interface AuditEntry {
+  id: string;
+  sessionId: string;
+  timestamp: string;
+  actionType: string;
+  detail: string;
+  actor: "agent" | "user" | "system";
+  metadata: string | null;
+}
+
+export interface ScriptEntry {
+  path: string;
+  name: string;
+  firstSeen: string;
+  lastModified: string;
+  modificationCount: number;
+}
+
+export interface DecisionSlice {
+  decisions: Decision[];
+  decisionsLoading: boolean;
+  loadDecisions: () => Promise<void>;
+  recordDecision: (
+    decision: string,
+    rationale: string,
+    confidence: number,
+    impactCategory: string,
+    reversible: boolean,
+    relatedFiles?: string[],
+    relatedTickets?: string[],
+  ) => Promise<void>;
+  exportDecisions: (format: "json" | "csv") => Promise<void>;
+}
+
+export interface AuditSlice {
+  auditEntries: AuditEntry[];
+  auditLoading: boolean;
+  loadAuditLog: () => Promise<void>;
+  exportAuditLog: (format: "json" | "csv") => Promise<void>;
+}
+
 // ── Agent Types ──
 
 export type AgentEventType =
@@ -154,7 +210,9 @@ export type AppState = SessionSlice &
   PromptSlice &
   EditorSlice &
   ConsoleSlice &
-  AgentSlice;
+  AgentSlice &
+  DecisionSlice &
+  AuditSlice;
 
 // ── Slice Creator Helper ──
 

@@ -52,6 +52,16 @@ export const createRepoSlice: SliceCreator<RepoSlice> = (set, get) => ({
         await commands.updateSessionRepos(activeIds);
       }
 
+      // Log repo toggle to audit trail (fire-and-forget)
+      commands
+        .logAction(
+          "REPO_TOGGLE",
+          `${newActive ? "Activated" : "Deactivated"} repo: ${repo.name}`,
+          "user",
+          JSON.stringify({ repoId: repo.id, active: newActive }),
+        )
+        .catch(() => {});
+
       // Recompose prompt with updated repo context
       await get().recompose();
     } catch (err) {
@@ -71,6 +81,16 @@ export const createRepoSlice: SliceCreator<RepoSlice> = (set, get) => ({
       const meta = await commands.cloneRepo(gitUrl);
       const repo = repoMetaToRepo(meta);
       set((state) => ({ repos: [...state.repos, repo], repoLoading: false }));
+
+      // Log repo add to audit trail (fire-and-forget)
+      commands
+        .logAction(
+          "REPO_ADD",
+          `Cloned repo: ${repo.name} (${gitUrl})`,
+          "user",
+          JSON.stringify({ repoId: repo.id, gitUrl }),
+        )
+        .catch(() => {});
     } catch (err) {
       set({ repoLoading: false });
       throw err; // Re-throw so the modal can display the error

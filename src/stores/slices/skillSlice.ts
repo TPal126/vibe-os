@@ -34,6 +34,20 @@ export const createSkillSlice: SliceCreator<SkillSlice> = (set, get) => ({
         await commands.updateSessionSkills(activeIds);
       }
 
+      // Log skill toggle to audit trail (fire-and-forget)
+      const skill = get().skills.find((s) => s.id === id);
+      if (skill) {
+        const newActive = skill.active;
+        commands
+          .logAction(
+            "SKILL_TOGGLE",
+            `${newActive ? "Activated" : "Deactivated"} skill: ${skill.label}`,
+            "user",
+            JSON.stringify({ skillId: skill.id, active: newActive }),
+          )
+          .catch(() => {});
+      }
+
       // Recompose prompt with updated skill context
       await get().recompose();
     } catch (err) {

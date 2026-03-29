@@ -9,7 +9,9 @@ use commands::audit_commands;
 use commands::claude_commands;
 use commands::context_commands;
 use commands::db_commands;
+use commands::decision_commands;
 use commands::file_commands;
+use commands::script_commands;
 use commands::shell_commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,6 +19,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // Resolve the app data directory using Tauri's path API
             let app_data_dir = app
@@ -93,6 +96,13 @@ pub fn run() {
             claude_commands::start_claude,
             claude_commands::send_message,
             claude_commands::cancel_claude,
+            decision_commands::record_decision,
+            decision_commands::get_session_decisions,
+            decision_commands::export_decisions,
+            script_commands::get_session_scripts,
+            script_commands::generate_skill_from_script,
+            audit_commands::get_session_audit,
+            audit_commands::export_audit_log,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

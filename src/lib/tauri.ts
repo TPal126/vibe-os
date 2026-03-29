@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
 
 // ── Types matching Rust structs ──
 
@@ -46,6 +47,39 @@ export interface AuditEntry {
   detail: string;
   actor: string;
   metadata: string | null;
+}
+
+// ── Raw types for new commands (snake_case from Rust) ──
+
+export interface DecisionRaw {
+  id: string;
+  session_id: string;
+  timestamp: string;
+  decision: string;
+  rationale: string;
+  confidence: number;
+  impact_category: string;
+  reversible: boolean;
+  related_files: string[];
+  related_tickets: string[];
+}
+
+export interface AuditEntryRaw {
+  id: string;
+  session_id: string;
+  timestamp: string;
+  action_type: string;
+  detail: string;
+  actor: string;
+  metadata: string | null;
+}
+
+export interface ScriptEntryRaw {
+  path: string;
+  name: string;
+  first_seen: string;
+  last_modified: string;
+  modification_count: number;
 }
 
 /**
@@ -129,4 +163,52 @@ export const commands = {
 
   cancelClaude: (invocationId: string) =>
     invoke<void>("cancel_claude", { invocationId }),
+
+  // ── Decision commands ──
+  recordDecision: (
+    sessionId: string,
+    decision: string,
+    rationale: string,
+    confidence: number,
+    impactCategory: string,
+    reversible: boolean,
+    relatedFiles: string[],
+    relatedTickets: string[],
+  ) =>
+    invoke<DecisionRaw>("record_decision", {
+      sessionId,
+      decision,
+      rationale,
+      confidence,
+      impactCategory,
+      reversible,
+      relatedFiles,
+      relatedTickets,
+    }),
+  getSessionDecisions: (sessionId: string) =>
+    invoke<DecisionRaw[]>("get_session_decisions", { sessionId }),
+  exportDecisions: (sessionId: string, format: string, outputPath: string) =>
+    invoke<void>("export_decisions", { sessionId, format, outputPath }),
+
+  // ── Enhanced audit commands ──
+  getSessionAudit: (sessionId: string, limit?: number) =>
+    invoke<AuditEntryRaw[]>("get_session_audit", { sessionId, limit }),
+  exportAuditLog: (sessionId: string, format: string, outputPath: string) =>
+    invoke<void>("export_audit_log", { sessionId, format, outputPath }),
+
+  // ── Script commands ──
+  getSessionScripts: (sessionId: string) =>
+    invoke<ScriptEntryRaw[]>("get_session_scripts", { sessionId }),
+  generateSkillFromScript: (scriptPath: string) =>
+    invoke<SkillMeta>("generate_skill_from_script", { scriptPath }),
 };
+
+// ── Dialog helpers ──
+
+export async function showSaveDialog(
+  defaultName: string,
+  filters: { name: string; extensions: string[] }[],
+): Promise<string | null> {
+  const path = await save({ defaultPath: defaultName, filters });
+  return path;
+}
