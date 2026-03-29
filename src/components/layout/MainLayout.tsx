@@ -12,10 +12,10 @@ import {
   ScrollText,
   MessageSquare,
   FileCode,
+  FileDiff,
 } from "lucide-react";
 import { TabStrip, type Tab } from "./TabStrip";
 import { PanelHeader } from "./PanelHeader";
-import { PlaceholderPanel } from "../panels/PlaceholderPanel";
 import { RepoManager } from "../panels/RepoManager";
 import { SkillsPanel } from "../panels/SkillsPanel";
 import { PromptLayer } from "../panels/PromptLayer";
@@ -23,6 +23,9 @@ import { CodeEditor } from "../center/CodeEditor";
 import { Console } from "../center/Console";
 import { ClaudeChat } from "../panels/ClaudeChat";
 import { AgentStream } from "../panels/AgentStream";
+import { ArchViewer } from "../panels/ArchViewer";
+import { LivePreview } from "../panels/LivePreview";
+import { DiffView } from "../panels/DiffView";
 import { DecisionLog } from "../panels/DecisionLog";
 import { AuditLog } from "../panels/AuditLog";
 import { ScriptsTracker } from "../panels/ScriptsTracker";
@@ -39,6 +42,7 @@ const centerTabs: Tab[] = [
   { id: "preview", label: "Preview", icon: <Eye size={10} /> },
   { id: "architecture", label: "Architecture", icon: <Network size={10} /> },
   { id: "editor", label: "Editor", icon: <Code size={10} /> },
+  { id: "diff", label: "Diff", icon: <FileDiff size={10} /> },
 ];
 
 const rightTabs: Tab[] = [
@@ -47,15 +51,6 @@ const rightTabs: Tab[] = [
   { id: "audit", label: "Audit Log", icon: <ScrollText size={10} /> },
   { id: "scripts", label: "Scripts", icon: <FileCode size={10} /> },
 ];
-
-/* ── Placeholder content per tab ──────────────────────────────────── */
-
-const centerContent: Record<string, { title: string; description: string }> = {
-  preview: { title: "Preview", description: "Live preview will appear here" },
-  architecture: { title: "Architecture", description: "Architecture graph will appear here" },
-  editor: { title: "Editor", description: "Code editor will appear here" },
-};
-
 
 /* ── Separator helpers ────────────────────────────────────────────── */
 
@@ -133,12 +128,13 @@ export function MainLayout() {
                   <div className="flex-1 overflow-hidden">
                     {centerTab === "editor" ? (
                       <CodeEditor />
-                    ) : (
-                      <PlaceholderPanel
-                        title={centerContent[centerTab].title}
-                        description={centerContent[centerTab].description}
-                      />
-                    )}
+                    ) : centerTab === "architecture" ? (
+                      <ArchViewer />
+                    ) : centerTab === "preview" ? (
+                      <LivePreview />
+                    ) : centerTab === "diff" ? (
+                      <DiffView />
+                    ) : null}
                   </div>
                 </div>
               </Panel>
