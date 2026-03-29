@@ -24,6 +24,7 @@ export function TitleBar() {
     openProject,
     setActiveClaudeSessionId,
     openWorkspace,
+    toggleSettingsPanel,
   } = useAppStore(
     useShallow((s) => ({
       repos: s.repos,
@@ -37,6 +38,7 @@ export function TitleBar() {
       openProject: s.openProject,
       setActiveClaudeSessionId: s.setActiveClaudeSessionId,
       openWorkspace: s.openWorkspace,
+      toggleSettingsPanel: s.toggleSettingsPanel,
     })),
   );
 
@@ -140,6 +142,7 @@ export function TitleBar() {
         )}
         {!isHome && (
           <button
+            onClick={toggleSettingsPanel}
             className="p-2 hover:bg-v-surfaceHi rounded transition-colors"
             title="Settings"
           >

@@ -1,5 +1,6 @@
 import { ClaudeChat } from "../panels/ClaudeChat";
-import { SecondaryDrawer } from "./SecondaryDrawer";
+import { SettingsPanel } from "../settings/SettingsPanel";
+import { EditorPanel } from "../editor/EditorPanel";
 import { HomeScreen } from "../home/HomeScreen";
 import { useAppStore } from "../../stores";
 
@@ -9,7 +10,12 @@ export function MainLayout() {
   return (
     <div className="flex-1 overflow-hidden relative">
       {currentView === "home" ? <HomeScreen /> : <ClaudeChat />}
-      {currentView === "conversation" && <SecondaryDrawer />}
+      {currentView === "conversation" && (
+        <>
+          <SettingsPanel />
+          <EditorPanel />
+        </>
+      )}
     </div>
   );
 }

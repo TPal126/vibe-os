@@ -381,6 +381,18 @@ export interface LayoutSlice {
   setDrawerOpen: (open: boolean) => void;
   setActiveDrawerTab: (tab: string) => void;
   openDrawerToTab: (tab: string) => void;
+
+  // Phase 17: Settings panel (right slide-in)
+  settingsPanelOpen: boolean;
+  settingsPanelTab: string;
+  toggleSettingsPanel: () => void;
+  setSettingsPanelOpen: (open: boolean) => void;
+  setSettingsPanelTab: (tab: string) => void;
+
+  // Phase 17: Editor panel (bottom slide-in)
+  editorPanelOpen: boolean;
+  toggleEditorPanel: () => void;
+  setEditorPanelOpen: (open: boolean) => void;
 }
 
 // ── Dashboard Types ──

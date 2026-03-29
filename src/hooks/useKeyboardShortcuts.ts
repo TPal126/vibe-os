@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useAppStore } from "../stores";
 
 /**
  * Global keyboard shortcuts for VIBE OS.
@@ -21,6 +22,15 @@ export function useKeyboardShortcuts() {
           );
           if (consoleInput) {
             consoleInput.focus();
+          }
+          break;
+        }
+        case "c":
+        case "C": {
+          // Ctrl+Shift+C: Toggle editor panel (escape hatch)
+          if (e.shiftKey) {
+            e.preventDefault();
+            useAppStore.getState().toggleEditorPanel();
           }
           break;
         }
