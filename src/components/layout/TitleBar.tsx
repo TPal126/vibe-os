@@ -1,8 +1,10 @@
+import { useState, useEffect, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X, Settings, ArrowLeft } from "lucide-react";
+import { Minus, Square, X, Settings, ArrowLeft, Bell } from "lucide-react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { Badge } from "../shared/Badge";
+import { getAttentionItems } from "../../lib/attention";
 
 const formatTokens = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
@@ -18,6 +20,10 @@ export function TitleBar() {
     goHome,
     activeProjectId,
     projects,
+    claudeSessions,
+    openProject,
+    setActiveClaudeSessionId,
+    openWorkspace,
   } = useAppStore(
     useShallow((s) => ({
       repos: s.repos,
@@ -27,6 +33,10 @@ export function TitleBar() {
       goHome: s.goHome,
       activeProjectId: s.activeProjectId,
       projects: s.projects,
+      claudeSessions: s.claudeSessions,
+      openProject: s.openProject,
+      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      openWorkspace: s.openWorkspace,
     })),
   );
 
@@ -36,6 +46,33 @@ export function TitleBar() {
   const totalTokens = composedPrompt?.totalTokens ?? 0;
 
   const isHome = currentView === "home";
+
+  // Attention badge
+  const attentionItems = getAttentionItems(projects, claudeSessions);
+  const attentionCount = attentionItems.length;
+  const [cycleIndex, setCycleIndex] = useState(0);
+
+  useEffect(() => {
+    setCycleIndex(0);
+  }, [attentionCount]);
+
+  const handleAttentionClick = useCallback(() => {
+    if (attentionItems.length === 0) return;
+    const idx = cycleIndex % attentionItems.length;
+    const item = attentionItems[idx];
+
+    // Navigate to the flagged project
+    openProject(item.projectId);
+    setActiveClaudeSessionId(item.sessionId);
+
+    // Load workspace in background
+    const project = projects.find((p) => p.id === item.projectId);
+    if (project) {
+      openWorkspace(project.workspacePath).catch(() => {});
+    }
+
+    setCycleIndex(idx + 1);
+  }, [attentionItems, cycleIndex, openProject, setActiveClaudeSessionId, projects, openWorkspace]);
 
   return (
     <div
@@ -87,8 +124,20 @@ export function TitleBar() {
         </div>
       )}
 
-      {/* Right: Settings Gear + Window Controls */}
+      {/* Right: Attention Badge + Settings Gear + Window Controls */}
       <div className="flex items-center gap-1">
+        {attentionCount > 0 && (
+          <button
+            onClick={handleAttentionClick}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-v-orange/10 hover:bg-v-orange/20 transition-colors animate-pulse"
+            title={`${attentionCount} project${attentionCount !== 1 ? "s" : ""} need${attentionCount === 1 ? "s" : ""} attention`}
+          >
+            <Bell size={12} className="text-v-orange" />
+            <span className="text-[11px] font-medium text-v-orange">
+              {attentionCount} need{attentionCount === 1 ? "s" : ""} you
+            </span>
+          </button>
+        )}
         {!isHome && (
           <button
             className="p-2 hover:bg-v-surfaceHi rounded transition-colors"

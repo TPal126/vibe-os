@@ -118,21 +118,49 @@ export function ClaudeChat() {
   const chatMessages = activeSession?.chatMessages ?? [];
   const isWorking = activeSession?.isWorking ?? false;
   const conversationId = activeSession?.conversationId ?? null;
+  const attentionMessageId = activeSession?.attentionMessageId ?? null;
 
   const [input, setInput] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const attentionScrollDone = useRef(false);
   const showCliBanner = claudeCliAvailable === false && !bannerDismissed;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages, isWorking]);
 
+  // Auto-scroll to attention message
+  useEffect(() => {
+    if (attentionMessageId && !attentionScrollDone.current) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`msg-${attentionMessageId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("ring-2", "ring-v-orange/50");
+          setTimeout(() => el.classList.remove("ring-2", "ring-v-orange/50"), 2000);
+        }
+        attentionScrollDone.current = true;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [attentionMessageId]);
+
+  // Reset scroll flag when switching sessions
+  useEffect(() => {
+    attentionScrollDone.current = false;
+  }, [activeClaudeSessionId]);
+
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isWorking || !activeSessionId) return;
+
+    // Clear attention when user engages
+    if (activeClaudeSessionId) {
+      useAppStore.getState().clearSessionAttention(activeClaudeSessionId);
+    }
 
     // Auto-create a claude session if none exists
     let sessionId = activeClaudeSessionId;
@@ -277,18 +305,24 @@ export function ClaudeChat() {
         )}
 
         {chatMessages.map((msg) => {
-          switch (msg.cardType) {
-            case "activity":
-              return <ActivityLine key={msg.id} message={msg} />;
-            case "outcome":
-              return <OutcomeCard key={msg.id} message={msg} />;
-            case "error":
-              return <ErrorCard key={msg.id} message={msg} />;
-            case "decision":
-              return <InlineDecisionCard key={msg.id} message={msg} />;
-            default:
-              return <MessageBubble key={msg.id} message={msg} />;
+          const rendered = (() => {
+            switch (msg.cardType) {
+              case "activity":
+                return <ActivityLine key={msg.id} message={msg} />;
+              case "outcome":
+                return <OutcomeCard key={msg.id} message={msg} />;
+              case "error":
+                return <ErrorCard key={msg.id} message={msg} />;
+              case "decision":
+                return <InlineDecisionCard key={msg.id} message={msg} />;
+              default:
+                return <MessageBubble key={msg.id} message={msg} />;
+            }
+          })();
+          if (msg.id === attentionMessageId) {
+            return <div key={msg.id} id={`msg-${msg.id}`}>{rendered}</div>;
           }
+          return rendered;
         })}
 
         <div ref={messagesEndRef} />
