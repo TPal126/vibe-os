@@ -48,3 +48,42 @@ export function getBudgetTextColor(ratio: number): string {
   if (ratio > TOKEN_BUDGET.thresholds.normal) return "text-v-orange";
   return "text-v-accent";
 }
+
+/**
+ * Get usage ratio for a given current token count against a budget max.
+ * Returns a number between 0 and Infinity.
+ */
+export function getUsageRatio(current: number, max: number): number {
+  if (max <= 0) return 0;
+  return current / max;
+}
+
+/**
+ * Get the warning level for a given usage ratio.
+ * Returns 'normal' | 'warn' | 'danger' based on threshold.
+ */
+export function getWarningLevel(
+  ratio: number,
+  warningThreshold: number = 0.75,
+): "normal" | "warn" | "danger" {
+  if (ratio >= 0.9) return "danger";
+  if (ratio >= warningThreshold) return "warn";
+  return "normal";
+}
+
+/**
+ * Get both bar color and text color for a warning level.
+ */
+export function getWarningColors(level: "normal" | "warn" | "danger"): {
+  bar: string;
+  text: string;
+} {
+  switch (level) {
+    case "danger":
+      return { bar: "bg-v-red", text: "text-v-red" };
+    case "warn":
+      return { bar: "bg-v-orange", text: "text-v-orange" };
+    default:
+      return { bar: "bg-v-green", text: "text-v-green" };
+  }
+}

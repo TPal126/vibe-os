@@ -136,6 +136,34 @@ export interface ScriptEntry {
   modificationCount: number;
 }
 
+// -- Token Budget Types --
+
+export interface TokenBudget {
+  id: string;
+  scopeType: "skill" | "repo" | "session";
+  scopeId: string;
+  maxTokens: number;
+  warningThreshold: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TokenSlice {
+  tokenBudgets: TokenBudget[];
+  tokenBudgetsLoading: boolean;
+  loadTokenBudgets: () => Promise<void>;
+  setTokenBudget: (
+    scopeType: "skill" | "repo" | "session",
+    scopeId: string,
+    maxTokens: number,
+    warningThreshold?: number,
+  ) => Promise<void>;
+  deleteTokenBudget: (id: string) => Promise<void>;
+  getSkillBudget: (skillId: string) => TokenBudget | undefined;
+  getRepoBudget: (repoId: string) => TokenBudget | undefined;
+  getSessionBudget: () => TokenBudget | undefined;
+}
+
 export interface DecisionSlice {
   decisions: Decision[];
   decisionsLoading: boolean;
@@ -331,7 +359,8 @@ export type AppState = SessionSlice &
   PreviewSlice &
   WorkspaceSlice &
   LayoutSlice &
-  DashboardSlice;
+  DashboardSlice &
+  TokenSlice;
 
 // ── Slice Creator Helper ──
 

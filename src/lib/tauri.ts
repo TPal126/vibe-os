@@ -132,6 +132,16 @@ export interface ScriptEntryRaw {
   modification_count: number;
 }
 
+export interface TokenBudgetRaw {
+  id: string;
+  scope_type: string;
+  scope_id: string;
+  max_tokens: number;
+  warning_threshold: number;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Typed command wrappers for all Tauri IPC commands.
  * Each method maps to a #[tauri::command] in the Rust backend.
@@ -179,12 +189,18 @@ export const commands = {
     taskContext: string,
     activeSkillPaths: string[],
     activeRepoSummaries: string[],
+    skillBudgets?: [string, number][],
+    repoBudgets?: [string, number][],
+    sessionBudget?: number,
   ) =>
     invoke<ComposedPrompt>("compose_prompt", {
       systemPrompt,
       taskContext,
       activeSkillPaths,
       activeRepoSummaries,
+      skillBudgets: skillBudgets ?? null,
+      repoBudgets: repoBudgets ?? null,
+      sessionBudget: sessionBudget ?? null,
     }),
 
   // ── File I/O ──
@@ -284,6 +300,24 @@ export const commands = {
     invoke<void>("watch_workspace_claude_md", { workspacePath }),
   stopWorkspaceWatcher: () =>
     invoke<void>("stop_workspace_watcher"),
+
+  // ── Token budget commands ──
+  setTokenBudget: (
+    scopeType: string,
+    scopeId: string,
+    maxTokens: number,
+    warningThreshold?: number,
+  ) =>
+    invoke<TokenBudgetRaw>("set_token_budget", {
+      scopeType,
+      scopeId,
+      maxTokens,
+      warningThreshold: warningThreshold ?? null,
+    }),
+  getTokenBudgets: () =>
+    invoke<TokenBudgetRaw[]>("get_token_budgets"),
+  deleteTokenBudget: (id: string) =>
+    invoke<void>("delete_token_budget", { id }),
 };
 
 // ── Dialog helpers ──

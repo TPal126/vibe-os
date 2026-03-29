@@ -23,16 +23,10 @@ import { DecisionLog } from "../panels/DecisionLog";
 import { AuditLog } from "../panels/AuditLog";
 import { SessionDashboard } from "../panels/SessionDashboard";
 import { MermaidDiagram } from "../panels/MermaidDiagram";
-import { PlaceholderPanel } from "../panels/PlaceholderPanel";
+import { TokenControlPanel } from "../panels/TokenControlPanel";
 import { useAppStore } from "../../stores";
 
 /* -- Tab definitions ------------------------------------------------- */
-
-const leftTabs: Tab[] = [
-  { id: "repos", label: "Repos", icon: <FolderGit2 size={10} /> },
-  { id: "skills", label: "Skills", icon: <BookOpen size={10} /> },
-  { id: "token-control", label: "Token Control", icon: <Gauge size={10} /> },
-];
 
 const rightTabs: Tab[] = [
   { id: "decisions", label: "Decisions", icon: <Diamond size={10} /> },
@@ -71,6 +65,34 @@ export function MainLayout() {
     })),
   );
 
+  const tokenWarningCount = useAppStore((s) => {
+    const { tokenBudgets, skills, repos, composedPrompt } = s;
+    return tokenBudgets.filter((b) => {
+      const ratio = (() => {
+        if (b.scopeType === "session") {
+          return (composedPrompt?.totalTokens ?? 0) / b.maxTokens;
+        }
+        if (b.scopeType === "skill") {
+          const skill = skills.find((sk) => sk.id === b.scopeId);
+          return skill ? skill.tokens / b.maxTokens : 0;
+        }
+        if (b.scopeType === "repo") {
+          const repo = repos.find((r) => r.id === b.scopeId);
+          if (!repo?.indexSummary) return 0;
+          return Math.round(repo.indexSummary.length / 3.5) / b.maxTokens;
+        }
+        return 0;
+      })();
+      return ratio >= b.warningThreshold;
+    }).length;
+  });
+
+  const leftTabs: Tab[] = [
+    { id: "repos", label: "Repos", icon: <FolderGit2 size={10} /> },
+    { id: "skills", label: "Skills", icon: <BookOpen size={10} /> },
+    { id: "tokens", label: "Tokens", icon: <Gauge size={10} />, count: tokenWarningCount > 0 ? tokenWarningCount : undefined },
+  ];
+
   return (
     <div className="flex-1 overflow-hidden relative">
       <Group orientation="horizontal" className="flex-1">
@@ -91,12 +113,8 @@ export function MainLayout() {
                       <RepoManager />
                     ) : leftTab === "skills" ? (
                       <SkillsPanel />
-                    ) : leftTab === "token-control" ? (
-                      <PlaceholderPanel
-                        title="Token Control"
-                        icon={<Gauge size={24} />}
-                        description="Coming in Phase 10"
-                      />
+                    ) : leftTab === "tokens" ? (
+                      <TokenControlPanel />
                     ) : null}
                   </div>
                 </div>
