@@ -11,6 +11,7 @@ import {
   Diamond,
   ScrollText,
   MessageSquare,
+  FileCode,
 } from "lucide-react";
 import { TabStrip, type Tab } from "./TabStrip";
 import { PanelHeader } from "./PanelHeader";
@@ -22,6 +23,9 @@ import { CodeEditor } from "../center/CodeEditor";
 import { Console } from "../center/Console";
 import { ClaudeChat } from "../panels/ClaudeChat";
 import { AgentStream } from "../panels/AgentStream";
+import { DecisionLog } from "../panels/DecisionLog";
+import { AuditLog } from "../panels/AuditLog";
+import { ScriptsTracker } from "../panels/ScriptsTracker";
 
 /* ── Tab definitions ──────────────────────────────────────────────── */
 
@@ -41,6 +45,7 @@ const rightTabs: Tab[] = [
   { id: "agent-stream", label: "Agent Stream", icon: <Activity size={10} /> },
   { id: "decisions", label: "Decisions", icon: <Diamond size={10} /> },
   { id: "audit", label: "Audit Log", icon: <ScrollText size={10} /> },
+  { id: "scripts", label: "Scripts", icon: <FileCode size={10} /> },
 ];
 
 /* ── Placeholder content per tab ──────────────────────────────────── */
@@ -51,10 +56,6 @@ const centerContent: Record<string, { title: string; description: string }> = {
   editor: { title: "Editor", description: "Code editor will appear here" },
 };
 
-const rightContent: Record<string, { title: string; description: string }> = {
-  decisions: { title: "Decisions", description: "Decision log will appear here" },
-  audit: { title: "Audit Log", description: "Audit trail will appear here" },
-};
 
 /* ── Separator helpers ────────────────────────────────────────────── */
 
@@ -163,12 +164,13 @@ export function MainLayout() {
             <div className="flex-1 overflow-hidden">
               {rightTab === "agent-stream" ? (
                 <AgentStream />
-              ) : (
-                <PlaceholderPanel
-                  title={rightContent[rightTab].title}
-                  description={rightContent[rightTab].description}
-                />
-              )}
+              ) : rightTab === "decisions" ? (
+                <DecisionLog />
+              ) : rightTab === "audit" ? (
+                <AuditLog />
+              ) : rightTab === "scripts" ? (
+                <ScriptsTracker />
+              ) : null}
             </div>
           </div>
         </Panel>
