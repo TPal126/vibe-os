@@ -54,8 +54,8 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 09-01-PLAN.md -- Layout restructure with new column assignments, secondary drawer, layout state slice
-- [ ] 09-02-PLAN.md -- Session Dashboard with editable goal, context summary, activity feed, session stats
-- [ ] 09-03-PLAN.md -- Mermaid architecture diagram, ArchGraph converter, D3 removal
+- [x] 09-02-PLAN.md -- Session Dashboard with editable goal, context summary, activity feed, session stats
+- [x] 09-03-PLAN.md -- Mermaid architecture diagram, ArchGraph converter, D3 removal
 
 ### Phase 10: Multi-Session & Token Control
 **Goal**: Power users can run multiple Claude sessions simultaneously with clear visual management, get alerted when a background session needs input, and control token budgets with fine-grained per-skill and per-repo limits
@@ -95,6 +95,6 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 8. Workspace System | 3/3 | Complete | 2026-03-28 |
-| 9. Layout Restructure & Dashboard | 1/3 | In Progress | - |
+| 9. Layout Restructure & Dashboard | 3/3 | Complete | 2026-03-29 |
 | 10. Multi-Session & Token Control | 0/3 | Planned | - |
 | 11. Polish & Bug Fixes | 0/4 | Planned | - |

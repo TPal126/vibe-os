@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Developers can see, understand, and direct every decision an AI coding agent makes
-**Current focus:** v2 Milestone -- Workspace-First Vibe Coding Overhaul, Phase 8 complete
+**Current focus:** v2 Milestone -- Workspace-First Vibe Coding Overhaul, Phase 9 complete
 
 ## Current Position
 
-Phase: 9 of 11 (Layout Restructure & Dashboard)
-Plan: 1 of 3 in current phase
-Status: Executing Phase 9
-Last activity: 2026-03-29 -- Plan 09-01 complete (layout restructure, secondary drawer, layout state)
+Phase: 10 of 11 (Multi-Session & Token Control)
+Plan: 0 of 3 in current phase
+Status: Phase 9 complete, ready for Phase 10
+Last activity: 2026-03-29 -- Plan 09-03 complete (Mermaid architecture diagram, D3 removal)
 
-Progress: [###-------] 25%
+Progress: [#####-----] 46%
 
 ## v1 Summary
 
@@ -29,9 +29,9 @@ Total execution time: ~1.55 hours across all phases.
 - Total execution time: ~1.55 hours
 
 **v2 Velocity:**
-- Total plans completed: 4
-- Average duration: ~3.6m
-- Total execution time: ~14.5m
+- Total plans completed: 6
+- Average duration: ~3.2m
+- Total execution time: ~19.3m
 
 *Updated after each plan completion*
 
@@ -51,6 +51,8 @@ Key v2 decisions:
 - [08-02]: Removed systemPrompt from Zustand partialize -- workspace CLAUDE.md is now the authoritative source
 - [09-01]: Drawer uses fixed overlay with backdrop; Editor/Console use CSS display toggling to preserve state
 - [09-01]: Layout proportions 20/45/35 for conversation-first emphasis; center column dominates
+- [09-02]: sessionGoal persisted via Zustand partialize; activity feed capped at 20 reverse-chronological events
+- [09-03]: Module-level mermaid.initialize() avoids re-init on every render; render counter for unique element IDs
 
 ### Pending Todos
 
@@ -65,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 09-01-PLAN.md (layout restructure). Ready for 09-02 (Session Dashboard).
+Stopped at: Completed 09-03-PLAN.md (Mermaid architecture diagram, D3 removal). Phase 9 complete. Ready for Phase 10.
 Resume file: None

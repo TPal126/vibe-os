@@ -126,11 +126,11 @@ Requirements for the "Workspace-First Vibe Coding Overhaul" milestone. Phases 8-
 
 ### Session Dashboard
 
-- [ ] **DASH-01**: Session Dashboard panel renders below Claude Chat in the center column, showing at-a-glance session state
-- [ ] **DASH-02**: Dashboard displays the current goal or task description (editable, persists to session)
-- [ ] **DASH-03**: Dashboard shows a context summary: which repos are active, which skills are loaded, current token usage vs budget
-- [ ] **DASH-04**: Dashboard has an activity feed showing recent events: decisions made, files changed, current Claude action (thinking, writing, etc.)
-- [ ] **DASH-05**: Dashboard displays session stats: elapsed time, message count, tokens used/remaining, files modified count
+- [x] **DASH-01**: Session Dashboard panel renders below Claude Chat in the center column, showing at-a-glance session state
+- [x] **DASH-02**: Dashboard displays the current goal or task description (editable, persists to session)
+- [x] **DASH-03**: Dashboard shows a context summary: which repos are active, which skills are loaded, current token usage vs budget
+- [x] **DASH-04**: Dashboard has an activity feed showing recent events: decisions made, files changed, current Claude action (thinking, writing, etc.)
+- [x] **DASH-05**: Dashboard displays session stats: elapsed time, message count, tokens used/remaining, files modified count
 
 ### Architecture Visualization
 
@@ -249,11 +249,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LAYOUT-11 | Phase 9 | Complete (09-01) |
 | LAYOUT-12 | Phase 9 | In Progress (layout: 09-01, mermaid content: 09-03) |
 | LAYOUT-13 | Phase 9 | Complete (09-01) |
-| DASH-01 | Phase 9 | In Progress (placeholder: 09-01, content: 09-02) |
-| DASH-02 | Phase 9 | Pending |
-| DASH-03 | Phase 9 | Pending |
-| DASH-04 | Phase 9 | Pending |
-| DASH-05 | Phase 9 | Pending |
+| DASH-01 | Phase 9 | Complete (09-02) |
+| DASH-02 | Phase 9 | Complete (09-02) |
+| DASH-03 | Phase 9 | Complete (09-02) |
+| DASH-04 | Phase 9 | Complete (09-02) |
+| DASH-05 | Phase 9 | Complete (09-02) |
 | ARCH-01 | Phase 9 | Pending |
 | ARCH-02 | Phase 9 | Pending |
 | ARCH-03 | Phase 9 | Pending |
