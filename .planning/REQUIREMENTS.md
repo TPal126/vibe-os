@@ -120,9 +120,9 @@ Requirements for the "Workspace-First Vibe Coding Overhaul" milestone. Phases 8-
 
 ### Chat Enhancements
 
-- [ ] **CHAT-01**: App supports multiple concurrent Claude Code sessions, each with its own subprocess, conversation history, and working state
-- [ ] **CHAT-02**: Session tabs or visual switcher in the chat area allows switching between active Claude sessions; active session is visually distinct
-- [ ] **CHAT-03**: When a non-active Claude session needs user input, a visual alert (badge, notification dot, or toast) appears on its session tab so the user notices without switching to it
+- [x] **CHAT-01**: App supports multiple concurrent Claude Code sessions, each with its own subprocess, conversation history, and working state
+- [x] **CHAT-02**: Session tabs or visual switcher in the chat area allows switching between active Claude sessions; active session is visually distinct
+- [x] **CHAT-03**: When a non-active Claude session needs user input, a visual alert (badge, notification dot, or toast) appears on its session tab so the user notices without switching to it
 
 ### Session Dashboard
 
@@ -257,9 +257,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ARCH-01 | Phase 9 | Complete (09-03) |
 | ARCH-02 | Phase 9 | Complete (09-03) |
 | ARCH-03 | Phase 9 | Complete (09-03) |
-| CHAT-01 | Phase 10 | In Progress (10-01 backend complete) |
-| CHAT-02 | Phase 10 | Pending |
-| CHAT-03 | Phase 10 | Pending |
+| CHAT-01 | Phase 10 | Complete (10-01, 10-02) |
+| CHAT-02 | Phase 10 | Complete (10-02) |
+| CHAT-03 | Phase 10 | Complete (10-02) |
 | TOKEN-01 | Phase 10 | Pending |
 | TOKEN-02 | Phase 10 | Pending |
 | BUG-01 | Phase 11 | Pending |
