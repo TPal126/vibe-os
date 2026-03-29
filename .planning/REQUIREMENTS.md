@@ -1,7 +1,7 @@
 # Requirements: VIBE OS
 
-**Defined:** 2026-03-28
-**Core Value:** Developers can see, understand, and direct every decision an AI coding agent makes
+**Defined:** 2026-03-28, updated 2026-03-29
+**Core Value:** Developers direct AI agents across multiple projects, see outcomes instead of code, and only engage when needed
 
 ## v1 Requirements (Complete)
 
@@ -145,8 +145,51 @@ Requirements for the "Workspace-First Vibe Coding Overhaul" milestone. Phases 8-
 
 ### Bug Fixes
 
-- [ ] **BUG-01**: Repo and skill checkbox toggle state persists correctly when navigating between tabs in the left column (no reset on tab switch)
-- [ ] **BUG-02**: Claude CLI spawn handles "program not found" gracefully — shows actionable error message with install instructions instead of raw error, and validates CLI availability on workspace open
+- [x] **BUG-01**: Repo and skill checkbox toggle state persists correctly when navigating between tabs in the left column (no reset on tab switch)
+- [x] **BUG-02**: Claude CLI spawn handles "program not found" gracefully — shows actionable error message with install instructions instead of raw error, and validates CLI availability on workspace open
+
+## v3 Requirements
+
+Requirements for "Project Cards + Attention Routing" milestone. Phases 12+.
+
+**Design principle:** 3-5 project cards, each running an independent Claude agent. You see outcomes (previews, test results, status). The app tells you when to engage. You don't monitor.
+
+### Project Cards
+
+- [ ] **CARD-01**: The main screen is a grid of project cards (max 5). Each card shows: project name, current status (idle/working/needs-you/done/error), a one-line summary of what the agent is doing, and a small outcome preview (screenshot, test badge, or status icon).
+- [ ] **CARD-02**: Clicking a card opens its full conversation view. Back button returns to the card grid.
+- [ ] **CARD-03**: "New Project" card creates a workspace, assigns a Claude session, and opens the conversation view to accept the first instruction.
+- [ ] **CARD-04**: Each project card persists its workspace, Claude session, conversation history, active repos/skills, and token budgets independently.
+- [ ] **CARD-05**: Project cards show a live-updating outcome thumbnail: an iframe preview for web apps, a test result badge for CLI tools, or a status icon for in-progress work.
+
+### Conversation View
+
+- [x] **CONV-01**: The conversation view is a single full-width chat surface. No side panels, no columns. Just the conversation with your agent.
+- [ ] **CONV-02**: A compact top bar shows: project name (editable), back-to-cards button, context summary (repos/skills/tokens as compact badges), and a settings gear for repo/skill/budget management.
+- [ ] **CONV-03**: Agent activity renders inline as compact, collapsible status lines: "Reading 3 files... Editing src/main.py... Running tests..." — not a separate panel.
+- [ ] **CONV-04**: When Claude finishes a task, an outcome card appears in chat: what changed (file count), test results (pass/fail badge), and an inline preview if applicable. Expandable for file-level detail.
+- [ ] **CONV-05**: Errors render as actionable cards: red border, clear message, "Retry" or "Show Details" buttons. No raw stack traces.
+- [ ] **CONV-06**: Decisions Claude makes appear as inline expandable cards: rationale, confidence, impact. Not a separate panel.
+
+### Attention Routing
+
+- [ ] **ATTN-01**: When a project's agent needs user input, its card pulses orange and shows what it's waiting for ("Needs decision: JWT vs session cookies?"). This is the primary notification mechanism.
+- [ ] **ATTN-02**: When a project completes or fails, its card updates immediately: green checkmark for done, red X for error, with the outcome visible on the card itself.
+- [ ] **ATTN-03**: A global attention count in the title bar: "2 need you" — clicking it cycles through projects that need attention.
+- [ ] **ATTN-04**: OS-level system notifications (via Tauri notification plugin) for input-needed and error events, so users can leave the app and come back when pinged.
+- [ ] **ATTN-05**: Opening a project that flagged for attention auto-scrolls to the message that needs response.
+
+### Outcome Previews
+
+- [ ] **PREV-01**: Web app projects show a live iframe preview on the project card (thumbnail) and expandable in conversation (full-size).
+- [ ] **PREV-02**: Test results show as a colored badge on the project card ("8/8 passing" green, "3 failed" red) and as a summary card in conversation.
+- [ ] **PREV-03**: Build/deploy status shows as a status line on the project card ("Building..." / "Deployed to localhost:3000" / "Build failed").
+
+### Simplified Backend Access
+
+- [ ] **SIMP-01**: Repo/skill/token management is in a settings panel (opened via gear icon in conversation top bar), not visible by default.
+- [ ] **SIMP-02**: Audit log and agent event history are accessible from project settings, not the main UI.
+- [ ] **SIMP-03**: A "Show Code" keyboard shortcut (Ctrl+Shift+C) slides in the Monaco editor for power users. Hidden by default.
 
 ## Out of Scope
 
@@ -154,16 +197,15 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| Inline tab autocomplete | Copilot/Cursor territory, requires massive ML infrastructure |
+| 30-agent swarms (Gastown-style) | 3-5 projects is the sweet spot for human attention |
+| Inline tab autocomplete | Not an IDE -- outcome-focused |
 | Custom AI model hosting | Claude Code CLI is the engine |
 | Plugin/extension marketplace | Needs user base first |
-| Real-time collaboration | Multiplies complexity without validating core value |
-| Built-in Git GUI | Claude Code's git awareness is sufficient |
-| Jupyter notebook interface | Different paradigm, creates UX confusion |
+| Real-time collaboration | Single-user product |
 | Mobile or web deployment | Tauri desktop only |
 | OAuth/authentication | Desktop app, no auth needed |
-| Jira integration | Deferred to v3 |
-| Multi-language AST analysis | Python-first for now |
+| Code editing as primary UX | Code is an escape hatch, not the default |
+| Agent orchestration framework | We run Claude Code instances, not custom agents |
 
 ## Traceability
 
@@ -262,8 +304,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CHAT-03 | Phase 10 | Complete (10-02) |
 | TOKEN-01 | Phase 10 | Complete (10-03) |
 | TOKEN-02 | Phase 10 | Complete (10-03) |
-| BUG-01 | Phase 11 | Pending |
-| BUG-02 | Phase 11 | Pending |
+| BUG-01 | Phase 11 | Complete (11-01) |
+| BUG-02 | Phase 11 | Complete (11-02) |
 
 **Coverage:**
 - v1 requirements: 59 total (all complete)
@@ -271,6 +313,40 @@ Which phases cover which requirements. Updated during roadmap creation.
 - Mapped to phases: 26
 - Unmapped: 0
 
+### v3 (Phases 12-17, Active)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| CONV-01 | Phase 12 | Complete (full-width chat, no panels) |
+| CONV-02 | Phase 12 | Partial (top bar done, back-to-cards needs Phase 13) |
+| CONV-03 | Phase 14 | Pending |
+| CONV-04 | Phase 14 | Pending |
+| CONV-05 | Phase 14 | Pending |
+| CONV-06 | Phase 14 | Pending |
+| CARD-01 | Phase 13 | Pending |
+| CARD-02 | Phase 13 | Pending |
+| CARD-03 | Phase 13 | Pending |
+| CARD-04 | Phase 13 | Pending |
+| CARD-05 | Phase 16 | Pending |
+| ATTN-01 | Phase 15 | Pending |
+| ATTN-02 | Phase 15 | Pending |
+| ATTN-03 | Phase 15 | Pending |
+| ATTN-04 | Phase 15 | Pending |
+| ATTN-05 | Phase 15 | Pending |
+| PREV-01 | Phase 16 | Pending |
+| PREV-02 | Phase 16 | Pending |
+| PREV-03 | Phase 16 | Pending |
+| SIMP-01 | Phase 17 | Pending |
+| SIMP-02 | Phase 17 | Pending |
+| SIMP-03 | Phase 17 | Pending |
+
+**v3 Coverage:**
+- v3 requirements: 22 total
+- Complete: 1 (CONV-01)
+- Partial: 1 (CONV-02)
+- Pending: 20
+
 ---
 *Requirements defined: 2026-03-28*
 *v2 requirements added: 2026-03-28*
+*v3 traceability added: 2026-03-29*

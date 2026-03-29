@@ -2,75 +2,61 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-28)
+See: .planning/PROJECT.md (updated 2026-03-29)
 
-**Core value:** Developers can see, understand, and direct every decision an AI coding agent makes
-**Current focus:** v2 Milestone -- Workspace-First Vibe Coding Overhaul, Phase 11 in progress
+**Core value:** Developers direct AI agents across multiple projects, see outcomes instead of code, and only engage when needed
+**Current focus:** v3 Milestone -- Project Cards + Attention Routing, Phase 12 complete, Phase 13 next
 
 ## Current Position
 
-Phase: 11 of 11 (Polish & Bug Fixes)
-Plan: 4 of 4 in current phase (4 complete)
-Status: Plan 11-04 complete, continuing Phase 11
-Last activity: 2026-03-29 -- Plan 11-04 complete (Status Bar & Title Bar v2 Updates)
+Phase: 13 of 17 (Project Cards Home Screen)
+Plan: 0/? (Not yet planned)
+Status: Phase 12 complete. Ready to plan Phase 13.
+Last activity: 2026-03-29 -- Phase 12 executed: 3/3 tasks, 3 files modified, 67/67 tests passing. Full-width chat layout live.
 
-Progress: [##########] 95%
+Progress: [=#--------] 17%
 
 ## v1 Summary
 
 v1 completed 2026-03-29: 7 phases, 17 plans, 59 requirements, all delivered.
-Total execution time: ~1.55 hours across all phases.
+
+## v2 Summary
+
+v2 completed 2026-03-29: 4 phases + post-phase fixes, 13 plans, 26 requirements, all delivered.
+Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 
 ## Performance Metrics
 
-**v1 Velocity (for reference):**
-- Total plans completed: 17
-- Average duration: ~5.4m
-- Total execution time: ~1.55 hours
-
-**v2 Velocity:**
-- Total plans completed: 12
-- Average duration: ~3.8m
-- Total execution time: ~46m
-
-*Updated after each plan completion*
+**v1 Velocity:** 17 plans, ~5.4m avg, ~1.55 hours total
+**v2 Velocity:** 13 plans, ~3.7m avg, ~48m total
+**v3 Velocity:** 1 plan, ~2.5m, ~2.5m total
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Key v2 decisions:
-
-- [v2 Roadmap]: Conversation-first layout -- Claude Chat becomes center column primary surface
-- [v2 Roadmap]: Workspace system -- project-scoped directory structure replaces ad-hoc repo/skill management
-- [v2 Roadmap]: Mermaid over D3 -- simpler, more readable architecture diagrams
-- [v2 Roadmap]: Secondary panel drawer -- Editor/Console/Preview/Diff don't need permanent screen space
-- [v2 Roadmap]: Multi-session support -- power users manage multiple Claude sessions with visual switching and input alerts
-- [v2 Roadmap]: Phase 8 (Workspace) before Phase 9 (Layout) -- workspace file tree must exist before the layout can place it
-- [08-02]: Removed systemPrompt from Zustand partialize -- workspace CLAUDE.md is now the authoritative source
-- [09-01]: Drawer uses fixed overlay with backdrop; Editor/Console use CSS display toggling to preserve state
-- [09-01]: Layout proportions 20/45/35 for conversation-first emphasis; center column dominates
-- [09-02]: sessionGoal persisted via Zustand partialize; activity feed capped at 20 reverse-chronological events
-- [09-03]: Module-level mermaid.initialize() avoids re-init on every render; render counter for unique element IDs
-- [10-01]: AgentEvent.claude_session_id uses Option with skip_serializing_if for backward compatibility; ClaudeProcesses keyed by claude_session_id; log_to_audit unchanged
-- [10-02]: Map<string, ClaudeSessionState> for session state; legacy compat methods delegate to session-scoped via activeClaudeSessionId; useClaudeStream dual-writes during transition
-- [10-03]: Upsert pattern for token budgets using UNIQUE index on (scope_type, scope_id); budget enforcement uses soft truncation with visible marker; warning threshold colors green/orange/red
-- [11-02]: validate_claude_cli checks via shell:allow-execute; error detection uses multiple "not found" patterns for cross-platform compatibility; non-blocking validation on app init
-- [11-04]: Session status aggregates all claudeSessions with priority error > needs-input > working > idle; token budget display in TitleBar uses session-global budget with fallback to raw totalTokens
+- [v3 Roadmap]: Outcome over code -- users see running previews, test results, status cards, not diffs
+- [v3 Roadmap]: Multi-project, not multi-session -- each lane is a whole application with its own workspace
+- [v3 Roadmap]: Attention-driven UX -- app tells you when to engage, you don't monitor
+- [v3 Roadmap]: Kill 3-column layout -- chat is 70%+ of screen, side panels are collapsible drawers
+- [v3 Roadmap]: Code as escape hatch -- Show Code toggle for power users, hidden by default
+- [v3 Roadmap]: Inline everything -- decisions, outcomes, agent activity appear in conversation flow
+- [Phase 12]: Local-only project name editing -- editable input uses local useState, not wired to backend. Phase 13 adds persistence.
+- [Phase 12]: SecondaryDrawer preserved despite panel removal -- zero visual impact when closed, Phase 17 needs it
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- [Phase 8, LOW risk]: Need to decide on ~/vibe-workspaces/ as default root vs configurable path -- defaulting to ~/vibe-workspaces/ for simplicity
-- [Phase 9, MEDIUM risk]: Drawer/overlay pattern for secondary panels needs UX design decision -- slide-from-bottom vs slide-from-right vs modal overlay
-- [Phase 10, MEDIUM risk]: Multi-session subprocess management -- need to track multiple Claude CLI processes with independent stdin/stdout/conversation-id routing
+- [Phase 12, RESOLVED]: 3-column layout removal completed cleanly. All backend functionality preserved, 67/67 tests passing.
+- [Phase 13, HIGH risk]: Inline live preview in chat requires iframe management within a scrolling conversation. Need to handle lifecycle (create/destroy) and security (sandboxing).
+- [Phase 14, MEDIUM risk]: Multi-project means multiple simultaneous Claude CLI subprocesses with independent state. The backend already supports this (ClaudeProcesses map), but the frontend project-switching UX is new.
+- [Phase 15, LOW risk]: OS-level notifications require Tauri notification plugin. Need to add dependency.
 
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 11-03-PLAN.md (D3 Removal & V1 Dead Code Cleanup -- audit confirmed all D3 code already removed in prior phases). All Phase 11 plans verified.
+Stopped at: Completed Phase 12 (Strip to Single-Project Chat). 3/3 tasks, 67/67 tests. Ready to plan Phase 13 (Project Cards Home Screen).
 Resume file: None

@@ -2,99 +2,116 @@
 
 ## Overview
 
-VIBE OS v2 ("Workspace-First Vibe Coding Overhaul") restructures the application from a code-editor-centric IDE into a conversation-first vibe coding tool. The workspace system provides project-scoped context management. Claude Chat moves to center stage as the primary interaction surface. Secondary panels (editor, console, preview, diff) step back into an on-demand drawer. Multi-session support and direct token control give power users fine-grained command over their AI coding workflow. Phases 1-7 (v1) are complete; v2 begins at Phase 8.
+VIBE OS v3 ("Project Cards + Attention Routing") replaces the multi-panel IDE with a card-based interface. 3-5 project cards, each running an independent Claude agent. Cards show outcomes, not code. Cards pulse when they need you. Inspired by Gastown but focused on making 3-5 projects effortless instead of 30 possible.
 
 ## Milestone: v1 (Complete)
 
-- [x] **Phase 1: Foundation** - Tauri v2 scaffold, Tailwind v4 CSS config, SQLite with WAL mode, shell plugin validation, production build proof
-- [x] **Phase 2: Layout Shell** - Three-column resizable layout, custom title bar, status bar, shared components, dark theme, typography
-- [x] **Phase 3: Context Assembly** - Repo manager, skills panel, prompt composer, prompt layer display, token budget bar
-- [x] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
-- [x] **Phase 5: Agent Integration** - Claude CLI subprocess, event stream parser, chat panel with streaming, agent event display, working indicator
-- [x] **Phase 6: Decisions, Audit & Scripts** - Micro-decision log, append-only audit trail, decision/audit export, scripts tracker, skills feedback loop
-- [x] **Phase 7: Visualization, Diff & Polish** - Architecture D3 graph, live preview panel, diff view with accept/reject, status bar live data, keyboard shortcuts
+- [x] **Phase 1-7**: Full IDE with editor, console, agent integration, decisions, audit, D3 visualization
 
-## Milestone: v2 -- Workspace-First Vibe Coding Overhaul
+## Milestone: v2 (Complete)
+
+- [x] **Phase 8-11 + Post-fixes**: Workspace system, conversation-first layout, multi-session, token control, Mermaid diagrams, 67 tests
+
+## Milestone: v3 -- Project Cards + Attention Routing
 
 ## Phases
 
-- [ ] **Phase 8: Workspace System** - Workspace directory CRUD, scaffolding, CLAUDE.md as system prompt, workspace file tree, repo/skill workspace integration
-- [ ] **Phase 9: Layout Restructure & Dashboard** - Chat centered, session dashboard, decisions anchored right, Mermaid diagram, secondary panel drawer, workspace tree in left column
-- [ ] **Phase 10: Multi-Session & Token Control** - Multiple Claude sessions with visual switcher, input-needed alerts, direct token control panel with fine-grained budgets
-- [ ] **Phase 11: Polish & Bug Fixes** - Checkbox persistence fix, D3 removal/cleanup, deprecated layout code removal, status bar updates for v2
+- [x] **Phase 12: Strip to Single-Project Chat** - Rip out 3-column layout. Replace with full-width chat for one project. Compact top bar with context badges and settings gear. This is the new foundation everything else builds on.
+- [ ] **Phase 13: Project Cards Home Screen** - Add card grid as navigation layer above single-project view. Card shows name, status, one-line summary. New Project flow. Card-to-conversation routing. Max 5 cards.
+- [ ] **Phase 14: Rich Conversation Cards** - Outcome cards (task complete, file summary), error cards (red, actionable, retry button), decision cards (inline, expandable), inline agent activity lines replacing the raw event stream panel.
+- [ ] **Phase 15: Attention Routing** - Cards pulse when they need you. Global "N need you" in title bar. OS-level notifications via Tauri plugin. Auto-scroll to attention items. Attention clears on engagement.
+- [ ] **Phase 16: Outcome Previews** - Live iframe thumbnails on cards for web apps. Test result badges. Build/deploy status lines. Inline expandable previews in conversation.
+- [ ] **Phase 17: Settings & Escape Hatch** - Repo/skill/token management behind settings gear. Audit log in settings menu. Ctrl+Shift+C toggles Monaco editor for power users.
 
 ## Phase Details
 
-### Phase 8: Workspace System
-**Goal**: Users can create and open workspace directories that organize all project context -- repos, skills, docs, and a CLAUDE.md system prompt -- into a single, browsable location that replaces ad-hoc context management
-**Depends on**: Phase 7 (v1 complete)
-**Requirements**: WS-01, WS-02, WS-03, WS-04, WS-05, WS-06, WS-07
+### Phase 12: Strip to Single-Project Chat
+**Goal**: One project, full-width chat, no panels. This is the "delete phase" — remove the 3-column layout, session dashboard, right column, and all visible panel chrome. What remains: a chat surface with a compact top bar.
+**Depends on**: v2 complete
+**Requirements**: CONV-01, CONV-02
 **Success Criteria** (what must be TRUE):
-  1. User can create a new workspace by name; the app scaffolds ~/vibe-workspaces/{name}/ with CLAUDE.md, docs/, repos/, skills/, data/, and output/ directories, then opens it as the active workspace
-  2. User can open an existing workspace directory; the app reads its CLAUDE.md as the system prompt, discovers skills in workspace/skills/, and lists repos in workspace/repos/
-  3. Editing the workspace's CLAUDE.md file updates the system prompt that gets sent to Claude (no separate editable textarea)
-  4. Workspace file tree component shows the workspace directory contents with expandable folders and file icons; clicking a file opens it in the editor
-  5. Skills in workspace/skills/ appear alongside global skills, with workspace-local skills winning on name conflicts; repos clone into workspace/repos/
-**Plans**: 3 plans
-Plans:
-- [x] 08-01-PLAN.md -- Workspace backend: Rust commands for scaffold, open, read tree, watch CLAUDE.md, modified clone_repo/discover_skills
-- [x] 08-02-PLAN.md -- Workspace frontend state: Zustand slice, tauri command wrappers, watcher hook, modified repo/skill slices, app init
-- [ ] 08-03-PLAN.md -- Workspace UI: file tree component, create workspace modal, title bar controls, layout integration
+  1. App opens to a full-width chat view (no left column, no right column, no session dashboard)
+  2. Compact top bar shows: project name (editable), context summary badges ("2 repos · 3 skills · 8k tokens"), and a settings gear icon
+  3. Chat input and message history work exactly as before (Claude CLI integration preserved)
+  4. All v2 backend functionality preserved (workspaces, sessions, token budgets, audit) — only the visible layout changes
+  5. All 67 existing tests pass
+  6. Title bar simplified: branding + project name + window controls only
 
-### Phase 9: Layout Restructure & Dashboard
-**Goal**: Users experience a conversation-first interface where Claude Chat dominates the center, a session dashboard provides at-a-glance context, decisions are anchored right with Mermaid architecture below, and secondary panels move to a drawer -- completing the visual overhaul
-**Depends on**: Phase 8
-**Requirements**: LAYOUT-09, LAYOUT-10, LAYOUT-11, LAYOUT-12, LAYOUT-13, DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, ARCH-01, ARCH-02, ARCH-03
+### Phase 13: Project Cards Home Screen
+**Goal**: When you open the app, you see your projects as cards. Click one to enter its conversation. This is the navigation layer.
+**Depends on**: Phase 12
+**Requirements**: CARD-01, CARD-02, CARD-03, CARD-04
 **Success Criteria** (what must be TRUE):
-  1. Claude Chat occupies the center column top (60-70% height) as the primary interaction surface; the Session Dashboard occupies the center column bottom (30-40%) showing current goal, context summary, activity feed, and session stats
-  2. Left column top has Repos, Skills, and Token Control as tabs; left column bottom has the Workspace File Tree (from Phase 8)
-  3. Right column top shows Decisions panel by default with Agent Stream and Audit Log as clickable alternatives; right column bottom renders a Mermaid architecture diagram generated from codebase analysis
-  4. Editor, Console, Preview, and Diff are accessible via a toggleable drawer or overlay that slides in from the bottom or side -- not permanently visible in the three-column layout
-  5. Scripts Tracker is no longer a standalone panel; its functionality is absorbed into the workspace file tree (output/ directory) or available through the secondary drawer
-**Plans**: 3 plans
-Plans:
-- [x] 09-01-PLAN.md -- Layout restructure with new column assignments, secondary drawer, layout state slice
-- [x] 09-02-PLAN.md -- Session Dashboard with editable goal, context summary, activity feed, session stats
-- [x] 09-03-PLAN.md -- Mermaid architecture diagram, ArchGraph converter, D3 removal
+  1. App opens to a card grid instead of directly into chat. Each card shows project name and status indicator (idle/working/needs-input/done/error)
+  2. Clicking a card navigates to that project's conversation view (Phase 12). Back button returns to cards
+  3. "New Project" card: enter name → workspace scaffolded → Claude session created → conversation view opens
+  4. Each card persists independently: workspace path, Claude session ID, conversation history, active repos/skills
+  5. Cards update in real-time as agents change status (working → done, idle → working)
+  6. Max 5 project cards enforced. Card design is minimal: status color + name + one-line summary
 
-### Phase 10: Multi-Session & Token Control
-**Goal**: Power users can run multiple Claude sessions simultaneously with clear visual management, get alerted when a background session needs input, and control token budgets with fine-grained per-skill and per-repo limits
-**Depends on**: Phase 9
-**Requirements**: CHAT-01, CHAT-02, CHAT-03, TOKEN-01, TOKEN-02
+### Phase 14: Rich Conversation Cards
+**Goal**: The conversation becomes the only surface you need. Claude's actions, outcomes, errors, and decisions render as rich inline cards — not raw text, not separate panels.
+**Depends on**: Phase 12
+**Requirements**: CONV-03, CONV-04, CONV-05, CONV-06
 **Success Criteria** (what must be TRUE):
-  1. User can start multiple Claude Code sessions; each session has its own subprocess, conversation history, and working/idle state tracked independently
-  2. Session tabs in the chat area show all active sessions with visual distinction for the currently viewed session; clicking a tab switches the chat view to that session's history
-  3. When a non-active session requires user input, a visual alert (pulsing dot, badge count, or notification) appears on its tab so the user can respond without constantly checking
-  4. Token Control panel (left column tab) lets the user set per-skill token limits, per-repo context limits, and an overall session budget; approaching or exceeding limits shows color-coded warnings
-**Plans**: 3 plans
-Plans:
-- [x] 10-01-PLAN.md -- Multi-session backend: claude_sessions DB table, session-tagged events, process tracking per session, CRUD commands
-- [x] 10-02-PLAN.md -- Multi-session frontend: per-session AgentSlice, SessionTabs component, input-needed alerts, useClaudeStream routing
-- [x] 10-03-PLAN.md -- Token Control: token_budgets DB table, TokenControlPanel UI, per-skill/per-repo/session budgets, compose_prompt enforcement
+  1. While Claude works, compact collapsible status lines appear inline: "Reading 3 files · Editing src/main.py · Running tests..."
+  2. Task completion renders as an outcome card: "Changed 3 files, all tests passing" with expandable file list. No code by default
+  3. Errors render as red-bordered cards with clear message + "Retry" / "Show Details" buttons. No raw stack traces
+  4. Decisions render as expandable inline cards with rationale, confidence badge, and impact category color
+  5. The agent event stream panel, decisions panel, and audit log panel are no longer visible in the main UI
+  6. Raw agent events still logged to backend (audit trail preserved)
 
-### Phase 11: Polish & Bug Fixes
-**Goal**: All rough edges from the v2 overhaul are cleaned up -- toggle state bugs fixed, deprecated v1 code removed, status bar updated for the new layout, and the overall experience is cohesive
-**Depends on**: Phase 9, Phase 10
-**Requirements**: BUG-01, BUG-02
+### Phase 15: Attention Routing
+**Goal**: You leave the app running and go make coffee. When you come back, it says "2 need you" and takes you to exactly the right message.
+**Depends on**: Phase 13, Phase 14
+**Requirements**: ATTN-01, ATTN-02, ATTN-03, ATTN-04, ATTN-05
 **Success Criteria** (what must be TRUE):
-  1. Repo and skill checkbox toggle states persist correctly when navigating between tabs in the left column -- toggling a repo, switching to Skills tab, then switching back shows the repo still toggled
-  2. D3 force graph component and its dependencies are fully removed or replaced; no dead D3 code remains in the codebase
-  3. Status bar and title bar reflect v2 state: active workspace name, active Claude session count, workspace-relative paths where appropriate
-  4. No v1 layout artifacts remain: the old center column (editor/preview/architecture tabs + console) and old left column (prompt layer tab + chat bottom) are fully replaced by the v2 layout
-**Plans**:
-  - 11-01: Checkbox Toggle Persistence Fix (BUG-01) -- Fix loadRepos/discoverSkills to preserve active state on tab switch
-  - 11-02: Claude CLI Spawn Error Handling (BUG-02) -- Add pre-flight validation, actionable error messages with install instructions
-  - 11-03: D3 Removal & V1 Dead Code Cleanup (ARCH-03, SC2, SC4) -- Delete ArchViewer, D3 deps, deprecated panels, v1 layout artifacts
-  - 11-04: Status Bar & Title Bar v2 Updates (SC3) -- Workspace name, session count, workspace-relative paths
+  1. When an agent needs input: its project card pulses orange with a one-line preview ("Needs decision: JWT vs session cookies?")
+  2. When a project completes: green checkmark on card. When it fails: red X with error summary on card
+  3. Title bar shows global attention count: "2 need you" — clickable to cycle through flagged projects
+  4. OS-level system notifications fire for input-needed and error events (requires Tauri notification plugin)
+  5. Opening a flagged project auto-scrolls to the message that needs response. Flag clears when user engages
+
+### Phase 16: Outcome Previews
+**Goal**: Project cards show what the project looks like. A web app card shows the running app. A test suite shows pass/fail. You see outcomes on the home screen without opening the conversation.
+**Depends on**: Phase 14
+**Requirements**: CARD-05, PREV-01, PREV-02, PREV-03
+**Success Criteria** (what must be TRUE):
+  1. When a project has a running dev server (URL detected from Claude output or user-configured), card shows a live iframe thumbnail
+  2. Test results detected from agent events render as colored badge on card: green "8/8 passing" or red "3 failed"
+  3. Build/deploy status shows as a status line on card: "Building..." / "Running at localhost:3000" / "Build failed"
+  4. In conversation view, preview URLs expand to full-width inline iframes. Test detail cards expand to show individual test names
+
+### Phase 17: Settings & Escape Hatch
+**Goal**: All v2 power features still exist for users who want them. They're just not in your face.
+**Depends on**: Phase 14
+**Requirements**: SIMP-01, SIMP-02, SIMP-03
+**Success Criteria** (what must be TRUE):
+  1. Settings gear in conversation top bar opens a slide-in panel with: repo management, skill management, token budget controls, workspace file browser
+  2. Audit log and full agent event history accessible from project settings menu
+  3. Ctrl+Shift+C toggles a Monaco editor slide-in panel. Hidden by default. Shows files from workspace
+  4. Code blocks in chat messages show outcome summaries by default ("Created src/main.py — 45 lines"). "View Code" button opens the editor escape hatch
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 8 -> 9 -> 10 -> 11
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 8. Workspace System | 3/3 | Complete | 2026-03-28 |
-| 9. Layout Restructure & Dashboard | 3/3 | Complete | 2026-03-29 |
-| 10. Multi-Session & Token Control | 3/3 | Complete | 2026-03-29 |
-| 11. Polish & Bug Fixes | 4/4 | Complete | 2026-03-29 |
+```
+12 (Strip layout) → 13 (Cards) → 15 (Attention)
+                  → 14 (Rich cards) → 16 (Previews)
+                                    → 17 (Settings)
+```
+
+Phase 12 is the foundation — everything depends on it.
+Phases 13 and 14 can run in parallel after 12.
+Phase 15 needs both 13 (cards exist) and 14 (conversation cards exist).
+Phases 16 and 17 need 14 (conversation view is rich enough to be the only surface).
+
+| Phase | Plans | Status | Completed |
+|-------|-------|--------|-----------|
+| 12. Strip to Single-Project Chat | 1/1 | Complete | 2026-03-29 |
+| 13. Project Cards Home Screen | 0/? | Planned | - |
+| 14. Rich Conversation Cards | 0/? | Planned | - |
+| 15. Attention Routing | 0/? | Planned | - |
+| 16. Outcome Previews | 0/? | Planned | - |
+| 17. Settings & Escape Hatch | 0/? | Planned | - |
