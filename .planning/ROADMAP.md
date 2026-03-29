@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
 - [x] **Phase 5: Agent Integration** - Claude CLI subprocess, event stream parser, chat panel with streaming, agent event display, working indicator
 - [x] **Phase 6: Decisions, Audit & Scripts** - Micro-decision log, append-only audit trail, decision/audit export, scripts tracker, skills feedback loop
-- [ ] **Phase 7: Visualization, Diff & Polish** - Architecture D3 graph, live preview panel, diff view with accept/reject, status bar live data, keyboard shortcuts
+- [x] **Phase 7: Visualization, Diff & Polish** - Architecture D3 graph, live preview panel, diff view with accept/reject, status bar live data, keyboard shortcuts
 
 ## Phase Details
 
@@ -134,7 +134,7 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md -- Backend infrastructure: architecture_commands.rs (Python file analysis + graph), D3 install, diffSlice (accept/reject flow), previewSlice (URL + auto-refresh), openUntitledFile for send-to-editor, useKeyboardShortcuts hook, tauri.ts wrappers
 - [x] 07-02-PLAN.md -- ArchViewer with D3 force graph (drag/zoom/rebuild/glow/tooltips), LivePreview with iframe + chrome mockup + auto-refresh, DiffView with Monaco diff editor + accept/reject + pending list, wire into MainLayout center column
-- [ ] 07-03-PLAN.md -- StatusBar live data (Claude status, session timer, decision/action counts), TitleBar live data (session badge, repo/skill counts, context tokens), keyboard shortcuts in App.tsx, final cleanup
+- [x] 07-03-PLAN.md -- StatusBar live data (Claude status, session timer, decision/action counts), TitleBar live data (session badge, repo/skill counts, context tokens), keyboard shortcuts in App.tsx, final cleanup
 
 ## Progress
 
@@ -149,4 +149,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Python REPL + Monaco Editor | 2/2 | Complete | 2026-03-29 |
 | 5. Agent Integration | 3/3 | Complete | 2026-03-28 |
 | 6. Decisions, Audit & Scripts | 2/2 | Complete | 2026-03-29 |
-| 7. Visualization, Diff & Polish | 2/3 | In Progress | - |
+| 7. Visualization, Diff & Polish | 3/3 | Complete | 2026-03-29 |

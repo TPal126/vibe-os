@@ -23,7 +23,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **EDIT-01**: Monaco editor opens Python files with syntax highlighting and a custom VIBE OS theme
 - [x] **EDIT-02**: File tabs allow opening multiple files with close buttons
 - [x] **EDIT-03**: User can save files to disk via keyboard shortcut (Cmd/Ctrl+S), triggering an audit log entry
-- [ ] **EDIT-04**: Editor receives code from Claude chat via a "send to editor" action on code blocks
+- [x] **EDIT-04**: Editor receives code from Claude chat via a "send to editor" action on code blocks
 - [x] **EDIT-05**: Diff view shows agent-proposed file changes with accept/reject controls
 
 ### Context Management
@@ -42,14 +42,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### AI Agent Integration
 
-- [ ] **AGENT-01**: Claude Code CLI is spawned as a child process via Tauri shell plugin with streaming stdout
-- [ ] **AGENT-02**: Chat panel shows user messages (right-aligned, accent) and assistant messages (left-aligned, surfaceHi) with streaming
-- [ ] **AGENT-03**: "Working..." indicator with pulsing dot displays while Claude is processing
-- [ ] **AGENT-04**: Code blocks within chat messages have syntax highlighting
-- [ ] **AGENT-05**: Agent event stream displays typed, color-coded events (Think, Decision, FileCreate, FileModify, TestRun, PreviewUpdate, Error) with timestamps
-- [ ] **AGENT-06**: Each event renders with type icon, colored indicator, content, and optional badges (confidence, pass/fail, line counts)
-- [ ] **AGENT-07**: Events auto-scroll to bottom with fade-slide-in animation on new entries
-- [ ] **AGENT-08**: Claude CLI stdout is parsed by event_stream.rs into structured AgentEvent objects with graceful fallback for unparseable output
+- [x] **AGENT-01**: Claude Code CLI is spawned as a child process via Tauri shell plugin with streaming stdout
+- [x] **AGENT-02**: Chat panel shows user messages (right-aligned, accent) and assistant messages (left-aligned, surfaceHi) with streaming
+- [x] **AGENT-03**: "Working..." indicator with pulsing dot displays while Claude is processing
+- [x] **AGENT-04**: Code blocks within chat messages have syntax highlighting
+- [x] **AGENT-05**: Agent event stream displays typed, color-coded events (Think, Decision, FileCreate, FileModify, TestRun, PreviewUpdate, Error) with timestamps
+- [x] **AGENT-06**: Each event renders with type icon, colored indicator, content, and optional badges (confidence, pass/fail, line counts)
+- [x] **AGENT-07**: Events auto-scroll to bottom with fade-slide-in animation on new entries
+- [x] **AGENT-08**: Claude CLI stdout is parsed by event_stream.rs into structured AgentEvent objects with graceful fallback for unparseable output
 
 ### Decision & Audit
 
@@ -148,7 +148,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDIT-01 | Phase 4 | Complete |
 | EDIT-02 | Phase 4 | Complete |
 | EDIT-03 | Phase 4 | Complete |
-| EDIT-04 | Phase 5 | Pending |
+| EDIT-04 | Phase 7 | Complete |
 | EDIT-05 | Phase 7 | Complete |
 | CTX-01 | Phase 3 | Complete |
 | CTX-02 | Phase 3 | Complete |
@@ -161,14 +161,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CTX-09 | Phase 3 | Complete |
 | CTX-10 | Phase 3 | Complete |
 | CTX-11 | Phase 3 | Complete |
-| AGENT-01 | Phase 5 | Pending |
-| AGENT-02 | Phase 5 | Pending |
-| AGENT-03 | Phase 5 | Pending |
-| AGENT-04 | Phase 5 | Pending |
-| AGENT-05 | Phase 5 | Pending |
-| AGENT-06 | Phase 5 | Pending |
-| AGENT-07 | Phase 5 | Pending |
-| AGENT-08 | Phase 5 | Pending |
+| AGENT-01 | Phase 5 | Complete |
+| AGENT-02 | Phase 5 | Complete |
+| AGENT-03 | Phase 5 | Complete |
+| AGENT-04 | Phase 5 | Complete |
+| AGENT-05 | Phase 5 | Complete |
+| AGENT-06 | Phase 5 | Complete |
+| AGENT-07 | Phase 5 | Complete |
+| AGENT-08 | Phase 5 | Complete |
 | DECIDE-01 | Phase 6 | Complete |
 | DECIDE-02 | Phase 6 | Complete |
 | DECIDE-03 | Phase 6 | Complete |
@@ -204,4 +204,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 after roadmap creation*
+*Last updated: 2026-03-29 after Phase 7 completion*
