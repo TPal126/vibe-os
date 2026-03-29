@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 14 of 17 (Rich Conversation Cards) -- COMPLETE
-Plan: 3/3 (All plans complete)
-Status: Phase 14 complete. All 6 success criteria met. 3 plans, 16 tasks, 43/43 tests passing.
-Last activity: 2026-03-29 -- Phase 14 Plan 03 executed: InlineDecisionCard (impact-colored, expandable rationale), decision event wiring, SC-5/SC-6 verified.
+Phase: 15 of 17 (Attention Routing)
+Plan: 2/3 complete
+Status: Phase 15 Plan 02 complete. Title bar attention badge + auto-scroll to flagged messages. 4 tasks.
+Last activity: 2026-03-29 -- Phase 15 Plan 02 executed: getAttentionItems utility, Bell badge with cycle navigation, auto-scroll with orange ring highlight, clear-on-send.
 
-Progress: [=====#----] 33%
+Progress: [=======#--] 45%
 
 ## v1 Summary
 
@@ -29,7 +29,7 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 
 **v1 Velocity:** 17 plans, ~5.4m avg, ~1.55 hours total
 **v2 Velocity:** 13 plans, ~3.7m avg, ~48m total
-**v3 Velocity:** 5 plans, ~2.4m avg, ~12m total
+**v3 Velocity:** 7 plans, ~2.4m avg, ~17.4m total
 
 ## Accumulated Context
 
@@ -51,6 +51,14 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 - [Phase 14-02]: Error card inserted BEFORE setSessionError to preserve status derivation ordering
 - [Phase 14-03]: InlineDecisionCard uses same color system as DecisionLog panel for visual consistency
 - [Phase 14-03]: Decision events forward-compatible: card renders when Rust parser emits decision events in future
+- [Phase 15-01]: Attention preview captured from last assistant message first line, truncated to 80 chars
+- [Phase 15-01]: clearSessionAttention also clears needsInput for clean status derivation
+- [Phase 15-01]: Error attention captured after insertRichCard but before setSessionError for correct card ID
+- [Phase 15-01]: StatusIcon rendered via dynamic component pattern for done/error/needs-input states
+- [Phase 15-02]: Attention badge renders unconditionally outside isHome gate for global visibility
+- [Phase 15-02]: Cycle index resets when attention count changes to avoid stale index
+- [Phase 15-02]: attentionScrollDone ref prevents re-scrolling same message on re-renders
+- [Phase 15-02]: clearSessionAttention called on send to immediately clear attention state
 
 ### Pending Todos
 
@@ -66,5 +74,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 14-03-PLAN.md (Inline Decision Cards + Verification). 6/6 tasks, 43/43 tests. Phase 14 complete. Ready for Phase 15.
+Stopped at: Completed 15-02-PLAN.md (Title Bar Attention Count + Auto-Scroll). 4/4 tasks. Ready for 15-03.
 Resume file: None

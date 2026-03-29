@@ -91,6 +91,11 @@ VIBE OS v3 ("Project Cards + Attention Routing") replaces the multi-panel IDE wi
   2. Audit log and full agent event history accessible from project settings menu
   3. Ctrl+Shift+C toggles a Monaco editor slide-in panel. Hidden by default. Shows files from workspace
   4. Code blocks in chat messages show outcome summaries by default ("Created src/main.py — 45 lines"). "View Code" button opens the editor escape hatch
+**Plans:** 3 plans
+Plans:
+- [ ] 17-01-PLAN.md — Layout state extension + SettingsPanel with 6 tabs + wire gear button
+- [ ] 17-02-PLAN.md — EditorPanel with Monaco + Ctrl+Shift+C keyboard shortcut
+- [ ] 17-03-PLAN.md — Code block summaries with "View Code" button + final verification
 
 ## Progress
 
@@ -112,6 +117,6 @@ Phases 16 and 17 need 14 (conversation view is rich enough to be the only surfac
 | 12. Strip to Single-Project Chat | 1/1 | Complete | 2026-03-29 |
 | 13. Project Cards Home Screen | 3/3 | Complete | 2026-03-29 |
 | 14. Rich Conversation Cards | 3/3 | Complete | 2026-03-29 |
-| 15. Attention Routing | 0/? | Planned | - |
+| 15. Attention Routing | 2/3 | In Progress | - |
 | 16. Outcome Previews | 0/? | Planned | - |
-| 17. Settings & Escape Hatch | 0/? | Planned | - |
+| 17. Settings & Escape Hatch | 3/3 | Planned | - |
