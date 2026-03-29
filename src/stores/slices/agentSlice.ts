@@ -6,6 +6,8 @@ import type {
   ClaudeSessionState,
   ActivityEvent,
   CardType,
+  TestSummary,
+  BuildStatus,
 } from "../types";
 import { commands } from "../../lib/tauri";
 
@@ -27,6 +29,10 @@ function createDefaultSession(id: string, name: string): ClaudeSessionState {
     status: "idle",
     createdAt: new Date().toISOString(),
     currentActivityMessageId: null,
+    previewUrl: null,
+    testSummary: null,
+    buildStatus: "idle" as const,
+    buildStatusText: null,
   };
 }
 
@@ -332,6 +338,10 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           agentError: null,
           needsInput: false,
           currentActivityMessageId: null,
+          previewUrl: null,
+          testSummary: null,
+          buildStatus: "idle" as const,
+          buildStatusText: null,
         }),
       );
       const isActive = sessionId === state.activeClaudeSessionId;
@@ -489,6 +499,30 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           : {}),
       };
     }),
+
+  // ── Outcome state methods ──
+
+  setSessionPreviewUrl: (sessionId: string, url: string | null) =>
+    set((state) => ({
+      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+        previewUrl: url,
+      })),
+    })),
+
+  setSessionTestSummary: (sessionId: string, summary: TestSummary | null) =>
+    set((state) => ({
+      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+        testSummary: summary,
+      })),
+    })),
+
+  setSessionBuildStatus: (sessionId: string, status: BuildStatus, text: string | null) =>
+    set((state) => ({
+      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+        buildStatus: status,
+        buildStatusText: text,
+      })),
+    })),
 
   // ── Legacy compat methods (delegate to active session) ──
 
