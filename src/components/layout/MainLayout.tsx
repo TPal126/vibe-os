@@ -11,7 +11,6 @@ import {
   Diamond,
   ScrollText,
   MessageSquare,
-  Terminal,
 } from "lucide-react";
 import { TabStrip, type Tab } from "./TabStrip";
 import { PanelHeader } from "./PanelHeader";
@@ -20,6 +19,7 @@ import { RepoManager } from "../panels/RepoManager";
 import { SkillsPanel } from "../panels/SkillsPanel";
 import { PromptLayer } from "../panels/PromptLayer";
 import { CodeEditor } from "../center/CodeEditor";
+import { Console } from "../center/Console";
 
 /* ── Tab definitions ──────────────────────────────────────────────── */
 
@@ -149,13 +149,7 @@ export function MainLayout() {
               {/* Bottom: Console */}
               <Panel defaultSize={40} minSize={20}>
                 <div className="flex flex-col h-full overflow-hidden">
-                  <PanelHeader title="CONSOLE" icon={<Terminal size={12} />} />
-                  <div className="flex-1 overflow-auto">
-                    <PlaceholderPanel
-                      title="Console"
-                      description="Python REPL will appear here"
-                    />
-                  </div>
+                  <Console />
                 </div>
               </Panel>
             </Group>
