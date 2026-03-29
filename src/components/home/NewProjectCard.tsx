@@ -3,22 +3,32 @@ import { Plus } from "lucide-react";
 
 interface NewProjectCardProps {
   disabled: boolean;
-  onCreateProject: (name: string) => void;
+  onCreateProject: (name: string) => Promise<string | null>;
 }
 
 export function NewProjectCard({ disabled, onCreateProject }: NewProjectCardProps) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (creating) inputRef.current?.focus();
   }, [creating]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmed = name.trim();
-    if (trimmed) {
-      onCreateProject(trimmed);
+    if (!trimmed || submitting) return;
+
+    setError(null);
+    setSubmitting(true);
+    const err = await onCreateProject(trimmed);
+    setSubmitting(false);
+
+    if (err) {
+      setError(err);
+    } else {
       setName("");
       setCreating(false);
     }
@@ -26,6 +36,7 @@ export function NewProjectCard({ disabled, onCreateProject }: NewProjectCardProp
 
   const handleCancel = () => {
     setName("");
+    setError(null);
     setCreating(false);
   };
 
@@ -48,19 +59,23 @@ export function NewProjectCard({ disabled, onCreateProject }: NewProjectCardProp
           ref={inputRef}
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => { setName(e.target.value); setError(null); }}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleSubmit();
             if (e.key === "Escape") handleCancel();
           }}
           onBlur={() => {
-            if (!name.trim()) handleCancel();
+            if (!name.trim() && !submitting) handleCancel();
           }}
           placeholder="Project name..."
-          className="bg-transparent border-b border-v-border text-v-textHi text-sm text-center outline-none w-full pb-1 placeholder:text-v-dim"
+          disabled={submitting}
+          className="bg-transparent border-b border-v-border text-v-textHi text-sm text-center outline-none w-full pb-1 placeholder:text-v-dim disabled:opacity-50"
         />
+        {error && (
+          <span className="text-v-red text-[10px] mt-1.5">{error}</span>
+        )}
         <span className="text-v-dim text-[10px] mt-2">
-          Enter to create · Esc to cancel
+          {submitting ? "Creating..." : "Enter to create · Esc to cancel"}
         </span>
       </div>
     );

@@ -27,24 +27,35 @@ export function HomeScreen() {
     })),
   );
 
-  const handleCreateProject = async (name: string) => {
+  const handleCreateProject = async (name: string): Promise<string | null> => {
     try {
+      // Sanitize name for filesystem (display name preserved as-is)
+      const safeName = name
+        .replace(/\s+/g, "-")
+        .replace(/[^a-zA-Z0-9_-]/g, "")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      if (!safeName) return "Invalid project name";
+
       // 1. Scaffold workspace
-      await createWorkspace(name);
+      await createWorkspace(safeName);
       const workspace = useAppStore.getState().activeWorkspace;
-      if (!workspace) throw new Error("Workspace creation failed");
+      if (!workspace) return "Workspace creation failed";
 
       // 2. Create Claude session
       const sessionId = crypto.randomUUID();
       createClaudeSessionLocal(sessionId, name);
 
-      // 3. Register project + navigate
+      // 3. Register project + navigate (use original name for display)
       addProject(name, workspace.path, sessionId);
 
       // 4. Activate session for chat
       setActiveClaudeSessionId(sessionId);
+      return null;
     } catch (err) {
       console.error("Failed to create project:", err);
+      return String(err);
     }
   };
 
