@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
-import { useClaudeStream } from "../../hooks/useClaudeStream";
 import { extractCodeBlocks } from "../../lib/eventParser";
 import { commands } from "../../lib/tauri";
 import { Dot } from "../shared/Dot";
@@ -83,8 +82,6 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 }
 
 export function ClaudeChat() {
-  useClaudeStream();
-
   const {
     claudeSessions,
     activeClaudeSessionId,

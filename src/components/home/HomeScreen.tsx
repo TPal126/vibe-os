@@ -2,18 +2,63 @@ import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { ProjectCard } from "./ProjectCard";
 import { NewProjectCard } from "./NewProjectCard";
+import type { Project } from "../../stores/types";
 
 export function HomeScreen() {
-  const { projects, claudeSessions, openProject } = useAppStore(
+  const {
+    projects,
+    claudeSessions,
+    openProject,
+    addProject,
+    createWorkspace,
+    createClaudeSessionLocal,
+    setActiveClaudeSessionId,
+    openWorkspace,
+  } = useAppStore(
     useShallow((s) => ({
       projects: s.projects,
       claudeSessions: s.claudeSessions,
       openProject: s.openProject,
+      addProject: s.addProject,
+      createWorkspace: s.createWorkspace,
+      createClaudeSessionLocal: s.createClaudeSessionLocal,
+      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      openWorkspace: s.openWorkspace,
     })),
   );
 
-  const handleCardClick = (id: string) => {
-    openProject(id);
+  const handleCreateProject = async (name: string) => {
+    try {
+      // 1. Scaffold workspace
+      await createWorkspace(name);
+      const workspace = useAppStore.getState().activeWorkspace;
+      if (!workspace) throw new Error("Workspace creation failed");
+
+      // 2. Create Claude session
+      const sessionId = crypto.randomUUID();
+      createClaudeSessionLocal(sessionId, name);
+
+      // 3. Register project + navigate
+      addProject(name, workspace.path, sessionId);
+
+      // 4. Activate session for chat
+      setActiveClaudeSessionId(sessionId);
+    } catch (err) {
+      console.error("Failed to create project:", err);
+    }
+  };
+
+  const handleOpenProject = async (project: Project) => {
+    // Navigate immediately (UI feels instant)
+    openProject(project.id);
+    setActiveClaudeSessionId(project.claudeSessionId);
+
+    // Load workspace context in background
+    try {
+      await openWorkspace(project.workspacePath);
+    } catch (err) {
+      console.warn("Workspace load failed, chat still works:", err);
+    }
   };
 
   return (
@@ -27,12 +72,12 @@ export function HomeScreen() {
             key={project.id}
             project={project}
             session={claudeSessions.get(project.claudeSessionId)}
-            onClick={() => handleCardClick(project.id)}
+            onClick={() => handleOpenProject(project)}
           />
         ))}
         <NewProjectCard
           disabled={projects.length >= 5}
-          onCreateProject={() => {}}
+          onCreateProject={handleCreateProject}
         />
       </div>
     </div>
