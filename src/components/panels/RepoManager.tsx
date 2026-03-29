@@ -106,8 +106,10 @@ export function RepoManager() {
   );
 
   useEffect(() => {
-    loadRepos();
-  }, [loadRepos]);
+    if (repos.length === 0) {
+      loadRepos();
+    }
+  }, [loadRepos, repos.length]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

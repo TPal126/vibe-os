@@ -100,9 +100,21 @@ export const createRepoSlice: SliceCreator<RepoSlice> = (set, get) => ({
 
   loadRepos: async () => {
     try {
+      // Snapshot currently active repo IDs before reload
+      const activeIds = new Set(
+        get().repos.filter((r) => r.active).map((r) => r.id),
+      );
+
       const workspacePath = get().activeWorkspace?.path ?? undefined;
       const metas = await commands.getRepos(workspacePath);
-      const repos = metas.map(repoMetaToRepo);
+      const repos = metas.map((meta) => {
+        const repo = repoMetaToRepo(meta);
+        // Restore active state for repos that were previously toggled on
+        if (activeIds.has(repo.id)) {
+          return { ...repo, active: true };
+        }
+        return repo;
+      });
       set({ repos });
     } catch (err) {
       console.error("Failed to load repos:", err);

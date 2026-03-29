@@ -57,12 +57,24 @@ export const createSkillSlice: SliceCreator<SkillSlice> = (set, get) => ({
 
   discoverSkills: async () => {
     try {
+      // Snapshot currently active skill IDs before reload
+      const activeIds = new Set(
+        get().skills.filter((s) => s.active).map((s) => s.id),
+      );
+
       const activeRepoPaths = get()
         .repos.filter((r) => r.active)
         .map((r) => r.localPath);
       const workspacePath = get().activeWorkspace?.path ?? undefined;
       const metas = await commands.discoverSkills(activeRepoPaths, workspacePath);
-      const skills = metas.map(skillMetaToSkill);
+      const skills = metas.map((meta) => {
+        const skill = skillMetaToSkill(meta);
+        // Restore active state for skills that were previously toggled on
+        if (activeIds.has(skill.id)) {
+          return { ...skill, active: true };
+        }
+        return skill;
+      });
       set({ skills });
     } catch (err) {
       console.error("Failed to discover skills:", err);

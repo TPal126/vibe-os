@@ -92,8 +92,10 @@ export function SkillsPanel() {
   const budgetRatio = totalActiveTokens / TOKEN_BUDGET.softLimit;
 
   useEffect(() => {
-    discoverSkills();
-  }, [discoverSkills]);
+    if (skills.length === 0) {
+      discoverSkills();
+    }
+  }, [discoverSkills, skills.length]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
