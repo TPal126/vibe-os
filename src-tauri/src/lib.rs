@@ -5,6 +5,7 @@ mod commands;
 mod db;
 mod services;
 
+use commands::architecture_commands;
 use commands::audit_commands;
 use commands::claude_commands;
 use commands::context_commands;
@@ -72,6 +73,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            architecture_commands::analyze_architecture,
             db_commands::test_db_write,
             db_commands::test_db_read,
             db_commands::create_session,
