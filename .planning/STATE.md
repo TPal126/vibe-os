@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 14 of 17 (Rich Conversation Cards)
-Plan: 1/3 (Plan 01 complete, Plans 02-03 remaining)
-Status: Phase 14 in progress. Plan 01 (Card Type System + Activity Lines) complete. 5 tasks, 5 files (1 new, 4 modified), 43/43 tests passing.
-Last activity: 2026-03-29 -- Phase 14 Plan 01 executed: card type system, activity line store methods, ActivityLine component, stream routing, ClaudeChat card dispatch.
+Plan: 2/3 (Plans 01-02 complete, Plan 03 remaining)
+Status: Phase 14 in progress. Plan 02 (Outcome Cards + Error Cards) complete. 5 tasks, 4 files (2 new, 2 modified), 43/43 tests passing.
+Last activity: 2026-03-29 -- Phase 14 Plan 02 executed: OutcomeCard (green, expandable file list, cost/duration), ErrorCard (red, retry/details), stream wiring for result and error events.
 
-Progress: [==#-------] 22%
+Progress: [====#-----] 28%
 
 ## v1 Summary
 
@@ -29,7 +29,7 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 
 **v1 Velocity:** 17 plans, ~5.4m avg, ~1.55 hours total
 **v2 Velocity:** 13 plans, ~3.7m avg, ~48m total
-**v3 Velocity:** 1 plan, ~2.5m, ~2.5m total
+**v3 Velocity:** 2 plans, ~2.6m avg, ~5.2m total
 
 ## Accumulated Context
 
@@ -46,6 +46,9 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 - [Phase 14-01]: Activity lines replace static Working indicator with real tool detail via card type dispatch
 - [Phase 14-01]: summarizeActivity uses category buckets for human-readable summaries
 - [Phase 14-01]: currentActivityMessageId tracks open activity line per session, finalized on text or done/cancelled
+- [Phase 14-02]: OutcomeCard only shown when files changed or tests run, skipped for simple Q&A
+- [Phase 14-02]: ErrorCard retry reads store directly for last user message, calls sendMessage with conversationId
+- [Phase 14-02]: Error card inserted BEFORE setSessionError to preserve status derivation ordering
 
 ### Pending Todos
 
@@ -61,5 +64,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 14-01-PLAN.md (Card Type System + Inline Activity Lines). 5/5 tasks, 43/43 tests. Ready for 14-02 (Outcome/Error Cards).
+Stopped at: Completed 14-02-PLAN.md (Outcome Cards + Error Cards). 5/5 tasks, 43/43 tests. Ready for 14-03 (Decision Cards + Preview Cards).
 Resume file: None
