@@ -3,8 +3,11 @@ import { TitleBar } from "./components/layout/TitleBar";
 import { MainLayout } from "./components/layout/MainLayout";
 import { StatusBar } from "./components/layout/StatusBar";
 import { useAppStore } from "./stores";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 
 function App() {
+  useKeyboardShortcuts();
+
   const loadActiveSession = useAppStore((s) => s.loadActiveSession);
   const createSession = useAppStore((s) => s.createSession);
   const loadRepos = useAppStore((s) => s.loadRepos);

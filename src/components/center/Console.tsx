@@ -116,6 +116,7 @@ export function Console() {
           &gt;&gt;&gt;
         </span>
         <input
+          data-console-input
           ref={inputRef}
           type="text"
           value={inputValue}
