@@ -182,6 +182,15 @@ export function useClaudeStream() {
                   sessionId: sid,
                 });
 
+                // Capture errorCardId immediately after insert, before setSessionError
+                const errorCardId = useAppStore.getState().claudeSessions.get(sid)
+                  ?.chatMessages.slice(-1)[0]?.id ?? null;
+
+                // Set attention for error (if not the active project)
+                if (sid !== store.activeClaudeSessionId) {
+                  store.setSessionAttention(sid, errorMessage, errorCardId);
+                }
+
                 store.setSessionError(sid, event.content);
               }
               store.setAgentError(event.content);
@@ -202,10 +211,23 @@ export function useClaudeStream() {
               }
             }
 
-            // Detect input-request events; set needsInput on non-active sessions
+            // Detect input-request events; set needsInput and attention on non-active sessions
             if (isInputRequest(payload) && sid) {
               if (sid !== store.activeClaudeSessionId) {
                 store.setSessionNeedsInput(sid, true);
+
+                // Capture attention preview from last assistant message
+                const inputSession = useAppStore.getState().claudeSessions.get(sid);
+                if (inputSession) {
+                  const lastAssistant = [...inputSession.chatMessages]
+                    .reverse()
+                    .find(m => m.role === "assistant");
+                  const preview = lastAssistant
+                    ? lastAssistant.content.split("\n")[0].slice(0, 80)
+                    : "Needs your input";
+                  const messageId = lastAssistant?.id ?? null;
+                  store.setSessionAttention(sid, preview, messageId);
+                }
               }
             }
 

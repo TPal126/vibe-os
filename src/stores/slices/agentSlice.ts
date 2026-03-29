@@ -22,6 +22,8 @@ function createDefaultSession(id: string, name: string): ClaudeSessionState {
     currentInvocationId: null,
     agentError: null,
     needsInput: false,
+    attentionPreview: null,
+    attentionMessageId: null,
     status: "idle",
     createdAt: new Date().toISOString(),
     currentActivityMessageId: null,
@@ -156,11 +158,13 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   setActiveClaudeSessionId: (id: string | null) =>
     set((state) => {
-      // Clear needsInput on target session when switching to it
+      // Clear needsInput and attention on target session when switching to it
       let sessions = state.claudeSessions;
       if (id) {
         sessions = updateSession(sessions, id, () => ({
           needsInput: false,
+          attentionPreview: null,
+          attentionMessageId: null,
         }));
       }
       const activeSession = id ? sessions.get(id) : undefined;
@@ -344,6 +348,25 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           : {}),
       };
     }),
+
+  // ── Attention tracking ──
+
+  setSessionAttention: (sessionId: string, preview: string | null, messageId: string | null) =>
+    set((state) => ({
+      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+        attentionPreview: preview,
+        attentionMessageId: messageId,
+      })),
+    })),
+
+  clearSessionAttention: (sessionId: string) =>
+    set((state) => ({
+      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+        attentionPreview: null,
+        attentionMessageId: null,
+        needsInput: false,
+      })),
+    })),
 
   // ── Rich card methods ──
 

@@ -237,6 +237,8 @@ export interface ClaudeSessionState {
   currentInvocationId: string | null;
   agentError: string | null;
   needsInput: boolean;
+  attentionPreview: string | null;
+  attentionMessageId: string | null;
   status: "idle" | "working" | "needs-input" | "error";
   createdAt: string;
   currentActivityMessageId: string | null;
@@ -268,6 +270,10 @@ export interface AgentSlice {
   setSessionError: (sessionId: string, error: string | null) => void;
   setSessionNeedsInput: (sessionId: string, needsInput: boolean) => void;
   clearSessionChat: (sessionId: string) => void;
+
+  // Attention tracking
+  setSessionAttention: (sessionId: string, preview: string | null, messageId: string | null) => void;
+  clearSessionAttention: (sessionId: string) => void;
 
   // Rich card methods
   upsertActivityLine: (sessionId: string, event: AgentEvent) => void;

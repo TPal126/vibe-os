@@ -1,3 +1,4 @@
+import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import type { Project, ClaudeSessionState } from "../../stores/types";
 
 interface ProjectCardProps {
@@ -7,11 +8,11 @@ interface ProjectCardProps {
 }
 
 const statusConfig = {
-  idle: { color: "bg-v-dim", text: "text-v-dim", label: "Idle", pulse: false },
-  working: { color: "bg-v-accent", text: "text-v-accent", label: "Working", pulse: true },
-  "needs-input": { color: "bg-v-orange", text: "text-v-orange", label: "Needs input", pulse: true },
-  error: { color: "bg-v-red", text: "text-v-red", label: "Error", pulse: false },
-  done: { color: "bg-v-green", text: "text-v-green", label: "Done", pulse: false },
+  idle: { color: "text-v-dim", bg: "bg-v-dim", label: "Idle", pulse: false, icon: null },
+  working: { color: "text-v-accent", bg: "bg-v-accent", label: "Working", pulse: true, icon: null },
+  "needs-input": { color: "text-v-orange", bg: "bg-v-orange", label: "Needs input", pulse: true, icon: AlertCircle },
+  error: { color: "text-v-red", bg: "bg-v-red", label: "Error", pulse: false, icon: XCircle },
+  done: { color: "text-v-green", bg: "bg-v-green", label: "Done", pulse: false, icon: CheckCircle },
 } as const;
 
 type DisplayStatus = keyof typeof statusConfig;
@@ -29,23 +30,43 @@ export function ProjectCard({ project, session, onClick }: ProjectCardProps) {
   const displayStatus = deriveDisplayStatus(session);
   const config = statusConfig[displayStatus];
 
+  const summaryText = (() => {
+    if (displayStatus === "needs-input" && session?.attentionPreview) {
+      return session.attentionPreview;
+    }
+    if (displayStatus === "error" && session?.agentError) {
+      return session.agentError.split("\n")[0].slice(0, 60);
+    }
+    return project.summary || "No activity yet";
+  })();
+
+  const StatusIcon = config.icon;
+
   return (
     <button
       onClick={onClick}
       className="bg-v-surface border border-v-border rounded-lg p-5 cursor-pointer hover:border-v-borderHi hover:bg-v-surfaceHi transition-colors text-left w-full"
     >
       <div className="flex items-center gap-2.5">
-        <span
-          className={`w-2 h-2 rounded-full shrink-0 ${config.color} ${config.pulse ? "animate-dot-pulse" : ""}`}
-        />
+        {StatusIcon ? (
+          <StatusIcon size={14} className={`shrink-0 ${config.color}`} />
+        ) : (
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${config.bg} ${config.pulse ? "animate-dot-pulse" : ""}`}
+          />
+        )}
         <span className="text-v-textHi text-sm font-medium truncate">
           {project.name}
         </span>
       </div>
-      <p className="text-v-dim text-[11px] truncate mt-1.5 ml-[18px]">
-        {project.summary || "No activity yet"}
+      <p className={`text-[11px] truncate mt-1.5 ml-[18px] ${
+        displayStatus === "needs-input" ? "text-v-orange/80" :
+        displayStatus === "error" ? "text-v-red/80" :
+        "text-v-dim"
+      }`}>
+        {summaryText}
       </p>
-      <span className={`text-[10px] ${config.text} mt-2 block ml-[18px]`}>
+      <span className={`text-[10px] ${config.color} mt-2 block ml-[18px]`}>
         {config.label}
       </span>
     </button>
