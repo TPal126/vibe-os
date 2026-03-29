@@ -6,10 +6,11 @@ import { extractCodeBlocks } from "../../lib/eventParser";
 import { commands } from "../../lib/tauri";
 import { Dot } from "../shared/Dot";
 import { IconButton } from "../shared/IconButton";
-import { Send, Square, Code } from "lucide-react";
+import { Send, Square, Code, Copy } from "lucide-react";
 import type { ChatMessage } from "../../stores/types";
 
 function MessageBubble({ message }: { message: ChatMessage }) {
+  const openUntitledFile = useAppStore((s) => s.openUntitledFile);
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
   const codeBlocks = !isUser ? extractCodeBlocks(message.content) : [];
@@ -39,16 +40,26 @@ function MessageBubble({ message }: { message: ChatMessage }) {
               <span className="text-[9px] font-mono text-v-dim uppercase">
                 {block.language}
               </span>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(block.code).catch(() => {});
-                }}
-                className="flex items-center gap-1 text-[9px] text-v-dim hover:text-v-accent transition-colors"
-                title="Send to editor"
-              >
-                <Code size={10} />
-                <span>Send to editor</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(block.code).catch(() => {});
+                  }}
+                  className="flex items-center gap-1 text-[9px] text-v-dim hover:text-v-text transition-colors"
+                  title="Copy to clipboard"
+                >
+                  <Copy size={10} />
+                  <span>Copy</span>
+                </button>
+                <button
+                  onClick={() => openUntitledFile(block.code, block.language || "python")}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-v-accent bg-v-accent/10 hover:bg-v-accent/20 transition-colors"
+                  title="Open in editor"
+                >
+                  <Code size={10} />
+                  <span>Open in Editor</span>
+                </button>
+              </div>
             </div>
             <pre className="bg-v-bg rounded-b px-3 py-2 border border-v-border overflow-x-auto">
               <code className="text-[11px] font-mono text-v-text/90 leading-snug">
