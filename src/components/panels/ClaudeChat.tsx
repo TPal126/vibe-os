@@ -9,6 +9,7 @@ import { Send, Square, Code, Copy, AlertTriangle, RefreshCw } from "lucide-react
 import { ActivityLine } from "../conversation/ActivityLine";
 import { OutcomeCard } from "../conversation/OutcomeCard";
 import { ErrorCard } from "../conversation/ErrorCard";
+import { InlineDecisionCard } from "../conversation/InlineDecisionCard";
 import type { ChatMessage } from "../../stores/types";
 
 function MessageBubble({ message }: { message: ChatMessage }) {
@@ -283,6 +284,8 @@ export function ClaudeChat() {
               return <OutcomeCard key={msg.id} message={msg} />;
             case "error":
               return <ErrorCard key={msg.id} message={msg} />;
+            case "decision":
+              return <InlineDecisionCard key={msg.id} message={msg} />;
             default:
               return <MessageBubble key={msg.id} message={msg} />;
           }

@@ -187,6 +187,21 @@ export function useClaudeStream() {
               store.setAgentError(event.content);
             }
 
+            // Handle decision events -- create inline decision cards
+            if (event.event_type === "decision") {
+              if (sid) {
+                const meta = event.metadata || {};
+                useAppStore.getState().insertRichCard(sid, "decision", event.content, {
+                  decision: event.content,
+                  rationale: (meta.rationale as string) || "",
+                  confidence: (meta.confidence as number) || 0.5,
+                  impactCategory: (meta.impact_category as string) || "dx",
+                  reversible: (meta.reversible as boolean) || false,
+                  relatedFiles: (meta.related_files as string[]) || [],
+                });
+              }
+            }
+
             // Detect input-request events; set needsInput on non-active sessions
             if (isInputRequest(payload) && sid) {
               if (sid !== store.activeClaudeSessionId) {
