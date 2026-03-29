@@ -24,6 +24,39 @@ interface ParsedTestResult {
   passed: number;
   failed: number;
   total: number;
+  testNames: string[];
+}
+
+function parseTestNames(text: string): string[] {
+  const names: string[] = [];
+  const lines = text.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Jest/Vitest: "✓ test name" or "✕ test name" or "● test name"
+    const checkMatch = trimmed.match(/^[✓✕●✗×√]\s+(.+)/);
+    if (checkMatch) {
+      names.push(checkMatch[1].replace(/\s+\(\d+\s*m?s\)$/, "").trim());
+      continue;
+    }
+
+    // pytest: "PASSED test_file.py::test_name" or "FAILED test_file.py::test_name"
+    const pytestMatch = trimmed.match(/^(?:PASSED|FAILED)\s+(.+)/);
+    if (pytestMatch) {
+      names.push(pytestMatch[1].trim());
+      continue;
+    }
+
+    // Rust: "test module::test_name ... ok" or "test module::test_name ... FAILED"
+    const rustMatch = trimmed.match(/^test\s+(.+?)\s+\.\.\.\s+(?:ok|FAILED)/);
+    if (rustMatch) {
+      names.push(rustMatch[1].trim());
+      continue;
+    }
+  }
+
+  return names;
 }
 
 function parseTestResults(text: string): ParsedTestResult | null {
@@ -34,6 +67,7 @@ function parseTestResults(text: string): ParsedTestResult | null {
       passed: parseInt(jestMatch[1]),
       failed: jestMatch[2] ? parseInt(jestMatch[2]) : 0,
       total: parseInt(jestMatch[3]),
+      testNames: parseTestNames(text),
     };
   }
 
@@ -43,7 +77,7 @@ function parseTestResults(text: string): ParsedTestResult | null {
   if (vitestPass || vitestFail) {
     const passed = vitestPass ? parseInt(vitestPass[1]) : 0;
     const failed = vitestFail ? parseInt(vitestFail[1]) : 0;
-    return { passed, failed, total: passed + failed };
+    return { passed, failed, total: passed + failed, testNames: parseTestNames(text) };
   }
 
   // pytest: "8 passed, 2 failed" or "8 passed"
@@ -51,7 +85,7 @@ function parseTestResults(text: string): ParsedTestResult | null {
   if (pytestMatch) {
     const passed = parseInt(pytestMatch[1]);
     const failed = pytestMatch[2] ? parseInt(pytestMatch[2]) : 0;
-    return { passed, failed, total: passed + failed };
+    return { passed, failed, total: passed + failed, testNames: parseTestNames(text) };
   }
 
   // Rust: "test result: ok. 8 passed; 0 failed"
@@ -59,7 +93,7 @@ function parseTestResults(text: string): ParsedTestResult | null {
   if (rustMatch) {
     const passed = parseInt(rustMatch[1]);
     const failed = parseInt(rustMatch[2]);
-    return { passed, failed, total: passed + failed };
+    return { passed, failed, total: passed + failed, testNames: parseTestNames(text) };
   }
 
   return null;
@@ -168,6 +202,9 @@ export function useClaudeStream() {
                   if (!currentSession?.previewUrl) {
                     useAppStore.getState().setSessionPreviewUrl(sid, detectedUrl);
                     useAppStore.getState().setSessionBuildStatus(sid, "running", `Running at ${detectedUrl}`);
+                    useAppStore.getState().insertRichCard(sid, "preview", `Running at ${detectedUrl}`, {
+                      url: detectedUrl,
+                    });
                   }
                 }
               }
@@ -188,6 +225,15 @@ export function useClaudeStream() {
                 const testResult = parseTestResults(event.content);
                 if (testResult) {
                   useAppStore.getState().setSessionTestSummary(sid, testResult);
+                  useAppStore.getState().insertRichCard(sid, "test-detail",
+                    `${testResult.passed}/${testResult.total} tests`,
+                    {
+                      passed: testResult.passed,
+                      failed: testResult.failed,
+                      total: testResult.total,
+                      testNames: testResult.testNames,
+                    }
+                  );
                 }
               }
             }
@@ -278,6 +324,9 @@ export function useClaudeStream() {
                   if (!currentSession?.previewUrl) {
                     useAppStore.getState().setSessionPreviewUrl(sid, detectedUrl);
                     useAppStore.getState().setSessionBuildStatus(sid, "running", `Running at ${detectedUrl}`);
+                    useAppStore.getState().insertRichCard(sid, "preview", `Running at ${detectedUrl}`, {
+                      url: detectedUrl,
+                    });
                   }
                 }
 
@@ -285,6 +334,15 @@ export function useClaudeStream() {
                 const testResult = parseTestResults(event.content);
                 if (testResult && sid) {
                   useAppStore.getState().setSessionTestSummary(sid, testResult);
+                  useAppStore.getState().insertRichCard(sid, "test-detail",
+                    `${testResult.passed}/${testResult.total} tests`,
+                    {
+                      passed: testResult.passed,
+                      failed: testResult.failed,
+                      total: testResult.total,
+                      testNames: testResult.testNames,
+                    }
+                  );
                 }
               } else {
                 store.appendToLastAssistant(event.content);

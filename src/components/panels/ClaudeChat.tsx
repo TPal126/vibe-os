@@ -10,6 +10,8 @@ import { ActivityLine } from "../conversation/ActivityLine";
 import { OutcomeCard } from "../conversation/OutcomeCard";
 import { ErrorCard } from "../conversation/ErrorCard";
 import { InlineDecisionCard } from "../conversation/InlineDecisionCard";
+import { InlinePreviewCard } from "../conversation/InlinePreviewCard";
+import { TestDetailCard } from "../conversation/TestDetailCard";
 import type { ChatMessage } from "../../stores/types";
 
 function MessageBubble({ message }: { message: ChatMessage }) {
@@ -315,6 +317,10 @@ export function ClaudeChat() {
                 return <ErrorCard key={msg.id} message={msg} />;
               case "decision":
                 return <InlineDecisionCard key={msg.id} message={msg} />;
+              case "preview":
+                return <InlinePreviewCard key={msg.id} message={msg} />;
+              case "test-detail":
+                return <TestDetailCard key={msg.id} message={msg} />;
               default:
                 return <MessageBubble key={msg.id} message={msg} />;
             }
