@@ -5,6 +5,7 @@ import type {
   AgentEvent,
   ClaudeSessionState,
 } from "../types";
+import { commands } from "../../lib/tauri";
 
 // ── Helpers ──
 
@@ -50,6 +51,23 @@ function deriveStatus(
 // ── Slice ──
 
 export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
+  // CLI availability
+  claudeCliAvailable: null,
+  claudeCliError: null,
+
+  validateClaudeCli: async () => {
+    try {
+      const version = await commands.validateClaudeCli();
+      set({ claudeCliAvailable: true, claudeCliError: null });
+      console.log("[vibe-os] Claude CLI validated:", version);
+    } catch (err) {
+      const message =
+        typeof err === "string" ? err : (err as Error)?.message ?? String(err);
+      set({ claudeCliAvailable: false, claudeCliError: message });
+      console.warn("[vibe-os] Claude CLI validation failed:", message);
+    }
+  },
+
   // Per-session state
   claudeSessions: new Map<string, ClaudeSessionState>(),
   activeClaudeSessionId: null,

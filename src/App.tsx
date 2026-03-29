@@ -17,9 +17,13 @@ function App() {
   const discoverSkills = useAppStore((s) => s.discoverSkills);
   const openWorkspace = useAppStore((s) => s.openWorkspace);
   const recompose = useAppStore((s) => s.recompose);
+  const validateClaudeCli = useAppStore((s) => s.validateClaudeCli);
 
   useEffect(() => {
     async function init() {
+      // 0. Validate Claude CLI availability (non-blocking -- runs in parallel)
+      validateClaudeCli();
+
       // 1. Try to load an existing active session (returns session data with linked repos/skills)
       const sessionData = await loadActiveSession();
       const session = useAppStore.getState().activeSession;

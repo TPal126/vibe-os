@@ -230,6 +230,11 @@ export interface ClaudeSessionState {
 }
 
 export interface AgentSlice {
+  // CLI availability
+  claudeCliAvailable: boolean | null;
+  claudeCliError: string | null;
+  validateClaudeCli: () => Promise<void>;
+
   // Per-session state
   claudeSessions: Map<string, ClaudeSessionState>;
   activeClaudeSessionId: string | null;

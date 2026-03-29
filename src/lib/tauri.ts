@@ -220,6 +220,8 @@ export const commands = {
     invoke<AuditEntry[]>("get_audit_log", { limit }),
 
   // ── Claude Commands ──
+  validateClaudeCli: () => invoke<string>("validate_claude_cli"),
+
   startClaude: (args: {
     working_dir: string;
     message: string;

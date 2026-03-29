@@ -111,6 +111,7 @@ pub fn run() {
             file_commands::write_file,
             audit_commands::log_action,
             audit_commands::get_audit_log,
+            claude_commands::validate_claude_cli,
             claude_commands::start_claude,
             claude_commands::send_message,
             claude_commands::cancel_claude,

@@ -30,6 +30,63 @@ pub struct StartClaudeArgs {
 
 // ── Commands ──
 
+/// Validate that the Claude CLI is available on the system.
+/// Attempts to run `claude --version` and returns the version string if found.
+/// Returns a structured error with install instructions if not found.
+#[tauri::command]
+pub async fn validate_claude_cli(app: AppHandle) -> Result<String, String> {
+    let shell = app.shell();
+
+    match shell
+        .command("run-claude")
+        .args(["--version"])
+        .output()
+        .await
+    {
+        Ok(output) => {
+            if output.status.success() {
+                let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if version.is_empty() {
+                    Ok("Claude CLI found (unknown version)".to_string())
+                } else {
+                    Ok(version)
+                }
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                Err(format!(
+                    "Claude Code CLI returned an error: {}. \
+                     Try reinstalling: npm install -g @anthropic-ai/claude-code \
+                     (https://docs.anthropic.com/en/docs/claude-code)",
+                    stderr
+                ))
+            }
+        }
+        Err(e) => {
+            let err_str = e.to_string().to_lowercase();
+            if err_str.contains("not found")
+                || err_str.contains("no such file")
+                || err_str.contains("program not found")
+                || err_str.contains("cannot find")
+                || err_str.contains("os error 2")
+            {
+                Err(
+                    "Claude Code CLI not found. \
+                     Install it with: npm install -g @anthropic-ai/claude-code \
+                     (https://docs.anthropic.com/en/docs/claude-code)"
+                        .to_string(),
+                )
+            } else {
+                Err(format!(
+                    "Failed to validate Claude CLI: {}. \
+                     Ensure it is installed: npm install -g @anthropic-ai/claude-code \
+                     (https://docs.anthropic.com/en/docs/claude-code)",
+                    e
+                ))
+            }
+        }
+    }
+}
+
 /// Start a Claude CLI invocation. Spawns `claude -p --output-format stream-json`
 /// as a child process, reads stdout in a background task, parses events,
 /// and emits them as 'claude-stream' Tauri events.
@@ -70,7 +127,26 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
         .args(&cli_args)
         .current_dir(args.working_dir)
         .spawn()
-        .map_err(|e| format!("Failed to spawn Claude CLI: {}", e))?;
+        .map_err(|e| {
+            let err_str = e.to_string().to_lowercase();
+            if err_str.contains("not found")
+                || err_str.contains("no such file")
+                || err_str.contains("program not found")
+                || err_str.contains("cannot find")
+                || err_str.contains("os error 2")
+            {
+                "Claude Code CLI not found. \
+                 Install it with: npm install -g @anthropic-ai/claude-code \
+                 (https://docs.anthropic.com/en/docs/claude-code)"
+                    .to_string()
+            } else {
+                format!(
+                    "Failed to spawn Claude CLI: {}. \
+                     Ensure Claude Code CLI is installed: npm install -g @anthropic-ai/claude-code",
+                    e
+                )
+            }
+        })?;
 
     // Store the child handle keyed by claude_session_id
     let processes = get_or_init_processes(&app);

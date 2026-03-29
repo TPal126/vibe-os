@@ -59,6 +59,11 @@
           "args": true
         },
         {
+          "name": "run-claude",
+          "cmd": "claude",
+          "args": true
+        },
+        {
           "name": "git",
           "cmd": "git",
           "args": true
