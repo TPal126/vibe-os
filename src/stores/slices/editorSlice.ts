@@ -38,6 +38,7 @@ function extractFileName(filePath: string): string {
 export const createEditorSlice: SliceCreator<EditorSlice> = (set, get) => ({
   openFiles: [],
   activeFilePath: null,
+  lastSaveTimestamp: 0,
 
   openFile: async (path: string) => {
     const existing = get().openFiles.find((f) => f.path === path);
@@ -108,9 +109,33 @@ export const createEditorSlice: SliceCreator<EditorSlice> = (set, get) => ({
         openFiles: state.openFiles.map((f) =>
           f.path === path ? { ...f, isDirty: false } : f,
         ),
+        lastSaveTimestamp: Date.now(),
       }));
     } catch (err) {
       console.error("Failed to save file:", err);
     }
+  },
+
+  openUntitledFile: (content: string, language: string) => {
+    const existing = get().openFiles.filter((f) =>
+      f.path.startsWith("untitled-"),
+    );
+    const num = existing.length + 1;
+    const ext =
+      language === "python"
+        ? ".py"
+        : language === "typescript"
+          ? ".ts"
+          : ".txt";
+    const path = `untitled-${num}${ext}`;
+    const name = path;
+
+    set((state) => ({
+      openFiles: [
+        ...state.openFiles,
+        { path, name, language, content, isDirty: true },
+      ],
+      activeFilePath: path,
+    }));
   },
 });

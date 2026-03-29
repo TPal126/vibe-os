@@ -75,11 +75,13 @@ export interface EditorFile {
 export interface EditorSlice {
   openFiles: EditorFile[];
   activeFilePath: string | null;
+  lastSaveTimestamp: number;
   openFile: (path: string) => Promise<void>;
   closeFile: (path: string) => void;
   setActiveFile: (path: string) => void;
   updateFileContent: (path: string, content: string) => void;
   saveFile: (path: string) => Promise<void>;
+  openUntitledFile: (content: string, language: string) => void;
 }
 
 export interface ConsoleEntry {
@@ -202,6 +204,35 @@ export interface AgentSlice {
   clearChat: () => void;
 }
 
+// ── Diff Types ──
+
+export interface PendingDiff {
+  id: string;
+  filePath: string;
+  originalContent: string;
+  proposedContent: string;
+  timestamp: string;
+  status: "pending" | "accepted" | "rejected";
+}
+
+export interface DiffSlice {
+  pendingDiffs: PendingDiff[];
+  activeDiffId: string | null;
+  addPendingDiff: (diff: Omit<PendingDiff, "id" | "status">) => void;
+  acceptDiff: (id: string) => Promise<void>;
+  rejectDiff: (id: string) => void;
+  setActiveDiff: (id: string | null) => void;
+}
+
+// ── Preview Types ──
+
+export interface PreviewSlice {
+  previewUrl: string | null;
+  autoRefresh: boolean;
+  setPreviewUrl: (url: string) => void;
+  toggleAutoRefresh: () => void;
+}
+
 // ── Combined State ──
 
 export type AppState = SessionSlice &
@@ -212,7 +243,9 @@ export type AppState = SessionSlice &
   ConsoleSlice &
   AgentSlice &
   DecisionSlice &
-  AuditSlice;
+  AuditSlice &
+  DiffSlice &
+  PreviewSlice;
 
 // ── Slice Creator Helper ──
 
