@@ -251,6 +251,16 @@ export function useClaudeStream() {
                       );
                   }
                 }
+
+                // Finalize build status on result
+                const currentForBuild = useAppStore.getState().claudeSessions.get(sid);
+                if (currentForBuild?.buildStatus === "building") {
+                  if (currentForBuild.previewUrl) {
+                    useAppStore.getState().setSessionBuildStatus(sid, "running", `Running at ${currentForBuild.previewUrl}`);
+                  } else {
+                    useAppStore.getState().setSessionBuildStatus(sid, "idle", null);
+                  }
+                }
               }
             }
 
@@ -300,6 +310,12 @@ export function useClaudeStream() {
                 // Set attention for error (if not the active project)
                 if (sid !== store.activeClaudeSessionId) {
                   store.setSessionAttention(sid, errorMessage, errorCardId);
+                }
+
+                // Transition build status to failed on error
+                const currentForBuildErr = useAppStore.getState().claudeSessions.get(sid);
+                if (currentForBuildErr?.buildStatus === "building") {
+                  useAppStore.getState().setSessionBuildStatus(sid, "failed", "Build failed");
                 }
 
                 store.setSessionError(sid, event.content);
