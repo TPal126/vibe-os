@@ -4,8 +4,10 @@ use tauri::Manager;
 mod commands;
 mod db;
 
+use commands::audit_commands;
 use commands::context_commands;
 use commands::db_commands;
+use commands::file_commands;
 use commands::shell_commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -29,6 +31,39 @@ pub fn run() {
             // Register the database connection as managed state
             app.manage(Mutex::new(conn));
 
+            // Copy bundled skill files to ~/.vibe-os/skills/ on first launch
+            let home = dirs::home_dir().expect("Cannot determine home directory");
+            let skills_dir = home.join(".vibe-os").join("skills");
+            if !skills_dir.exists()
+                || std::fs::read_dir(&skills_dir)
+                    .map(|d| d.count())
+                    .unwrap_or(0)
+                    == 0
+            {
+                std::fs::create_dir_all(&skills_dir).expect("Failed to create skills dir");
+                let resource_dir = app
+                    .path()
+                    .resolve("skills", tauri::path::BaseDirectory::Resource)
+                    .expect("Failed to resolve skills resource dir");
+                if resource_dir.exists() {
+                    for entry in std::fs::read_dir(&resource_dir)
+                        .unwrap_or_else(|_| panic!("read bundled skills"))
+                    {
+                        if let Ok(entry) = entry {
+                            if entry
+                                .path()
+                                .extension()
+                                .map(|e| e == "md")
+                                .unwrap_or(false)
+                            {
+                                let dest = skills_dir.join(entry.file_name());
+                                std::fs::copy(entry.path(), &dest).ok();
+                            }
+                        }
+                    }
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -49,6 +84,10 @@ pub fn run() {
             context_commands::get_repos,
             context_commands::index_repo,
             context_commands::compose_prompt,
+            file_commands::read_file,
+            file_commands::write_file,
+            audit_commands::log_action,
+            audit_commands::get_audit_log,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

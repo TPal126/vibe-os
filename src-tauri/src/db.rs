@@ -69,8 +69,27 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Migration v2 failed: {}", e))?;
     }
 
+    if version < 3 {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS audit_log (
+                 id TEXT PRIMARY KEY,
+                 session_id TEXT NOT NULL,
+                 timestamp TEXT NOT NULL,
+                 action_type TEXT NOT NULL,
+                 detail TEXT NOT NULL,
+                 actor TEXT NOT NULL,
+                 metadata TEXT,
+                 FOREIGN KEY (session_id) REFERENCES sessions(id)
+             );
+             PRAGMA user_version = 3;
+             COMMIT;",
+        )
+        .map_err(|e| format!("Migration v3 failed: {}", e))?;
+    }
+
     // Future migrations:
-    // if version < 3 { ... }
+    // if version < 4 { ... }
 
     Ok(())
 }

@@ -38,6 +38,16 @@ export interface SessionData {
   activeSkills: string;
 }
 
+export interface AuditEntry {
+  id: string;
+  session_id: string;
+  timestamp: string;
+  action_type: string;
+  detail: string;
+  actor: string;
+  metadata: string | null;
+}
+
 /**
  * Typed command wrappers for all Tauri IPC commands.
  * Each method maps to a #[tauri::command] in the Rust backend.
@@ -86,4 +96,20 @@ export const commands = {
       activeSkillPaths,
       activeRepoSummaries,
     }),
+
+  // ── File I/O ──
+  readFile: (path: string) => invoke<string>("read_file", { path }),
+  writeFile: (path: string, content: string) =>
+    invoke<void>("write_file", { path, content }),
+
+  // ── Audit trail ──
+  logAction: (
+    actionType: string,
+    detail: string,
+    actor: string,
+    metadata?: string,
+  ) =>
+    invoke<void>("log_action", { actionType, detail, actor, metadata }),
+  getAuditLog: (limit?: number) =>
+    invoke<AuditEntry[]>("get_audit_log", { limit }),
 };
