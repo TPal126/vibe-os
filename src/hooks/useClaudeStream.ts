@@ -107,6 +107,56 @@ export function useClaudeStream() {
                 store.setSessionConversationId(sid, convId);
               }
               store.setConversationId(convId);
+
+              // Create outcome card from accumulated agent events
+              if (sid) {
+                const session = useAppStore.getState().claudeSessions.get(sid);
+                if (session) {
+                  const filesCreated = session.agentEvents
+                    .filter((e) => e.event_type === "file_create")
+                    .map((e) => (e.metadata?.path as string) || e.content);
+                  const filesEdited = session.agentEvents
+                    .filter((e) => e.event_type === "file_modify")
+                    .map((e) => (e.metadata?.path as string) || e.content);
+                  const testEvents = session.agentEvents.filter(
+                    (e) => e.event_type === "test_run",
+                  );
+                  const testsRun = testEvents.length;
+                  const testsPassed =
+                    testsRun > 0
+                      ? testEvents.every(
+                          (e) => (e.metadata?.result as string) === "pass",
+                        )
+                      : null;
+
+                  const fileCount = filesCreated.length + filesEdited.length;
+                  if (fileCount > 0 || testsRun > 0) {
+                    const testText =
+                      testsRun > 0
+                        ? testsPassed
+                          ? ", all tests passing"
+                          : ", tests failed"
+                        : "";
+                    useAppStore
+                      .getState()
+                      .insertRichCard(
+                        sid,
+                        "outcome",
+                        `Changed ${fileCount} file${fileCount !== 1 ? "s" : ""}${testText}`,
+                        {
+                          filesCreated,
+                          filesEdited,
+                          testsRun,
+                          testsPassed,
+                          costUsd:
+                            (event.metadata?.cost_usd as number) ?? null,
+                          durationMs:
+                            (event.metadata?.duration_ms as number) ?? null,
+                        },
+                      );
+                  }
+                }
+              }
             }
 
             // Accumulate assistant text into chat messages
@@ -123,6 +173,15 @@ export function useClaudeStream() {
             // Set error state for error events
             if (event.event_type === "error") {
               if (sid) {
+                // Insert error card into chat before setting error state
+                const lines = event.content.split("\n");
+                const errorMessage = lines[0] || "An error occurred";
+                useAppStore.getState().insertRichCard(sid, "error", errorMessage, {
+                  errorMessage,
+                  fullError: event.content,
+                  sessionId: sid,
+                });
+
                 store.setSessionError(sid, event.content);
               }
               store.setAgentError(event.content);

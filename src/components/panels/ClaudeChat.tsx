@@ -7,6 +7,8 @@ import { IconButton } from "../shared/IconButton";
 import { SessionTabs } from "./SessionTabs";
 import { Send, Square, Code, Copy, AlertTriangle, RefreshCw } from "lucide-react";
 import { ActivityLine } from "../conversation/ActivityLine";
+import { OutcomeCard } from "../conversation/OutcomeCard";
+import { ErrorCard } from "../conversation/ErrorCard";
 import type { ChatMessage } from "../../stores/types";
 
 function MessageBubble({ message }: { message: ChatMessage }) {
@@ -274,10 +276,16 @@ export function ClaudeChat() {
         )}
 
         {chatMessages.map((msg) => {
-          if (msg.cardType === "activity") {
-            return <ActivityLine key={msg.id} message={msg} />;
+          switch (msg.cardType) {
+            case "activity":
+              return <ActivityLine key={msg.id} message={msg} />;
+            case "outcome":
+              return <OutcomeCard key={msg.id} message={msg} />;
+            case "error":
+              return <ErrorCard key={msg.id} message={msg} />;
+            default:
+              return <MessageBubble key={msg.id} message={msg} />;
           }
-          return <MessageBubble key={msg.id} message={msg} />;
         })}
 
         <div ref={messagesEndRef} />
