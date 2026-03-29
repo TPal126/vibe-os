@@ -257,7 +257,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ARCH-01 | Phase 9 | Complete (09-03) |
 | ARCH-02 | Phase 9 | Complete (09-03) |
 | ARCH-03 | Phase 9 | Complete (09-03) |
-| CHAT-01 | Phase 10 | Pending |
+| CHAT-01 | Phase 10 | In Progress (10-01 backend complete) |
 | CHAT-02 | Phase 10 | Pending |
 | CHAT-03 | Phase 10 | Pending |
 | TOKEN-01 | Phase 10 | Pending |

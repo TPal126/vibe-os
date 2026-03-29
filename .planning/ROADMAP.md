@@ -68,7 +68,7 @@ Plans:
   4. Token Control panel (left column tab) lets the user set per-skill token limits, per-repo context limits, and an overall session budget; approaching or exceeding limits shows color-coded warnings
 **Plans**: 3 plans
 Plans:
-- [ ] 10-01-PLAN.md -- Multi-session backend: claude_sessions DB table, session-tagged events, process tracking per session, CRUD commands
+- [x] 10-01-PLAN.md -- Multi-session backend: claude_sessions DB table, session-tagged events, process tracking per session, CRUD commands
 - [ ] 10-02-PLAN.md -- Multi-session frontend: per-session AgentSlice, SessionTabs component, input-needed alerts, useClaudeStream routing
 - [ ] 10-03-PLAN.md -- Token Control: token_budgets DB table, TokenControlPanel UI, per-skill/per-repo/session budgets, compose_prompt enforcement
 
@@ -96,5 +96,5 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11
 |-------|----------------|--------|-----------|
 | 8. Workspace System | 3/3 | Complete | 2026-03-28 |
 | 9. Layout Restructure & Dashboard | 3/3 | Complete | 2026-03-29 |
-| 10. Multi-Session & Token Control | 0/3 | Planned | - |
+| 10. Multi-Session & Token Control | 1/3 | In Progress | - |
 | 11. Polish & Bug Fixes | 0/4 | Planned | - |
