@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Developers can see, understand, and direct every decision an AI coding agent makes
-**Current focus:** v2 Milestone -- Workspace-First Vibe Coding Overhaul, Phase 10 complete
+**Current focus:** v2 Milestone -- Workspace-First Vibe Coding Overhaul, Phase 11 in progress
 
 ## Current Position
 
-Phase: 10 of 11 (Multi-Session & Token Control)
-Plan: 3 of 3 in current phase (3 complete)
-Status: Phase 10 complete, ready for Phase 11
-Last activity: 2026-03-29 -- Plan 10-03 complete (Token Control backend + frontend)
+Phase: 11 of 11 (Polish & Bug Fixes)
+Plan: 4 of 4 in current phase (4 complete)
+Status: Plan 11-04 complete, continuing Phase 11
+Last activity: 2026-03-29 -- Plan 11-04 complete (Status Bar & Title Bar v2 Updates)
 
-Progress: [########--] 80%
+Progress: [##########] 95%
 
 ## v1 Summary
 
@@ -29,9 +29,9 @@ Total execution time: ~1.55 hours across all phases.
 - Total execution time: ~1.55 hours
 
 **v2 Velocity:**
-- Total plans completed: 9
+- Total plans completed: 12
 - Average duration: ~3.8m
-- Total execution time: ~35m
+- Total execution time: ~46m
 
 *Updated after each plan completion*
 
@@ -56,6 +56,8 @@ Key v2 decisions:
 - [10-01]: AgentEvent.claude_session_id uses Option with skip_serializing_if for backward compatibility; ClaudeProcesses keyed by claude_session_id; log_to_audit unchanged
 - [10-02]: Map<string, ClaudeSessionState> for session state; legacy compat methods delegate to session-scoped via activeClaudeSessionId; useClaudeStream dual-writes during transition
 - [10-03]: Upsert pattern for token budgets using UNIQUE index on (scope_type, scope_id); budget enforcement uses soft truncation with visible marker; warning threshold colors green/orange/red
+- [11-02]: validate_claude_cli checks via shell:allow-execute; error detection uses multiple "not found" patterns for cross-platform compatibility; non-blocking validation on app init
+- [11-04]: Session status aggregates all claudeSessions with priority error > needs-input > working > idle; token budget display in TitleBar uses session-global budget with fallback to raw totalTokens
 
 ### Pending Todos
 
@@ -70,5 +72,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 10-03-PLAN.md (Token Control backend + frontend). Phase 10 complete, ready for Phase 11.
+Stopped at: Completed 11-04-PLAN.md (Status Bar & Title Bar v2 Updates). Phase 11 plan 4 of 4 complete.
 Resume file: None
