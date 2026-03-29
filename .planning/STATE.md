@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 14 of 17 (Rich Conversation Cards)
-Plan: 2/3 (Plans 01-02 complete, Plan 03 remaining)
-Status: Phase 14 in progress. Plan 02 (Outcome Cards + Error Cards) complete. 5 tasks, 4 files (2 new, 2 modified), 43/43 tests passing.
-Last activity: 2026-03-29 -- Phase 14 Plan 02 executed: OutcomeCard (green, expandable file list, cost/duration), ErrorCard (red, retry/details), stream wiring for result and error events.
+Phase: 14 of 17 (Rich Conversation Cards) -- COMPLETE
+Plan: 3/3 (All plans complete)
+Status: Phase 14 complete. All 6 success criteria met. 3 plans, 16 tasks, 43/43 tests passing.
+Last activity: 2026-03-29 -- Phase 14 Plan 03 executed: InlineDecisionCard (impact-colored, expandable rationale), decision event wiring, SC-5/SC-6 verified.
 
-Progress: [====#-----] 28%
+Progress: [=====#----] 33%
 
 ## v1 Summary
 
@@ -29,7 +29,7 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 
 **v1 Velocity:** 17 plans, ~5.4m avg, ~1.55 hours total
 **v2 Velocity:** 13 plans, ~3.7m avg, ~48m total
-**v3 Velocity:** 2 plans, ~2.6m avg, ~5.2m total
+**v3 Velocity:** 5 plans, ~2.4m avg, ~12m total
 
 ## Accumulated Context
 
@@ -49,6 +49,8 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 - [Phase 14-02]: OutcomeCard only shown when files changed or tests run, skipped for simple Q&A
 - [Phase 14-02]: ErrorCard retry reads store directly for last user message, calls sendMessage with conversationId
 - [Phase 14-02]: Error card inserted BEFORE setSessionError to preserve status derivation ordering
+- [Phase 14-03]: InlineDecisionCard uses same color system as DecisionLog panel for visual consistency
+- [Phase 14-03]: Decision events forward-compatible: card renders when Rust parser emits decision events in future
 
 ### Pending Todos
 
@@ -64,5 +66,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 14-02-PLAN.md (Outcome Cards + Error Cards). 5/5 tasks, 43/43 tests. Ready for 14-03 (Decision Cards + Preview Cards).
+Stopped at: Completed 14-03-PLAN.md (Inline Decision Cards + Verification). 6/6 tasks, 43/43 tests. Phase 14 complete. Ready for Phase 15.
 Resume file: None
