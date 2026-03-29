@@ -88,8 +88,27 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Migration v3 failed: {}", e))?;
     }
 
-    // Future migrations:
-    // if version < 4 { ... }
+    if version < 4 {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS decisions (
+                 id TEXT PRIMARY KEY,
+                 session_id TEXT NOT NULL,
+                 timestamp TEXT NOT NULL,
+                 decision TEXT NOT NULL,
+                 rationale TEXT NOT NULL,
+                 confidence REAL NOT NULL,
+                 impact_category TEXT NOT NULL,
+                 reversible INTEGER NOT NULL DEFAULT 1,
+                 related_files TEXT NOT NULL DEFAULT '[]',
+                 related_tickets TEXT NOT NULL DEFAULT '[]',
+                 FOREIGN KEY (session_id) REFERENCES sessions(id)
+             );
+             PRAGMA user_version = 4;
+             COMMIT;",
+        )
+        .map_err(|e| format!("Migration v4 failed: {}", e))?;
+    }
 
     Ok(())
 }

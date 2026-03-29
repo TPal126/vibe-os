@@ -112,4 +112,21 @@ export const commands = {
     invoke<void>("log_action", { actionType, detail, actor, metadata }),
   getAuditLog: (limit?: number) =>
     invoke<AuditEntry[]>("get_audit_log", { limit }),
+
+  // ── Claude Commands ──
+  startClaude: (args: {
+    working_dir: string;
+    message: string;
+    system_prompt?: string;
+    conversation_id?: string;
+  }) => invoke<string>("start_claude", { args }),
+
+  sendMessage: (args: {
+    message: string;
+    conversation_id: string;
+    working_dir: string;
+  }) => invoke<string>("send_message", args),
+
+  cancelClaude: (invocationId: string) =>
+    invoke<void>("cancel_claude", { invocationId }),
 };

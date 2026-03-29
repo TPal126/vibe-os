@@ -3,8 +3,10 @@ use tauri::Manager;
 
 mod commands;
 mod db;
+mod services;
 
 use commands::audit_commands;
+use commands::claude_commands;
 use commands::context_commands;
 use commands::db_commands;
 use commands::file_commands;
@@ -88,6 +90,9 @@ pub fn run() {
             file_commands::write_file,
             audit_commands::log_action,
             audit_commands::get_audit_log,
+            claude_commands::start_claude,
+            claude_commands::send_message,
+            claude_commands::cancel_claude,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

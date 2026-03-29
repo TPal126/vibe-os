@@ -4422,6 +4422,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-shell",
+ "tokio",
  "uuid",
  "walkdir",
 ]

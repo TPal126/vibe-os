@@ -101,6 +101,51 @@ export interface ConsoleSlice {
   clearEntries: () => void;
 }
 
+// ── Agent Types ──
+
+export type AgentEventType =
+  | "think"
+  | "decision"
+  | "file_create"
+  | "file_modify"
+  | "test_run"
+  | "preview_update"
+  | "error"
+  | "result"
+  | "raw";
+
+export interface AgentEvent {
+  timestamp: string;
+  event_type: AgentEventType;
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: string;
+  codeBlocks?: { language: string; code: string }[];
+}
+
+export interface AgentSlice {
+  chatMessages: ChatMessage[];
+  agentEvents: AgentEvent[];
+  isWorking: boolean;
+  conversationId: string | null;
+  currentInvocationId: string | null;
+  agentError: string | null;
+  addChatMessage: (message: ChatMessage) => void;
+  addAgentEvent: (event: AgentEvent) => void;
+  appendToLastAssistant: (text: string) => void;
+  setWorking: (working: boolean) => void;
+  setConversationId: (id: string | null) => void;
+  setCurrentInvocationId: (id: string | null) => void;
+  setAgentError: (error: string | null) => void;
+  clearChat: () => void;
+}
+
 // ── Combined State ──
 
 export type AppState = SessionSlice &
@@ -108,7 +153,8 @@ export type AppState = SessionSlice &
   SkillSlice &
   PromptSlice &
   EditorSlice &
-  ConsoleSlice;
+  ConsoleSlice &
+  AgentSlice;
 
 // ── Slice Creator Helper ──
 

@@ -6,6 +6,7 @@ import { createSkillSlice } from "./slices/skillSlice";
 import { createPromptSlice } from "./slices/promptSlice";
 import { createEditorSlice } from "./slices/editorSlice";
 import { createConsoleSlice } from "./slices/consoleSlice";
+import { createAgentSlice } from "./slices/agentSlice";
 import { tauriSqliteStorage } from "./storage";
 import type { AppState } from "./types";
 
@@ -18,6 +19,7 @@ export const useAppStore = create<AppState>()(
       ...createPromptSlice(...a),
       ...createEditorSlice(...a),
       ...createConsoleSlice(...a),
+      ...createAgentSlice(...a),
     }),
     {
       name: "vibe-os-store",
