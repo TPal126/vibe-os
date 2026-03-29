@@ -5,11 +5,13 @@ import { useAppStore } from "./stores";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useWorkspaceWatcher } from "./hooks/useWorkspaceWatcher";
 import { useClaudeStream } from "./hooks/useClaudeStream";
+import { useNotifications } from "./hooks/useNotifications";
 
 function App() {
   useKeyboardShortcuts();
   useWorkspaceWatcher();
   useClaudeStream();
+  useNotifications();
 
   const loadActiveSession = useAppStore((s) => s.loadActiveSession);
   const createSession = useAppStore((s) => s.createSession);
