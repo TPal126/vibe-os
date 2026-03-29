@@ -118,5 +118,5 @@ Phases 16 and 17 need 14 (conversation view is rich enough to be the only surfac
 | 13. Project Cards Home Screen | 3/3 | Complete | 2026-03-29 |
 | 14. Rich Conversation Cards | 3/3 | Complete | 2026-03-29 |
 | 15. Attention Routing | 3/3 | Complete | 2026-03-29 |
-| 16. Outcome Previews | 0/? | Planned | - |
+| 16. Outcome Previews | 1/3 | In Progress | - |
 | 17. Settings & Escape Hatch | 3/3 | Planned | - |

@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 15 of 17 (Attention Routing) -- COMPLETE
-Plan: 3/3 complete
-Status: Phase 15 complete. All 3 plans delivered: attention state, badge+scroll, OS notifications.
-Last activity: 2026-03-29 -- Phase 15 Plan 03 executed: tauri-plugin-notification, useNotifications hook with ref-based dedup, App.tsx mount.
+Phase: 16 of 17 (Outcome Previews)
+Plan: 1/3 complete
+Status: Phase 16 in progress. Plan 01 delivered: session outcome state + detection pipeline.
+Last activity: 2026-03-29 -- Phase 16 Plan 01 executed: TestSummary/BuildStatus types, store methods, URL/test/build detection in useClaudeStream.
 
-Progress: [========#-] 50%
+Progress: [=========#] 53%
 
 ## v1 Summary
 
@@ -29,7 +29,7 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 
 **v1 Velocity:** 17 plans, ~5.4m avg, ~1.55 hours total
 **v2 Velocity:** 13 plans, ~3.7m avg, ~48m total
-**v3 Velocity:** 7 plans, ~2.4m avg, ~17.4m total
+**v3 Velocity:** 8 plans, ~2.5m avg, ~20.9m total
 
 ## Accumulated Context
 
@@ -62,6 +62,8 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 - [Phase 15-03]: Single-arg subscribe with ref-based previous state tracking (store lacks subscribeWithSelector)
 - [Phase 15-03]: Dynamic import for notification plugin to avoid crashes in test/non-Tauri environments
 - [Phase 15-03]: Deduplication via notifiedRef Set with cleanup when attention clears
+- [Phase 16-01]: Detection helpers (extractDevServerUrl, parseTestResults, classifyBashCommand) are pure functions at module scope for testability
+- [Phase 16-01]: First URL wins for previewUrl -- user can override via manual entry in Plan 02
 
 ### Pending Todos
 
@@ -77,5 +79,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 15-03-PLAN.md (OS-Level Notifications). 4/4 tasks. Phase 15 complete. Ready for Phase 16.
+Stopped at: Completed 16-01-PLAN.md (Session Outcome State + Detection Pipeline). 5/5 tasks. Phase 16 Plan 01 done. Ready for 16-02.
 Resume file: None
