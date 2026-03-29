@@ -24,7 +24,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **EDIT-02**: File tabs allow opening multiple files with close buttons
 - [x] **EDIT-03**: User can save files to disk via keyboard shortcut (Cmd/Ctrl+S), triggering an audit log entry
 - [ ] **EDIT-04**: Editor receives code from Claude chat via a "send to editor" action on code blocks
-- [ ] **EDIT-05**: Diff view shows agent-proposed file changes with accept/reject controls
+- [x] **EDIT-05**: Diff view shows agent-proposed file changes with accept/reject controls
 
 ### Context Management
 
@@ -75,11 +75,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Visualization
 
-- [ ] **VIZ-01**: Architecture viewer renders a D3 force-directed graph of active repos showing modules, classes, and import relationships
-- [ ] **VIZ-02**: Nodes are colored by repo, sized by importance (incoming edges), with hover tooltips showing file path and function list
-- [ ] **VIZ-03**: Graph supports drag, zoom, and a "Rebuild" button to re-analyze after changes
-- [ ] **VIZ-04**: Live preview panel embeds a webview pointed at a dev server URL with auto-refresh on file changes (debounced 500ms)
-- [ ] **VIZ-05**: Preview panel has browser chrome mockup (URL bar, Live dot, auto-refresh toggle)
+- [x] **VIZ-01**: Architecture viewer renders a D3 force-directed graph of active repos showing modules, classes, and import relationships
+- [x] **VIZ-02**: Nodes are colored by repo, sized by importance (incoming edges), with hover tooltips showing file path and function list
+- [x] **VIZ-03**: Graph supports drag, zoom, and a "Rebuild" button to re-analyze after changes
+- [x] **VIZ-04**: Live preview panel embeds a webview pointed at a dev server URL with auto-refresh on file changes (debounced 500ms)
+- [x] **VIZ-05**: Preview panel has browser chrome mockup (URL bar, Live dot, auto-refresh toggle)
 
 ### Database & Persistence
 
@@ -149,7 +149,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDIT-02 | Phase 4 | Complete |
 | EDIT-03 | Phase 4 | Complete |
 | EDIT-04 | Phase 5 | Pending |
-| EDIT-05 | Phase 7 | Pending |
+| EDIT-05 | Phase 7 | Complete |
 | CTX-01 | Phase 3 | Complete |
 | CTX-02 | Phase 3 | Complete |
 | CTX-03 | Phase 3 | Complete |
@@ -182,11 +182,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONSOLE-01 | Phase 4 | Complete |
 | CONSOLE-02 | Phase 4 | Complete |
 | CONSOLE-03 | Phase 4 | Complete |
-| VIZ-01 | Phase 7 | Pending |
-| VIZ-02 | Phase 7 | Pending |
-| VIZ-03 | Phase 7 | Pending |
-| VIZ-04 | Phase 7 | Pending |
-| VIZ-05 | Phase 7 | Pending |
+| VIZ-01 | Phase 7 | Complete |
+| VIZ-02 | Phase 7 | Complete |
+| VIZ-03 | Phase 7 | Complete |
+| VIZ-04 | Phase 7 | Complete |
+| VIZ-05 | Phase 7 | Complete |
 | DB-01 | Phase 1 | Complete |
 | DB-02 | Phase 1 | Complete |
 | DB-03 | Phase 3 | Complete |

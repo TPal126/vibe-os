@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 7 of 7 (Visualization, Diff & Polish)
-Plan: 1 of 3 in current phase
-Status: Plan 07-01 complete -- backend infrastructure for visualization, diff, preview done
-Last activity: 2026-03-29 -- Completed 07-01 (Backend Infrastructure)
+Plan: 2 of 3 in current phase
+Status: Plan 07-02 complete -- ArchViewer, LivePreview, DiffView panels built and wired
+Last activity: 2026-03-29 -- Completed 07-02 (Visualization Panels)
 
-Progress: [=========.] 86%
+Progress: [=========.] 90%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 15
-- Average duration: ~5.7m
-- Total execution time: ~1.43 hours
+- Total plans completed: 16
+- Average duration: ~5.6m
+- Total execution time: ~1.52 hours
 
 **By Phase:**
 
@@ -33,11 +33,11 @@ Progress: [=========.] 86%
 | 4. Python REPL + Monaco | 2/2 | ~9m 24s | ~4m 42s |
 | 5. Agent Integration | 3/3 | ~8.5m | ~2.8m |
 | 6. Decisions, Audit & Scripts | 2/2 | ~9m 14s | ~4m 37s |
-| 7. Visualization, Diff & Polish | 1/3 | ~5m 12s | ~5m 12s |
+| 7. Visualization, Diff & Polish | 2/3 | ~10m 18s | ~5m 9s |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (3m 38s), 05-01 (~5m), 05-02 (~2m), 06-01 (5m 53s), 07-01 (5m 12s)
-- Trend: Backend infrastructure plans ~5m avg, pure frontend ~2m
+- Last 5 plans: 05-01 (~5m), 05-02 (~2m), 06-01 (5m 53s), 07-01 (5m 12s), 07-02 (5m 6s)
+- Trend: Backend infrastructure plans ~5m avg, panel creation ~5m avg
 
 *Updated after each plan completion*
 
@@ -92,6 +92,11 @@ Recent decisions affecting current work:
 - [07-01]: Edge resolution drops external imports (only connects modules within analyzed repos)
 - [07-01]: acceptDiff writes to disk AND updates open editor model via updateFileContent
 - [07-01]: useClaudeStream callback made async to support await on readFile for file_modify diffs
+- [07-02]: D3 simulation uses deep-copied nodes/edges (SimNode/SimEdge) to avoid mutating original graph data
+- [07-02]: Typed D3 generics for proper TypeScript support instead of any casts
+- [07-02]: LivePreview uses key-based iframe remount for refresh (reliable cross-origin reload)
+- [07-02]: DiffView uses hardcoded 'python' language for DiffEditor (sufficient for v1)
+- [07-02]: PlaceholderPanel removed from center column entirely; component file retained
 
 ### Pending Todos
 
@@ -105,5 +110,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 07-01-PLAN.md. Ready for 07-02 (ArchViewer, LivePreview, DiffView panels).
+Stopped at: Completed 07-02-PLAN.md. Ready for 07-03 (Live status, title bar, send-to-editor, shortcuts, final wiring).
 Resume file: None

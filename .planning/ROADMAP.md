@@ -132,8 +132,8 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01-PLAN.md -- Backend infrastructure: architecture_commands.rs (Python file analysis + graph), D3 install, diffSlice (accept/reject flow), previewSlice (URL + auto-refresh), openUntitledFile for send-to-editor, useKeyboardShortcuts hook, tauri.ts wrappers
-- [ ] 07-02-PLAN.md -- ArchViewer with D3 force graph (drag/zoom/rebuild/glow/tooltips), LivePreview with iframe + chrome mockup + auto-refresh, DiffView with Monaco diff editor + accept/reject + pending list, wire into MainLayout center column
+- [x] 07-01-PLAN.md -- Backend infrastructure: architecture_commands.rs (Python file analysis + graph), D3 install, diffSlice (accept/reject flow), previewSlice (URL + auto-refresh), openUntitledFile for send-to-editor, useKeyboardShortcuts hook, tauri.ts wrappers
+- [x] 07-02-PLAN.md -- ArchViewer with D3 force graph (drag/zoom/rebuild/glow/tooltips), LivePreview with iframe + chrome mockup + auto-refresh, DiffView with Monaco diff editor + accept/reject + pending list, wire into MainLayout center column
 - [ ] 07-03-PLAN.md -- StatusBar live data (Claude status, session timer, decision/action counts), TitleBar live data (session badge, repo/skill counts, context tokens), keyboard shortcuts in App.tsx, final cleanup
 
 ## Progress
@@ -148,5 +148,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Context Assembly | 3/3 | Complete | 2026-03-28 |
 | 4. Python REPL + Monaco Editor | 2/2 | Complete | 2026-03-29 |
 | 5. Agent Integration | 3/3 | Complete | 2026-03-28 |
-| 6. Decisions, Audit & Scripts | 1/2 | In Progress | - |
-| 7. Visualization, Diff & Polish | 1/3 | In Progress | - |
+| 6. Decisions, Audit & Scripts | 2/2 | Complete | 2026-03-29 |
+| 7. Visualization, Diff & Polish | 2/3 | In Progress | - |
