@@ -349,6 +349,38 @@ export interface DashboardSlice {
   setSessionGoal: (goal: string) => void;
 }
 
+// ── Project Types ──
+
+export interface Project {
+  id: string;
+  name: string;
+  workspacePath: string;
+  claudeSessionId: string;
+  summary: string;
+  createdAt: string;
+}
+
+export type ViewMode = "home" | "conversation";
+
+export interface ProjectSlice {
+  projects: Project[];
+  activeProjectId: string | null;
+  currentView: ViewMode;
+
+  // CRUD
+  addProject: (name: string, workspacePath: string, claudeSessionId: string) => void;
+  removeProject: (id: string) => void;
+  updateProjectSummary: (id: string, summary: string) => void;
+
+  // Navigation
+  openProject: (id: string) => void;
+  goHome: () => void;
+
+  // Persistence
+  loadProjects: () => Promise<void>;
+  saveProjects: () => Promise<void>;
+}
+
 // ── Combined State ──
 
 export type AppState = SessionSlice &
@@ -365,7 +397,8 @@ export type AppState = SessionSlice &
   WorkspaceSlice &
   LayoutSlice &
   DashboardSlice &
-  TokenSlice;
+  TokenSlice &
+  ProjectSlice;
 
 // ── Slice Creator Helper ──
 
