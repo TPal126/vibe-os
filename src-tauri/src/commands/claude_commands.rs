@@ -16,7 +16,7 @@ use super::decision_commands;
 // ── Process State ──
 
 /// Managed state for active Claude CLI processes.
-/// Key: a unique invocation ID (UUID), Value: the CommandChild handle.
+/// Key: claude_session_id, Value: the CommandChild handle.
 pub type ClaudeProcesses = Arc<TokioMutex<HashMap<String, CommandChild>>>;
 
 #[derive(Debug, Deserialize)]
@@ -25,6 +25,7 @@ pub struct StartClaudeArgs {
     pub message: String,
     pub system_prompt: Option<String>,
     pub conversation_id: Option<String>,
+    pub claude_session_id: String,
 }
 
 // ── Commands ──
@@ -71,12 +72,16 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
         .spawn()
         .map_err(|e| format!("Failed to spawn Claude CLI: {}", e))?;
 
-    // Store the child handle for cancellation
+    // Store the child handle keyed by claude_session_id
     let processes = get_or_init_processes(&app);
+    let claude_sid = args.claude_session_id.clone();
     {
         let mut procs = processes.lock().await;
-        procs.insert(invocation_id.clone(), child);
+        procs.insert(claude_sid.clone(), child);
     }
+
+    // Update session status to active in DB
+    update_session_status_in_db(&app, &claude_sid, "active");
 
     // Emit a "working" event to signal the frontend
     let _ = app.emit(
@@ -85,12 +90,14 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
             "type": "status",
             "status": "working",
             "invocation_id": &invocation_id,
+            "claude_session_id": &claude_sid,
         }),
     );
 
     // Spawn a background task to read stdout and emit events
     let app_handle = app.clone();
     let inv_id = invocation_id.clone();
+    let claude_sid_clone = claude_sid.clone();
     let processes_clone = processes.clone();
 
     tauri::async_runtime::spawn(async move {
@@ -113,8 +120,18 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                             continue;
                         }
 
-                        // Parse via event_stream
-                        let agent_event = event_stream::parse_event(&line);
+                        // Parse via event_stream, then tag with claude_session_id
+                        let agent_event = event_stream::parse_event(&line)
+                            .with_session_id(&claude_sid_clone);
+
+                        // Persist conversation_id from Result events
+                        if agent_event.event_type == AgentEventType::Result {
+                            if let Some(ref meta) = agent_event.metadata {
+                                if let Some(conv_id) = meta.get("session_id").and_then(|v| v.as_str()) {
+                                    update_session_conversation_id(&app_handle, &claude_sid_clone, conv_id);
+                                }
+                            }
+                        }
 
                         // Log to audit_log in SQLite
                         log_to_audit(&app_handle, &agent_event);
@@ -131,7 +148,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                             event_type: AgentEventType::Error,
                             content: text,
                             metadata: None,
-                            claude_session_id: None,
+                            claude_session_id: Some(claude_sid_clone.clone()),
                         };
                         let _ = app_handle.emit("claude-stream", &error_event);
                     }
@@ -144,13 +161,17 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                             "type": "status",
                             "status": "done",
                             "invocation_id": &inv_id,
+                            "claude_session_id": &claude_sid_clone,
                             "exit_code": payload.code,
                         }),
                     );
 
+                    // Update session status in DB
+                    update_session_status_in_db(&app_handle, &claude_sid_clone, "idle");
+
                     // Clean up process entry
                     let mut procs = processes_clone.lock().await;
-                    procs.remove(&inv_id);
+                    procs.remove(&claude_sid_clone);
                     break;
                 }
                 _ => {}
@@ -170,6 +191,7 @@ pub async fn send_message(
     message: String,
     conversation_id: String,
     working_dir: String,
+    claude_session_id: String,
 ) -> Result<String, String> {
     start_claude(
         app,
@@ -178,6 +200,7 @@ pub async fn send_message(
             message,
             system_prompt: None,
             conversation_id: Some(conversation_id),
+            claude_session_id,
         },
     )
     .await
@@ -185,11 +208,11 @@ pub async fn send_message(
 
 /// Cancel a running Claude CLI invocation by killing the process.
 #[tauri::command]
-pub async fn cancel_claude(app: AppHandle, invocation_id: String) -> Result<(), String> {
+pub async fn cancel_claude(app: AppHandle, claude_session_id: String) -> Result<(), String> {
     let processes = get_or_init_processes(&app);
     let mut procs = processes.lock().await;
 
-    if let Some(child) = procs.remove(&invocation_id) {
+    if let Some(child) = procs.remove(&claude_session_id) {
         child
             .kill()
             .map_err(|e| format!("Failed to kill claude process: {}", e))?;
@@ -200,13 +223,14 @@ pub async fn cancel_claude(app: AppHandle, invocation_id: String) -> Result<(), 
             serde_json::json!({
                 "type": "status",
                 "status": "cancelled",
-                "invocation_id": &invocation_id,
+                "claude_session_id": &claude_session_id,
             }),
         );
 
+        update_session_status_in_db(&app, &claude_session_id, "idle");
         Ok(())
     } else {
-        Err(format!("No active process with id: {}", invocation_id))
+        Err(format!("No active process for claude session: {}", claude_session_id))
     }
 }
 
@@ -220,6 +244,30 @@ fn get_or_init_processes(app: &AppHandle) -> ClaudeProcesses {
         let processes: ClaudeProcesses = Arc::new(TokioMutex::new(HashMap::new()));
         app.manage(processes.clone());
         processes
+    }
+}
+
+/// Update the status of a Claude session in the database.
+fn update_session_status_in_db(app: &AppHandle, claude_session_id: &str, status: &str) {
+    if let Some(db_state) = app.try_state::<DbState>() {
+        if let Ok(conn) = db_state.lock() {
+            let _ = conn.execute(
+                "UPDATE claude_sessions SET status = ?1 WHERE id = ?2",
+                rusqlite::params![status, claude_session_id],
+            );
+        }
+    }
+}
+
+/// Persist the Claude CLI conversation ID on a Claude session row.
+fn update_session_conversation_id(app: &AppHandle, claude_session_id: &str, conversation_id: &str) {
+    if let Some(db_state) = app.try_state::<DbState>() {
+        if let Ok(conn) = db_state.lock() {
+            let _ = conn.execute(
+                "UPDATE claude_sessions SET conversation_id = ?1 WHERE id = ?2",
+                rusqlite::params![conversation_id, claude_session_id],
+            );
+        }
     }
 }
 
