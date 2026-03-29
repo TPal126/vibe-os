@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Developers can see, understand, and direct every decision an AI coding agent makes
-**Current focus:** Phase 6 in progress: Decisions, Audit & Scripts
+**Current focus:** Phase 7 in progress: Visualization, Diff & Polish
 
 ## Current Position
 
-Phase: 6 of 7 (Decisions, Audit & Scripts)
-Plan: 1 of 2 in current phase
-Status: Plan 06-01 complete -- backend commands + state layer done
-Last activity: 2026-03-29 -- Completed 06-01 (Backend Commands + Frontend State)
+Phase: 7 of 7 (Visualization, Diff & Polish)
+Plan: 1 of 3 in current phase
+Status: Plan 07-01 complete -- backend infrastructure for visualization, diff, preview done
+Last activity: 2026-03-29 -- Completed 07-01 (Backend Infrastructure)
 
-Progress: [========..] 79%
+Progress: [=========.] 86%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: ~6.2m
-- Total execution time: ~1.25 hours
+- Total plans completed: 14
+- Average duration: ~5.9m
+- Total execution time: ~1.37 hours
 
 **By Phase:**
 
@@ -33,10 +33,11 @@ Progress: [========..] 79%
 | 4. Python REPL + Monaco | 2/2 | ~9m 24s | ~4m 42s |
 | 5. Agent Integration | 3/3 | ~8.5m | ~2.8m |
 | 6. Decisions, Audit & Scripts | 1/2 | ~5m 53s | ~5m 53s |
+| 7. Visualization, Diff & Polish | 1/3 | ~5m 12s | ~5m 12s |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (5m 46s), 04-02 (3m 38s), 05-01 (~5m), 05-02 (~2m), 06-01 (5m 53s)
-- Trend: Pure frontend plans fast (~2m avg), backend+frontend moderate (~5m), mixed ~3-6m
+- Last 5 plans: 04-02 (3m 38s), 05-01 (~5m), 05-02 (~2m), 06-01 (5m 53s), 07-01 (5m 12s)
+- Trend: Backend infrastructure plans ~5m avg, pure frontend ~2m
 
 *Updated after each plan completion*
 
@@ -84,6 +85,10 @@ Recent decisions affecting current work:
 - [06-01]: Used super::db_commands::DbState consistently instead of local type aliases in new command files
 - [06-01]: Added both FILE_CREATE and FILECREATE formats to script query for agent event compatibility
 - [06-01]: Decision auto-capture from agent stream uses 0.8 confidence and architecture category as defaults
+- [07-01]: Regex-based Python analysis (not AST) for v1 -- sufficient for module/class/function/import extraction
+- [07-01]: Edge resolution drops external imports (only connects modules within analyzed repos)
+- [07-01]: acceptDiff writes to disk AND updates open editor model via updateFileContent
+- [07-01]: useClaudeStream callback made async to support await on readFile for file_modify diffs
 
 ### Pending Todos
 
@@ -97,5 +102,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 06-01-PLAN.md. Ready for 06-02 (Decision, Audit & Script panels).
+Stopped at: Completed 07-01-PLAN.md. Ready for 07-02 (ArchViewer, LivePreview, DiffView panels).
 Resume file: None
