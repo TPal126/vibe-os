@@ -21,6 +21,7 @@ import { PromptLayer } from "../panels/PromptLayer";
 import { CodeEditor } from "../center/CodeEditor";
 import { Console } from "../center/Console";
 import { ClaudeChat } from "../panels/ClaudeChat";
+import { AgentStream } from "../panels/AgentStream";
 
 /* ── Tab definitions ──────────────────────────────────────────────── */
 
@@ -51,7 +52,6 @@ const centerContent: Record<string, { title: string; description: string }> = {
 };
 
 const rightContent: Record<string, { title: string; description: string }> = {
-  "agent-stream": { title: "Agent Stream", description: "Agent activity stream will appear here" },
   decisions: { title: "Decisions", description: "Decision log will appear here" },
   audit: { title: "Audit Log", description: "Audit trail will appear here" },
 };
@@ -160,11 +160,15 @@ export function MainLayout() {
         <Panel defaultSize={38} minSize={20}>
           <div className="flex flex-col h-full overflow-hidden">
             <TabStrip tabs={rightTabs} activeId={rightTab} onChange={setRightTab} />
-            <div className="flex-1 overflow-auto">
-              <PlaceholderPanel
-                title={rightContent[rightTab].title}
-                description={rightContent[rightTab].description}
-              />
+            <div className="flex-1 overflow-hidden">
+              {rightTab === "agent-stream" ? (
+                <AgentStream />
+              ) : (
+                <PlaceholderPanel
+                  title={rightContent[rightTab].title}
+                  description={rightContent[rightTab].description}
+                />
+              )}
             </div>
           </div>
         </Panel>
