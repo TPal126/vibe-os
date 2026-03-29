@@ -99,6 +99,18 @@ export function ProjectCard({ project, session, onClick }: ProjectCardProps) {
       }`}>
         {summaryText}
       </p>
+
+      {/* Outcome badges: test results + build status */}
+      {session && (session.testSummary || session.buildStatus !== "idle") && (
+        <div className="mt-1.5 ml-[18px] flex flex-col gap-1">
+          {session.testSummary && <TestBadge summary={session.testSummary} />}
+          <BuildStatusLine status={session.buildStatus} text={session.buildStatusText} />
+        </div>
+      )}
+
+      {/* Preview thumbnail */}
+      {session?.previewUrl && <PreviewThumbnail url={session.previewUrl} />}
+
       <span className={`text-[10px] ${config.color} mt-2 block ml-[18px]`}>
         {config.label}
       </span>
