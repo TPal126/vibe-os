@@ -3,10 +3,10 @@ import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { extractCodeBlocks } from "../../lib/eventParser";
 import { commands } from "../../lib/tauri";
-import { Dot } from "../shared/Dot";
 import { IconButton } from "../shared/IconButton";
 import { SessionTabs } from "./SessionTabs";
 import { Send, Square, Code, Copy, AlertTriangle, RefreshCw } from "lucide-react";
+import { ActivityLine } from "../conversation/ActivityLine";
 import type { ChatMessage } from "../../stores/types";
 
 function MessageBubble({ message }: { message: ChatMessage }) {
@@ -273,18 +273,12 @@ export function ClaudeChat() {
           </div>
         )}
 
-        {chatMessages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
-        ))}
-
-        {isWorking && (
-          <div className="flex items-center gap-2 px-3 py-2">
-            <Dot color="bg-v-accent" pulse />
-            <span className="text-[11px] text-v-dim animate-pulse">
-              Working...
-            </span>
-          </div>
-        )}
+        {chatMessages.map((msg) => {
+          if (msg.cardType === "activity") {
+            return <ActivityLine key={msg.id} message={msg} />;
+          }
+          return <MessageBubble key={msg.id} message={msg} />;
+        })}
 
         <div ref={messagesEndRef} />
       </div>
