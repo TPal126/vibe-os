@@ -31,6 +31,8 @@ tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2"
 tokio = { version = "1", features = ["sync"] }
 regex = "1"
+notify = "8"
+notify-debouncer-mini = "0.7"
 
 [features]
 default = ["custom-protocol"]

@@ -1,5 +1,6 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::Manager;
+use tokio::sync::Mutex as TokioMutex;
 
 mod commands;
 mod db;
@@ -14,6 +15,7 @@ use commands::decision_commands;
 use commands::file_commands;
 use commands::script_commands;
 use commands::shell_commands;
+use commands::workspace_commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -36,6 +38,14 @@ pub fn run() {
 
             // Register the database connection as managed state
             app.manage(Mutex::new(conn));
+
+            // Register workspace watcher state
+            app.manage(Arc::new(TokioMutex::new(
+                workspace_commands::WorkspaceWatcherState {
+                    stop_signal: None,
+                    workspace_path: None,
+                },
+            )));
 
             // Copy bundled skill files to ~/.vibe-os/skills/ on first launch
             let home = dirs::home_dir().expect("Cannot determine home directory");
@@ -105,6 +115,11 @@ pub fn run() {
             script_commands::generate_skill_from_script,
             audit_commands::get_session_audit,
             audit_commands::export_audit_log,
+            workspace_commands::create_workspace,
+            workspace_commands::open_workspace,
+            workspace_commands::read_workspace_tree,
+            workspace_commands::watch_workspace_claude_md,
+            workspace_commands::stop_workspace_watcher,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

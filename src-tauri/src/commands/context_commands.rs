@@ -1,4 +1,5 @@
 use serde::Serialize;
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 use tauri_plugin_shell::ShellExt;
@@ -15,36 +16,81 @@ pub struct SkillMeta {
     pub source: String, // "global" or "project"
 }
 
-/// Discover skill .md files from global (~/.vibe-os/skills/) and
-/// project-local ({repo}/.vibe/skills/) directories.
+/// Discover skill .md files with three-tier priority and deduplication:
+/// Tier 1 (highest): Workspace skills ({ws}/skills/)
+/// Tier 2: Project-local skills ({repo}/.vibe/skills/)
+/// Tier 3 (lowest): Global skills (~/.vibe-os/skills/)
 #[tauri::command]
-pub fn discover_skills(active_repo_paths: Vec<String>) -> Result<Vec<SkillMeta>, String> {
+pub fn discover_skills(
+    active_repo_paths: Vec<String>,
+    workspace_path: Option<String>,
+) -> Result<Vec<SkillMeta>, String> {
     let mut skills = Vec::new();
+    let mut seen_names: HashSet<String> = HashSet::new();
 
-    // 1. Global skills: ~/.vibe-os/skills/
-    if let Some(home) = dirs::home_dir() {
-        let global_dir = home.join(".vibe-os").join("skills");
-        if global_dir.exists() {
-            discover_from_dir(&global_dir, "global", &mut skills)?;
+    // Tier 1 (highest priority): Workspace skills
+    if let Some(ref ws) = workspace_path {
+        let ws_skills_dir = PathBuf::from(ws).join("skills");
+        if ws_skills_dir.exists() {
+            let ws_skills = discover_from_dir_vec(&ws_skills_dir, "workspace")?;
+            for skill in ws_skills {
+                let stem = PathBuf::from(&skill.file_path)
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                seen_names.insert(stem);
+                skills.push(skill);
+            }
         }
     }
 
-    // 2. Project-local skills: {repo}/.vibe/skills/
-    for repo_path in active_repo_paths {
-        let local_dir = PathBuf::from(&repo_path).join(".vibe").join("skills");
+    // Tier 2: Project-local skills: {repo}/.vibe/skills/
+    for repo_path in &active_repo_paths {
+        let local_dir = PathBuf::from(repo_path).join(".vibe").join("skills");
         if local_dir.exists() {
-            discover_from_dir(&local_dir, "project", &mut skills)?;
+            let local_skills = discover_from_dir_vec(&local_dir, "project")?;
+            for skill in local_skills {
+                let stem = PathBuf::from(&skill.file_path)
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                if !seen_names.contains(&stem) {
+                    seen_names.insert(stem);
+                    skills.push(skill);
+                }
+            }
+        }
+    }
+
+    // Tier 3 (lowest priority): Global skills: ~/.vibe-os/skills/
+    if let Some(home) = dirs::home_dir() {
+        let global_dir = home.join(".vibe-os").join("skills");
+        if global_dir.exists() {
+            let global_skills = discover_from_dir_vec(&global_dir, "global")?;
+            for skill in global_skills {
+                let stem = PathBuf::from(&skill.file_path)
+                    .file_stem()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string();
+                if !seen_names.contains(&stem) {
+                    seen_names.insert(stem);
+                    skills.push(skill);
+                }
+            }
         }
     }
 
     Ok(skills)
 }
 
-fn discover_from_dir(
+fn discover_from_dir_vec(
     dir: &PathBuf,
     source: &str,
-    skills: &mut Vec<SkillMeta>,
-) -> Result<(), String> {
+) -> Result<Vec<SkillMeta>, String> {
+    let mut skills = Vec::new();
     let entries = fs::read_dir(dir)
         .map_err(|e| format!("Failed to read dir {}: {}", dir.display(), e))?;
 
@@ -78,7 +124,7 @@ fn discover_from_dir(
             });
         }
     }
-    Ok(())
+    Ok(skills)
 }
 
 fn extract_category(content: &str) -> String {
@@ -121,14 +167,25 @@ pub struct RepoMeta {
     pub language: String,
 }
 
-/// Clone a git repository to ~/.vibe-os/repos/{name} and return metadata.
+/// Clone a git repository and return metadata.
+/// If workspace_path is provided, clones to {workspace}/repos/{name}.
+/// Otherwise clones to ~/.vibe-os/repos/{name}.
 /// Uses --depth 1 for shallow clone (fast).
 #[tauri::command]
-pub async fn clone_repo(app: tauri::AppHandle, git_url: String) -> Result<RepoMeta, String> {
+pub async fn clone_repo(
+    app: tauri::AppHandle,
+    git_url: String,
+    workspace_path: Option<String>,
+) -> Result<RepoMeta, String> {
     let (org, name) = parse_git_url(&git_url)?;
 
-    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
-    let repos_dir = home.join(".vibe-os").join("repos");
+    let repos_dir = match workspace_path {
+        Some(ref ws) => PathBuf::from(ws).join("repos"),
+        None => {
+            let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+            home.join(".vibe-os").join("repos")
+        }
+    };
     fs::create_dir_all(&repos_dir)
         .map_err(|e| format!("Failed to create repos dir: {}", e))?;
 
@@ -190,11 +247,20 @@ pub async fn clone_repo(app: tauri::AppHandle, git_url: String) -> Result<RepoMe
     })
 }
 
-/// List all cloned repos from ~/.vibe-os/repos/ directory.
+/// List all cloned repos.
+/// If workspace_path is provided, lists from {workspace}/repos/.
+/// Otherwise lists from ~/.vibe-os/repos/.
 #[tauri::command]
-pub fn get_repos() -> Result<Vec<RepoMeta>, String> {
-    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
-    let repos_dir = home.join(".vibe-os").join("repos");
+pub fn get_repos(
+    workspace_path: Option<String>,
+) -> Result<Vec<RepoMeta>, String> {
+    let repos_dir = match workspace_path {
+        Some(ref ws) => PathBuf::from(ws).join("repos"),
+        None => {
+            let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+            home.join(".vibe-os").join("repos")
+        }
+    };
 
     if !repos_dir.exists() {
         return Ok(Vec::new());
