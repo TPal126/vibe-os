@@ -173,11 +173,11 @@ Requirements for "Project Cards + Attention Routing" milestone. Phases 12+.
 
 ### Attention Routing
 
-- [ ] **ATTN-01**: When a project's agent needs user input, its card pulses orange and shows what it's waiting for ("Needs decision: JWT vs session cookies?"). This is the primary notification mechanism.
-- [ ] **ATTN-02**: When a project completes or fails, its card updates immediately: green checkmark for done, red X for error, with the outcome visible on the card itself.
-- [ ] **ATTN-03**: A global attention count in the title bar: "2 need you" — clicking it cycles through projects that need attention.
-- [ ] **ATTN-04**: OS-level system notifications (via Tauri notification plugin) for input-needed and error events, so users can leave the app and come back when pinged.
-- [ ] **ATTN-05**: Opening a project that flagged for attention auto-scrolls to the message that needs response.
+- [x] **ATTN-01**: When a project's agent needs user input, its card pulses orange and shows what it's waiting for ("Needs decision: JWT vs session cookies?"). This is the primary notification mechanism.
+- [x] **ATTN-02**: When a project completes or fails, its card updates immediately: green checkmark for done, red X for error, with the outcome visible on the card itself.
+- [x] **ATTN-03**: A global attention count in the title bar: "2 need you" — clicking it cycles through projects that need attention.
+- [x] **ATTN-04**: OS-level system notifications (via Tauri notification plugin) for input-needed and error events, so users can leave the app and come back when pinged.
+- [x] **ATTN-05**: Opening a project that flagged for attention auto-scrolls to the message that needs response.
 
 ### Outcome Previews
 
@@ -328,11 +328,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CARD-03 | Phase 13 | Pending |
 | CARD-04 | Phase 13 | Pending |
 | CARD-05 | Phase 16 | Pending |
-| ATTN-01 | Phase 15 | Pending |
-| ATTN-02 | Phase 15 | Pending |
-| ATTN-03 | Phase 15 | Pending |
-| ATTN-04 | Phase 15 | Pending |
-| ATTN-05 | Phase 15 | Pending |
+| ATTN-01 | Phase 15 | Complete |
+| ATTN-02 | Phase 15 | Complete |
+| ATTN-03 | Phase 15 | Complete |
+| ATTN-04 | Phase 15 | Complete |
+| ATTN-05 | Phase 15 | Complete |
 | PREV-01 | Phase 16 | Pending |
 | PREV-02 | Phase 16 | Pending |
 | PREV-03 | Phase 16 | Pending |

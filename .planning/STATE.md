@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 15 of 17 (Attention Routing)
-Plan: 2/3 complete
-Status: Phase 15 Plan 02 complete. Title bar attention badge + auto-scroll to flagged messages. 4 tasks.
-Last activity: 2026-03-29 -- Phase 15 Plan 02 executed: getAttentionItems utility, Bell badge with cycle navigation, auto-scroll with orange ring highlight, clear-on-send.
+Phase: 15 of 17 (Attention Routing) -- COMPLETE
+Plan: 3/3 complete
+Status: Phase 15 complete. All 3 plans delivered: attention state, badge+scroll, OS notifications.
+Last activity: 2026-03-29 -- Phase 15 Plan 03 executed: tauri-plugin-notification, useNotifications hook with ref-based dedup, App.tsx mount.
 
-Progress: [=======#--] 45%
+Progress: [========#-] 50%
 
 ## v1 Summary
 
@@ -59,6 +59,9 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 - [Phase 15-02]: Cycle index resets when attention count changes to avoid stale index
 - [Phase 15-02]: attentionScrollDone ref prevents re-scrolling same message on re-renders
 - [Phase 15-02]: clearSessionAttention called on send to immediately clear attention state
+- [Phase 15-03]: Single-arg subscribe with ref-based previous state tracking (store lacks subscribeWithSelector)
+- [Phase 15-03]: Dynamic import for notification plugin to avoid crashes in test/non-Tauri environments
+- [Phase 15-03]: Deduplication via notifiedRef Set with cleanup when attention clears
 
 ### Pending Todos
 
@@ -74,5 +77,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 15-02-PLAN.md (Title Bar Attention Count + Auto-Scroll). 4/4 tasks. Ready for 15-03.
+Stopped at: Completed 15-03-PLAN.md (OS-Level Notifications). 4/4 tasks. Phase 15 complete. Ready for Phase 16.
 Resume file: None
