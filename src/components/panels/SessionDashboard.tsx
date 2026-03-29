@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "../../stores";
+import { useShallow } from "zustand/react/shallow";
 import { PanelHeader } from "../layout/PanelHeader";
 import { formatTokens, TOKEN_BUDGET, getBudgetTextColor } from "../../lib/tokens";
 import {
@@ -36,27 +37,46 @@ function eventColor(type: AgentEventType): string {
 }
 
 export function SessionDashboard() {
-  const sessionGoal = useAppStore((s) => s.sessionGoal);
-  const setSessionGoal = useAppStore((s) => s.setSessionGoal);
-  const activeRepos = useAppStore((s) => s.repos.filter((r) => r.active));
-  const activeSkills = useAppStore((s) => s.skills.filter((sk) => sk.active));
-  const totalTokens = useAppStore((s) => s.composedPrompt?.totalTokens ?? 0);
-  const messageCount = useAppStore((s) => s.chatMessages.length);
-  const filesModified = useAppStore(
-    (s) =>
+  const {
+    sessionGoal,
+    setSessionGoal,
+    repos,
+    skills,
+    totalTokens,
+    messageCount,
+    agentEvents,
+    activeSession,
+  } = useAppStore(
+    useShallow((s) => ({
+      sessionGoal: s.sessionGoal,
+      setSessionGoal: s.setSessionGoal,
+      repos: s.repos,
+      skills: s.skills,
+      totalTokens: s.composedPrompt?.totalTokens ?? 0,
+      messageCount: s.chatMessages.length,
+      agentEvents: s.agentEvents,
+      activeSession: s.activeSession,
+    })),
+  );
+
+  const activeRepos = useMemo(() => repos.filter((r) => r.active), [repos]);
+  const activeSkills = useMemo(() => skills.filter((sk) => sk.active), [skills]);
+  const filesModified = useMemo(
+    () =>
       new Set(
-        s.agentEvents
+        agentEvents
           .filter(
             (e) =>
               e.event_type === "file_modify" || e.event_type === "file_create",
           )
           .map((e) => e.content),
       ).size,
+    [agentEvents],
   );
-  const activeSession = useAppStore((s) => s.activeSession);
-  const recentEvents = useAppStore((s) => {
-    return [...s.agentEvents].reverse().slice(0, 20);
-  });
+  const recentEvents = useMemo(
+    () => [...agentEvents].reverse().slice(0, 20),
+    [agentEvents],
+  );
 
   const tokenRatio = totalTokens / TOKEN_BUDGET.softLimit;
 
