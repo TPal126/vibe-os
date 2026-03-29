@@ -82,13 +82,33 @@ export interface EditorSlice {
   saveFile: (path: string) => Promise<void>;
 }
 
+export interface ConsoleEntry {
+  id: string;
+  type: 'input' | 'output' | 'error' | 'system';
+  text: string;
+  timestamp: number;
+}
+
+export interface ConsoleSlice {
+  entries: ConsoleEntry[];
+  inputHistory: string[];
+  historyIndex: number;
+  pythonRunning: boolean;
+  addEntry: (entry: Omit<ConsoleEntry, 'id' | 'timestamp'>) => void;
+  pushHistory: (cmd: string) => void;
+  navigateHistory: (direction: 'up' | 'down') => string;
+  setPythonRunning: (running: boolean) => void;
+  clearEntries: () => void;
+}
+
 // ── Combined State ──
 
 export type AppState = SessionSlice &
   RepoSlice &
   SkillSlice &
   PromptSlice &
-  EditorSlice;
+  EditorSlice &
+  ConsoleSlice;
 
 // ── Slice Creator Helper ──
 
