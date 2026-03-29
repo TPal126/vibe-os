@@ -121,9 +121,10 @@ export function ClaudeChat() {
 
   const [input, setInput] = useState("");
   const [retrying, setRetrying] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const cliUnavailable = claudeCliAvailable === false;
+  const showCliBanner = claudeCliAvailable === false && !bannerDismissed;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -131,7 +132,7 @@ export function ClaudeChat() {
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isWorking || !activeSessionId || cliUnavailable) return;
+    if (!text || isWorking || !activeSessionId) return;
 
     // Auto-create a claude session if none exists
     let sessionId = activeClaudeSessionId;
@@ -163,9 +164,9 @@ export function ClaudeChat() {
       if (conversationId) {
         await commands.sendMessage({
           message: text,
-          conversation_id: conversationId,
-          working_dir: workingDir,
-          claude_session_id: sessionId,
+          conversationId: conversationId,
+          workingDir: workingDir,
+          claudeSessionId: sessionId,
         });
       } else {
         await commands.startClaude({
@@ -194,7 +195,6 @@ export function ClaudeChat() {
     addSessionChatMessage,
     createClaudeSessionLocal,
     setActiveClaudeSessionId,
-    cliUnavailable,
   ]);
 
   const handleCancel = useCallback(async () => {
@@ -223,6 +223,8 @@ export function ClaudeChat() {
     setRetrying(true);
     try {
       await validateClaudeCli();
+      // If validation succeeds, dismiss the banner
+      setBannerDismissed(true);
     } finally {
       setRetrying(false);
     }
@@ -232,31 +234,26 @@ export function ClaudeChat() {
     <div className="flex flex-col h-full overflow-hidden">
       <SessionTabs />
 
-      {cliUnavailable && (
-        <div className="shrink-0 mx-2 mt-2 rounded-lg border border-red-500/30 bg-red-950/40 px-3 py-2.5">
-          <div className="flex items-start gap-2">
-            <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-sans font-medium text-red-300">
-                Claude Code CLI not found
-              </p>
-              <p className="text-[11px] font-sans text-red-300/70 mt-1 leading-relaxed">
-                {claudeCliError || "The Claude Code CLI is required to use this feature."}
-              </p>
-              <p className="text-[11px] font-sans text-v-dim mt-1.5">
-                Install with:{" "}
-                <code className="font-mono text-[10px] bg-v-bg/60 px-1.5 py-0.5 rounded text-v-text">
-                  npm install -g @anthropic-ai/claude-code
-                </code>
-              </p>
-            </div>
+      {showCliBanner && (
+        <div className="shrink-0 mx-2 mt-2 rounded-lg border border-v-orange/30 bg-v-orange/5 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={14} className="text-v-orange shrink-0" />
+            <p className="text-[11px] font-sans text-v-dim flex-1">
+              Could not verify Claude CLI — you can still try chatting.
+            </p>
             <button
               onClick={handleRetryValidation}
               disabled={retrying}
-              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-sans font-medium text-v-text bg-v-surface border border-v-border hover:border-v-accent/50 hover:text-v-accent transition-colors disabled:opacity-50"
+              className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono text-v-dim hover:text-v-text bg-v-surface border border-v-border transition-colors disabled:opacity-50"
             >
-              <RefreshCw size={12} className={retrying ? "animate-spin" : ""} />
-              {retrying ? "Checking..." : "Retry"}
+              <RefreshCw size={10} className={retrying ? "animate-spin" : ""} />
+              {retrying ? "..." : "Retry"}
+            </button>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="shrink-0 text-v-dim hover:text-v-text text-[10px] px-1"
+            >
+              ✕
             </button>
           </div>
         </div>
@@ -303,15 +300,13 @@ export function ClaudeChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              cliUnavailable
-                ? "Claude CLI not available -- install it to chat"
-                : hasActiveSession
-                  ? "Message Claude... (Enter to send, Shift+Enter for newline)"
-                  : "Start a session to chat with Claude"
+              hasActiveSession
+                ? "Message Claude... (Enter to send, Shift+Enter for newline)"
+                : "Start a session to chat with Claude"
             }
             rows={1}
             className="flex-1 resize-none bg-v-surface border border-v-border rounded px-3 py-1.5 text-[12px] font-sans text-v-text placeholder:text-v-dim/50 focus:border-v-accent focus:outline-none max-h-[80px] overflow-y-auto disabled:opacity-50"
-            disabled={!hasActiveSession || cliUnavailable}
+            disabled={!hasActiveSession}
           />
           {isWorking ? (
             <IconButton

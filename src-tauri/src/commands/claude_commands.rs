@@ -1,11 +1,11 @@
 use std::collections::HashMap;
+use std::io::{BufRead, BufReader};
+use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 
 use chrono::Utc;
 use serde::Deserialize;
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_shell::process::CommandChild;
-use tauri_plugin_shell::ShellExt;
 use tokio::sync::Mutex as TokioMutex;
 
 use crate::services::event_stream::{self, AgentEvent, AgentEventType};
@@ -16,8 +16,8 @@ use super::decision_commands;
 // ── Process State ──
 
 /// Managed state for active Claude CLI processes.
-/// Key: claude_session_id, Value: the CommandChild handle.
-pub type ClaudeProcesses = Arc<TokioMutex<HashMap<String, CommandChild>>>;
+/// Key: claude_session_id, Value: the Child handle.
+pub type ClaudeProcesses = Arc<TokioMutex<HashMap<String, Child>>>;
 
 #[derive(Debug, Deserialize)]
 pub struct StartClaudeArgs {
@@ -31,70 +31,38 @@ pub struct StartClaudeArgs {
 // ── Commands ──
 
 /// Validate that the Claude CLI is available on the system.
-/// Attempts to run `claude --version` and returns the version string if found.
-/// Returns a structured error with install instructions if not found.
+/// Uses std::process::Command for reliable PATH resolution on all platforms.
 #[tauri::command]
-pub async fn validate_claude_cli(app: AppHandle) -> Result<String, String> {
-    let shell = app.shell();
-
-    match shell
-        .command("run-claude")
-        .args(["--version"])
-        .output()
-        .await
-    {
-        Ok(output) => {
-            if output.status.success() {
-                let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if version.is_empty() {
-                    Ok("Claude CLI found (unknown version)".to_string())
+pub async fn validate_claude_cli() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        match Command::new("claude").arg("--version").output() {
+            Ok(output) => {
+                if output.status.success() {
+                    let version = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                    if version.is_empty() {
+                        Ok("Claude CLI found (unknown version)".to_string())
+                    } else {
+                        Ok(version)
+                    }
                 } else {
-                    Ok(version)
+                    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                    Err(format!("Claude Code CLI returned an error: {}", stderr))
                 }
-            } else {
-                let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-                Err(format!(
-                    "Claude Code CLI returned an error: {}. \
-                     Try reinstalling: npm install -g @anthropic-ai/claude-code \
-                     (https://docs.anthropic.com/en/docs/claude-code)",
-                    stderr
-                ))
             }
+            Err(e) => Err(format_spawn_error(&e)),
         }
-        Err(e) => {
-            let err_str = e.to_string().to_lowercase();
-            if err_str.contains("not found")
-                || err_str.contains("no such file")
-                || err_str.contains("program not found")
-                || err_str.contains("cannot find")
-                || err_str.contains("os error 2")
-            {
-                Err(
-                    "Claude Code CLI not found. \
-                     Install it with: npm install -g @anthropic-ai/claude-code \
-                     (https://docs.anthropic.com/en/docs/claude-code)"
-                        .to_string(),
-                )
-            } else {
-                Err(format!(
-                    "Failed to validate Claude CLI: {}. \
-                     Ensure it is installed: npm install -g @anthropic-ai/claude-code \
-                     (https://docs.anthropic.com/en/docs/claude-code)",
-                    e
-                ))
-            }
-        }
-    }
+    })
+    .await
+    .map_err(|e| format!("Validation task failed: {}", e))?
 }
 
 /// Start a Claude CLI invocation. Spawns `claude -p --output-format stream-json`
-/// as a child process, reads stdout in a background task, parses events,
+/// as a child process, reads stdout in a background thread, parses events,
 /// and emits them as 'claude-stream' Tauri events.
 ///
 /// Returns an invocation_id that can be used to cancel.
 #[tauri::command]
 pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<String, String> {
-    let shell = app.shell();
     let invocation_id = uuid::Uuid::new_v4().to_string();
 
     // Build CLI arguments
@@ -102,15 +70,14 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
         "-p".to_string(),
         "--output-format".to_string(),
         "stream-json".to_string(),
+        "--verbose".to_string(),
     ];
 
-    // Add conversation-id for multi-turn continuity
     if let Some(ref conv_id) = args.conversation_id {
-        cli_args.push("--conversation-id".to_string());
+        cli_args.push("--resume".to_string());
         cli_args.push(conv_id.clone());
     }
 
-    // Add system prompt if provided
     if let Some(ref sys_prompt) = args.system_prompt {
         if !sys_prompt.is_empty() {
             cli_args.push("--system-prompt".to_string());
@@ -118,35 +85,20 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
         }
     }
 
-    // The user message is the last argument
     cli_args.push(args.message.clone());
 
-    // Spawn the process
-    let (mut rx, child) = shell
-        .command("run-claude")
+    // Spawn the process using std::process::Command for reliable PATH resolution
+    let mut child = Command::new("claude")
         .args(&cli_args)
-        .current_dir(args.working_dir)
+        .current_dir(&args.working_dir)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| {
-            let err_str = e.to_string().to_lowercase();
-            if err_str.contains("not found")
-                || err_str.contains("no such file")
-                || err_str.contains("program not found")
-                || err_str.contains("cannot find")
-                || err_str.contains("os error 2")
-            {
-                "Claude Code CLI not found. \
-                 Install it with: npm install -g @anthropic-ai/claude-code \
-                 (https://docs.anthropic.com/en/docs/claude-code)"
-                    .to_string()
-            } else {
-                format!(
-                    "Failed to spawn Claude CLI: {}. \
-                     Ensure Claude Code CLI is installed: npm install -g @anthropic-ai/claude-code",
-                    e
-                )
-            }
-        })?;
+        .map_err(|e| format_spawn_error(&e))?;
+
+    // Take the stdout/stderr handles before storing the child
+    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
     // Store the child handle keyed by claude_session_id
     let processes = get_or_init_processes(&app);
@@ -156,7 +108,6 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
         procs.insert(claude_sid.clone(), child);
     }
 
-    // Update session status to active in DB
     update_session_status_in_db(&app, &claude_sid, "active");
 
     // Emit a "working" event to signal the frontend
@@ -170,88 +121,102 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
         }),
     );
 
-    // Spawn a background task to read stdout and emit events
+    // Spawn a background thread to read stdout line by line
     let app_handle = app.clone();
     let inv_id = invocation_id.clone();
-    let claude_sid_clone = claude_sid.clone();
+    let claude_sid_stdout = claude_sid.clone();
     let processes_clone = processes.clone();
 
-    tauri::async_runtime::spawn(async move {
+    std::thread::spawn(move || {
+        let reader = BufReader::new(stdout);
         let mut line_buffer = String::new();
 
-        while let Some(event) = rx.recv().await {
-            use tauri_plugin_shell::process::CommandEvent;
-            match event {
-                CommandEvent::Stdout(bytes) => {
-                    // Accumulate bytes and split by newlines (stream-json is line-delimited)
-                    let text = String::from_utf8_lossy(&bytes);
-                    line_buffer.push_str(&text);
+        for line_result in reader.lines() {
+            let line = match line_result {
+                Ok(l) => l,
+                Err(_) => break,
+            };
 
-                    // Process complete lines
-                    while let Some(newline_pos) = line_buffer.find('\n') {
-                        let line = line_buffer[..newline_pos].to_string();
-                        line_buffer = line_buffer[newline_pos + 1..].to_string();
-
-                        if line.trim().is_empty() {
-                            continue;
-                        }
-
-                        // Parse via event_stream, then tag with claude_session_id
-                        let agent_event = event_stream::parse_event(&line)
-                            .with_session_id(&claude_sid_clone);
-
-                        // Persist conversation_id from Result events
-                        if agent_event.event_type == AgentEventType::Result {
-                            if let Some(ref meta) = agent_event.metadata {
-                                if let Some(conv_id) = meta.get("session_id").and_then(|v| v.as_str()) {
-                                    update_session_conversation_id(&app_handle, &claude_sid_clone, conv_id);
-                                }
-                            }
-                        }
-
-                        // Log to audit_log in SQLite
-                        log_to_audit(&app_handle, &agent_event);
-
-                        // Emit to frontend
-                        let _ = app_handle.emit("claude-stream", &agent_event);
-                    }
-                }
-                CommandEvent::Stderr(bytes) => {
-                    let text = String::from_utf8_lossy(&bytes).trim().to_string();
-                    if !text.is_empty() {
-                        let error_event = AgentEvent {
-                            timestamp: Utc::now().to_rfc3339(),
-                            event_type: AgentEventType::Error,
-                            content: text,
-                            metadata: None,
-                            claude_session_id: Some(claude_sid_clone.clone()),
-                        };
-                        let _ = app_handle.emit("claude-stream", &error_event);
-                    }
-                }
-                CommandEvent::Terminated(payload) => {
-                    // Emit completion status
-                    let _ = app_handle.emit(
-                        "claude-stream",
-                        serde_json::json!({
-                            "type": "status",
-                            "status": "done",
-                            "invocation_id": &inv_id,
-                            "claude_session_id": &claude_sid_clone,
-                            "exit_code": payload.code,
-                        }),
-                    );
-
-                    // Update session status in DB
-                    update_session_status_in_db(&app_handle, &claude_sid_clone, "idle");
-
-                    // Clean up process entry
-                    let mut procs = processes_clone.lock().await;
-                    procs.remove(&claude_sid_clone);
-                    break;
-                }
-                _ => {}
+            if line.trim().is_empty() {
+                continue;
             }
+
+            // Accumulate partial JSON if needed
+            line_buffer.push_str(&line);
+
+            // Parse via event_stream, then tag with claude_session_id
+            let agent_event = event_stream::parse_event(&line_buffer)
+                .with_session_id(&claude_sid_stdout);
+            line_buffer.clear();
+
+            // Persist conversation_id from Result events
+            if agent_event.event_type == AgentEventType::Result {
+                if let Some(ref meta) = agent_event.metadata {
+                    if let Some(conv_id) = meta.get("session_id").and_then(|v| v.as_str()) {
+                        update_session_conversation_id(
+                            &app_handle,
+                            &claude_sid_stdout,
+                            conv_id,
+                        );
+                    }
+                }
+            }
+
+            log_to_audit(&app_handle, &agent_event);
+            let _ = app_handle.emit("claude-stream", &agent_event);
+        }
+
+        // Process terminated — emit done status
+        // Try to get exit code from child
+        let exit_code = {
+            let rt = tauri::async_runtime::handle();
+            rt.block_on(async {
+                let mut procs = processes_clone.lock().await;
+                if let Some(mut child) = procs.remove(&claude_sid_stdout) {
+                    child.wait().ok().and_then(|s| s.code())
+                } else {
+                    None
+                }
+            })
+        };
+
+        let _ = app_handle.emit(
+            "claude-stream",
+            serde_json::json!({
+                "type": "status",
+                "status": "done",
+                "invocation_id": &inv_id,
+                "claude_session_id": &claude_sid_stdout,
+                "exit_code": exit_code,
+            }),
+        );
+
+        update_session_status_in_db(&app_handle, &claude_sid_stdout, "idle");
+    });
+
+    // Spawn a background thread to read stderr
+    let app_handle_err = app.clone();
+    let claude_sid_stderr = claude_sid.clone();
+
+    std::thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line_result in reader.lines() {
+            let text = match line_result {
+                Ok(l) => l.trim().to_string(),
+                Err(_) => break,
+            };
+            if text.is_empty() {
+                continue;
+            }
+
+            let error_event = AgentEvent {
+                timestamp: Utc::now().to_rfc3339(),
+                event_type: AgentEventType::Error,
+                content: text,
+                metadata: None,
+                claude_session_id: Some(claude_sid_stderr.clone()),
+            };
+            let _ = app_handle_err.emit("claude-stream", &error_event);
         }
     });
 
@@ -259,8 +224,6 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
 }
 
 /// Send a follow-up message in an existing conversation.
-/// This spawns a NEW claude process with --conversation-id for continuity.
-/// The previous process should have already completed.
 #[tauri::command]
 pub async fn send_message(
     app: AppHandle,
@@ -288,12 +251,11 @@ pub async fn cancel_claude(app: AppHandle, claude_session_id: String) -> Result<
     let processes = get_or_init_processes(&app);
     let mut procs = processes.lock().await;
 
-    if let Some(child) = procs.remove(&claude_session_id) {
+    if let Some(mut child) = procs.remove(&claude_session_id) {
         child
             .kill()
             .map_err(|e| format!("Failed to kill claude process: {}", e))?;
 
-        // Emit cancellation event
         let _ = app.emit(
             "claude-stream",
             serde_json::json!({
@@ -306,11 +268,32 @@ pub async fn cancel_claude(app: AppHandle, claude_session_id: String) -> Result<
         update_session_status_in_db(&app, &claude_session_id, "idle");
         Ok(())
     } else {
-        Err(format!("No active process for claude session: {}", claude_session_id))
+        Err(format!(
+            "No active process for claude session: {}",
+            claude_session_id
+        ))
     }
 }
 
 // ── Helpers ──
+
+fn format_spawn_error(e: &std::io::Error) -> String {
+    let err_str = e.to_string().to_lowercase();
+    if err_str.contains("not found")
+        || err_str.contains("no such file")
+        || err_str.contains("os error 2")
+    {
+        "Claude Code CLI not found. Install it with: npm install -g @anthropic-ai/claude-code \
+         (https://docs.anthropic.com/en/docs/claude-code)"
+            .to_string()
+    } else {
+        format!(
+            "Failed to spawn Claude CLI: {}. \
+             Ensure Claude Code CLI is installed: npm install -g @anthropic-ai/claude-code",
+            e
+        )
+    }
+}
 
 /// Get or initialize the ClaudeProcesses managed state.
 fn get_or_init_processes(app: &AppHandle) -> ClaudeProcesses {
@@ -336,7 +319,11 @@ fn update_session_status_in_db(app: &AppHandle, claude_session_id: &str, status:
 }
 
 /// Persist the Claude CLI conversation ID on a Claude session row.
-fn update_session_conversation_id(app: &AppHandle, claude_session_id: &str, conversation_id: &str) {
+fn update_session_conversation_id(
+    app: &AppHandle,
+    claude_session_id: &str,
+    conversation_id: &str,
+) {
     if let Some(db_state) = app.try_state::<DbState>() {
         if let Ok(conn) = db_state.lock() {
             let _ = conn.execute(
@@ -348,16 +335,13 @@ fn update_session_conversation_id(app: &AppHandle, claude_session_id: &str, conv
 }
 
 /// Log an AgentEvent to the audit_log table.
-/// Decision-type events are also persisted to the decisions table.
 fn log_to_audit(app: &AppHandle, event: &AgentEvent) {
-    // Skip Raw events and empty content to avoid noise
     if event.event_type == AgentEventType::Raw && event.content.is_empty() {
         return;
     }
 
     if let Some(db_state) = app.try_state::<DbState>() {
         if let Ok(conn) = db_state.lock() {
-            // Get active session ID
             let session_id: Option<String> = conn
                 .query_row(
                     "SELECT id FROM sessions WHERE active = 1 LIMIT 1",
@@ -379,7 +363,6 @@ fn log_to_audit(app: &AppHandle, event: &AgentEvent) {
                     rusqlite::params![id, session_id, event.timestamp, action_type, event.content, metadata_str],
                 );
 
-                // Also persist Decision-type events to the decisions table
                 if event.event_type == AgentEventType::Decision {
                     let decision = decision_commands::Decision {
                         id: uuid::Uuid::new_v4().to_string(),

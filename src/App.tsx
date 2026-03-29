@@ -21,8 +21,10 @@ function App() {
 
   useEffect(() => {
     async function init() {
-      // 0. Validate Claude CLI availability (non-blocking -- runs in parallel)
-      validateClaudeCli();
+      // 0. Validate Claude CLI availability (non-blocking, best-effort)
+      // Note: may false-negative on Windows due to PATH resolution in GUI processes.
+      // Real errors are caught at spawn time in start_claude with actionable messages.
+      validateClaudeCli().catch(() => {});
 
       // 1. Try to load an existing active session (returns session data with linked repos/skills)
       const sessionData = await loadActiveSession();

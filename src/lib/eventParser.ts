@@ -65,6 +65,7 @@ export function extractCodeBlocks(
 /**
  * Determine if an AgentEvent represents assistant text that should
  * be accumulated into the chat message stream.
+ * Matches "think" events without a tool (assistant text chunks).
  */
 export function isAssistantText(event: AgentEvent): boolean {
   return event.event_type === "think" && !event.metadata?.tool;

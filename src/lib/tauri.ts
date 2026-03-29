@@ -232,9 +232,9 @@ export const commands = {
 
   sendMessage: (args: {
     message: string;
-    conversation_id: string;
-    working_dir: string;
-    claude_session_id: string;
+    conversationId: string;
+    workingDir: string;
+    claudeSessionId: string;
   }) => invoke<string>("send_message", args),
 
   cancelClaude: (claudeSessionId: string) =>

@@ -106,8 +106,9 @@ export function useClaudeStream() {
             if (isAssistantText(event) && event.content) {
               if (sid) {
                 store.appendToSessionLastAssistant(sid, event.content);
+              } else {
+                store.appendToLastAssistant(event.content);
               }
-              store.appendToLastAssistant(event.content);
             }
 
             // Set error state for error events
