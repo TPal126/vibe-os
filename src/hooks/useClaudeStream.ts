@@ -11,6 +11,70 @@ import {
 } from "../lib/eventParser";
 import type { AgentEvent } from "../stores/types";
 
+// ── Detection helpers (module scope) ──
+
+const DEV_SERVER_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1):\d{4,5}\b/;
+
+function extractDevServerUrl(text: string): string | null {
+  const match = text.match(DEV_SERVER_URL_RE);
+  return match ? match[0] : null;
+}
+
+interface ParsedTestResult {
+  passed: number;
+  failed: number;
+  total: number;
+}
+
+function parseTestResults(text: string): ParsedTestResult | null {
+  // Jest/Vitest: "Tests:  3 passed, 1 failed, 4 total" or "Tests:  8 passed, 8 total"
+  const jestMatch = text.match(/Tests:\s+(\d+)\s+passed(?:,\s+(\d+)\s+failed)?,\s+(\d+)\s+total/);
+  if (jestMatch) {
+    return {
+      passed: parseInt(jestMatch[1]),
+      failed: jestMatch[2] ? parseInt(jestMatch[2]) : 0,
+      total: parseInt(jestMatch[3]),
+    };
+  }
+
+  // Vitest compact: "N tests passed" or "N tests failed"
+  const vitestPass = text.match(/(\d+)\s+tests?\s+passed/);
+  const vitestFail = text.match(/(\d+)\s+tests?\s+failed/);
+  if (vitestPass || vitestFail) {
+    const passed = vitestPass ? parseInt(vitestPass[1]) : 0;
+    const failed = vitestFail ? parseInt(vitestFail[1]) : 0;
+    return { passed, failed, total: passed + failed };
+  }
+
+  // pytest: "8 passed, 2 failed" or "8 passed"
+  const pytestMatch = text.match(/(\d+)\s+passed(?:,\s+(\d+)\s+failed)?/);
+  if (pytestMatch) {
+    const passed = parseInt(pytestMatch[1]);
+    const failed = pytestMatch[2] ? parseInt(pytestMatch[2]) : 0;
+    return { passed, failed, total: passed + failed };
+  }
+
+  // Rust: "test result: ok. 8 passed; 0 failed"
+  const rustMatch = text.match(/test result:.*?(\d+)\s+passed;\s+(\d+)\s+failed/);
+  if (rustMatch) {
+    const passed = parseInt(rustMatch[1]);
+    const failed = parseInt(rustMatch[2]);
+    return { passed, failed, total: passed + failed };
+  }
+
+  return null;
+}
+
+const BUILD_COMMANDS = ["npm run build", "cargo build", "vite build", "tsc", "make", "npx tsc"];
+const SERVE_COMMANDS = ["npm run dev", "npm start", "vite", "python -m http.server", "cargo run", "npx vite"];
+
+function classifyBashCommand(cmd: string): "build" | "serve" | null {
+  const normalized = cmd.toLowerCase().trim();
+  if (BUILD_COMMANDS.some(bc => normalized.startsWith(bc))) return "build";
+  if (SERVE_COMMANDS.some(sc => normalized.startsWith(sc))) return "serve";
+  return null;
+}
+
 /**
  * Hook that listens to 'claude-stream' Tauri events and dispatches
  * parsed events to the Zustand agentSlice, routed by claude_session_id.
@@ -95,6 +159,37 @@ export function useClaudeStream() {
             // Rich card routing: tool events produce inline activity lines
             if (event.metadata?.tool && sid) {
               store.upsertActivityLine(sid, event);
+
+              // Detect URLs in Bash output
+              if (event.metadata.tool === "Bash") {
+                const detectedUrl = extractDevServerUrl(event.content);
+                if (detectedUrl) {
+                  const currentSession = useAppStore.getState().claudeSessions.get(sid);
+                  if (!currentSession?.previewUrl) {
+                    useAppStore.getState().setSessionPreviewUrl(sid, detectedUrl);
+                    useAppStore.getState().setSessionBuildStatus(sid, "running", `Running at ${detectedUrl}`);
+                  }
+                }
+              }
+
+              // Track build/serve status from Bash commands
+              if (event.metadata.tool === "Bash") {
+                const cmd = (event.metadata.command as string) || event.content;
+                const cmdType = classifyBashCommand(cmd);
+                if (cmdType === "build") {
+                  useAppStore.getState().setSessionBuildStatus(sid, "building", "Building...");
+                } else if (cmdType === "serve") {
+                  useAppStore.getState().setSessionBuildStatus(sid, "building", "Starting server...");
+                }
+              }
+
+              // Parse test results from Bash test events
+              if (event.event_type === "test_run") {
+                const testResult = parseTestResults(event.content);
+                if (testResult) {
+                  useAppStore.getState().setSessionTestSummary(sid, testResult);
+                }
+              }
             }
 
             // Handle result events -- extract conversation_id for multi-turn
@@ -165,6 +260,22 @@ export function useClaudeStream() {
               if (sid) {
                 store.finalizeActivityLine(sid);
                 store.appendToSessionLastAssistant(sid, event.content);
+
+                // Detect dev server URLs in assistant text
+                const detectedUrl = extractDevServerUrl(event.content);
+                if (detectedUrl && sid) {
+                  const currentSession = useAppStore.getState().claudeSessions.get(sid);
+                  if (!currentSession?.previewUrl) {
+                    useAppStore.getState().setSessionPreviewUrl(sid, detectedUrl);
+                    useAppStore.getState().setSessionBuildStatus(sid, "running", `Running at ${detectedUrl}`);
+                  }
+                }
+
+                // Parse test results from assistant text
+                const testResult = parseTestResults(event.content);
+                if (testResult && sid) {
+                  useAppStore.getState().setSessionTestSummary(sid, testResult);
+                }
               } else {
                 store.appendToLastAssistant(event.content);
               }
