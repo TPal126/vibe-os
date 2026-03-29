@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 14 of 17 (Rich Conversation Cards)
-Plan: 0/? (Not yet planned)
-Status: Phase 13 complete. Ready to plan Phase 14.
-Last activity: 2026-03-29 -- Phase 13 executed: 3/3 plans, 13 tasks, 9 files (4 new, 5 modified), 67/67 tests passing. Project cards home screen live.
+Plan: 1/3 (Plan 01 complete, Plans 02-03 remaining)
+Status: Phase 14 in progress. Plan 01 (Card Type System + Activity Lines) complete. 5 tasks, 5 files (1 new, 4 modified), 43/43 tests passing.
+Last activity: 2026-03-29 -- Phase 14 Plan 01 executed: card type system, activity line store methods, ActivityLine component, stream routing, ClaudeChat card dispatch.
 
-Progress: [=#--------] 17%
+Progress: [==#-------] 22%
 
 ## v1 Summary
 
@@ -43,6 +43,9 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 - [v3 Roadmap]: Inline everything -- decisions, outcomes, agent activity appear in conversation flow
 - [Phase 12]: Local-only project name editing -- editable input uses local useState, not wired to backend. Phase 13 adds persistence.
 - [Phase 12]: SecondaryDrawer preserved despite panel removal -- zero visual impact when closed, Phase 17 needs it
+- [Phase 14-01]: Activity lines replace static Working indicator with real tool detail via card type dispatch
+- [Phase 14-01]: summarizeActivity uses category buckets for human-readable summaries
+- [Phase 14-01]: currentActivityMessageId tracks open activity line per session, finalized on text or done/cancelled
 
 ### Pending Todos
 
@@ -58,5 +61,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed Phase 12 (Strip to Single-Project Chat). 3/3 tasks, 67/67 tests. Ready to plan Phase 13 (Project Cards Home Screen).
+Stopped at: Completed 14-01-PLAN.md (Card Type System + Inline Activity Lines). 5/5 tasks, 43/43 tests. Ready for 14-02 (Outcome/Error Cards).
 Resume file: None

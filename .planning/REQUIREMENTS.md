@@ -166,7 +166,7 @@ Requirements for "Project Cards + Attention Routing" milestone. Phases 12+.
 
 - [x] **CONV-01**: The conversation view is a single full-width chat surface. No side panels, no columns. Just the conversation with your agent.
 - [ ] **CONV-02**: A compact top bar shows: project name (editable), back-to-cards button, context summary (repos/skills/tokens as compact badges), and a settings gear for repo/skill/budget management.
-- [ ] **CONV-03**: Agent activity renders inline as compact, collapsible status lines: "Reading 3 files... Editing src/main.py... Running tests..." — not a separate panel.
+- [x] **CONV-03**: Agent activity renders inline as compact, collapsible status lines: "Reading 3 files... Editing src/main.py... Running tests..." — not a separate panel.
 - [ ] **CONV-04**: When Claude finishes a task, an outcome card appears in chat: what changed (file count), test results (pass/fail badge), and an inline preview if applicable. Expandable for file-level detail.
 - [ ] **CONV-05**: Errors render as actionable cards: red border, clear message, "Retry" or "Show Details" buttons. No raw stack traces.
 - [ ] **CONV-06**: Decisions Claude makes appear as inline expandable cards: rationale, confidence, impact. Not a separate panel.
@@ -319,7 +319,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | CONV-01 | Phase 12 | Complete (full-width chat, no panels) |
 | CONV-02 | Phase 12 | Partial (top bar done, back-to-cards needs Phase 13) |
-| CONV-03 | Phase 14 | Pending |
+| CONV-03 | Phase 14 | Complete (activity lines inline, collapsible, replace Working indicator) |
 | CONV-04 | Phase 14 | Pending |
 | CONV-05 | Phase 14 | Pending |
 | CONV-06 | Phase 14 | Pending |
