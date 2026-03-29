@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Context Assembly** - Repo manager, skills panel, prompt composer, prompt layer display, token budget bar
 - [x] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
 - [x] **Phase 5: Agent Integration** - Claude CLI subprocess, event stream parser, chat panel with streaming, agent event display, working indicator
-- [ ] **Phase 6: Decisions, Audit & Scripts** - Micro-decision log, append-only audit trail, decision/audit export, scripts tracker, skills feedback loop
+- [x] **Phase 6: Decisions, Audit & Scripts** - Micro-decision log, append-only audit trail, decision/audit export, scripts tracker, skills feedback loop
 - [ ] **Phase 7: Visualization, Diff & Polish** - Architecture D3 graph, live preview panel, diff view with accept/reject, status bar live data, keyboard shortcuts
 
 ## Phase Details
@@ -117,7 +117,7 @@ Plans:
 
 Plans:
 - [x] 06-01-PLAN.md -- Backend infrastructure: dialog plugin, decision_commands (CRUD + export), script_commands (list + generate skill), enhanced audit_commands (session filter + export), decision persistence from claude events, DecisionSlice + AuditSlice, audit wiring in skill/repo toggles
-- [ ] 06-02-PLAN.md -- DecisionLog panel with expandable cards + impact coloring, AuditLog panel with dense color-coded table, ScriptsTracker panel with skill generation, wire all into MainLayout right column
+- [x] 06-02-PLAN.md -- DecisionLog panel with expandable cards + impact coloring, AuditLog panel with dense color-coded table, ScriptsTracker panel with skill generation, wire all into MainLayout right column
 
 ### Phase 7: Visualization, Diff & Polish
 **Goal**: Users can visualize their codebase as an interactive graph, preview running web apps, review agent-proposed file changes with accept/reject controls, and see live status indicators -- completing the full VIBE OS experience

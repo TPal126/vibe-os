@@ -19,9 +19,9 @@ Progress: [=========.] 86%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
-- Average duration: ~5.9m
-- Total execution time: ~1.37 hours
+- Total plans completed: 15
+- Average duration: ~5.7m
+- Total execution time: ~1.43 hours
 
 **By Phase:**
 
@@ -32,7 +32,7 @@ Progress: [=========.] 86%
 | 3. Context Assembly | 3/3 | ~11.4m | ~3.8m |
 | 4. Python REPL + Monaco | 2/2 | ~9m 24s | ~4m 42s |
 | 5. Agent Integration | 3/3 | ~8.5m | ~2.8m |
-| 6. Decisions, Audit & Scripts | 1/2 | ~5m 53s | ~5m 53s |
+| 6. Decisions, Audit & Scripts | 2/2 | ~9m 14s | ~4m 37s |
 | 7. Visualization, Diff & Polish | 1/3 | ~5m 12s | ~5m 12s |
 
 **Recent Trend:**
@@ -85,6 +85,9 @@ Recent decisions affecting current work:
 - [06-01]: Used super::db_commands::DbState consistently instead of local type aliases in new command files
 - [06-01]: Added both FILE_CREATE and FILECREATE formats to script query for agent event compatibility
 - [06-01]: Decision auto-capture from agent stream uses 0.8 confidence and architecture category as defaults
+- [06-02]: Unicode escape sequences for special characters (arrows, triangles, squares) to avoid encoding issues
+- [06-02]: PlaceholderPanel retained for center column (preview/architecture); right column fully replaced
+- [06-02]: ScriptsTracker uses local React state (not Zustand) since scripts are session-specific
 - [07-01]: Regex-based Python analysis (not AST) for v1 -- sufficient for module/class/function/import extraction
 - [07-01]: Edge resolution drops external imports (only connects modules within analyzed repos)
 - [07-01]: acceptDiff writes to disk AND updates open editor model via updateFileContent
