@@ -73,6 +73,7 @@
     "shell:allow-stdin-write",
     "shell:allow-kill",
     "clipboard-manager:allow-write-text",
-    "dialog:default"
+    "dialog:default",
+    "notification:default"
   ]
 }

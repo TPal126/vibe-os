@@ -33,6 +33,7 @@ tokio = { version = "1", features = ["sync"] }
 regex = "1"
 notify = "8"
 notify-debouncer-mini = "0.7"
+tauri-plugin-notification = "2"
 
 [features]
 default = ["custom-protocol"]
