@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/VIBE_OS-v0.2.0-5b7cfa?style=for-the-badge&labelColor=08090d" alt="VIBE OS v0.2.0" />
+  <img src="https://img.shields.io/badge/VIBE_OS-v0.3.0-5b7cfa?style=for-the-badge&labelColor=08090d" alt="VIBE OS v0.3.0" />
   <img src="https://img.shields.io/badge/Tauri-v2-24C8D8?style=for-the-badge&logo=tauri&logoColor=white&labelColor=08090d" alt="Tauri v2" />
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white&labelColor=08090d" alt="React 18" />
   <img src="https://img.shields.io/badge/Rust-1.77+-DEA584?style=for-the-badge&logo=rust&logoColor=white&labelColor=08090d" alt="Rust" />
@@ -61,7 +61,7 @@ cd vibe-os
 # Install frontend dependencies
 npm install
 
-# Run tests (67 tests across Rust + TypeScript)
+# Run tests (43 tests across Rust + TypeScript)
 npm run test:all
 
 # Launch in development mode (starts Vite + Tauri together)
@@ -77,62 +77,132 @@ First launch creates your database at `~/.vibe-os/vibe-os.db` and copies starter
 
 ## What It Does
 
-VIBE OS is a **conversation-first desktop IDE** for AI-assisted development. Claude Chat is the primary surface, with context management, decision auditing, and workspace organization built around it.
+VIBE OS is a **conversation-first desktop IDE** for AI-assisted development. Every interaction happens through a full-width Claude chat, with project management, attention routing, and power tools surfaced through overlays and inline cards.
 
 | Capability | What You Get |
 |---|---|
-| **Workspace System** | Create/open project workspaces with scaffolded directories, CLAUDE.md as system prompt, and workspace-scoped repos/skills |
-| **Multi-Session Chat** | Run multiple Claude Code sessions simultaneously with tab-based switching and input-needed alerts |
-| **Token Control** | Set per-skill, per-repo, and session-level token budgets with color-coded warnings |
-| **Context Loading** | Check a box to load repos and skills into Claude's prompt |
-| **Agent Event Stream** | Watch Claude think, create files, modify code, run tests -- every action typed and color-coded |
-| **Session Dashboard** | At-a-glance view of current goal, active context, activity feed, and session stats |
+| **Project Cards** | Home screen shows all projects as cards with live status, outcome badges, and attention indicators |
+| **Full-Width Chat** | Single-project conversation view with Claude -- no column clutter, just the conversation |
+| **Inline Activity Cards** | File creates, modifications, test runs, decisions, and errors render as typed cards inside the chat stream |
+| **Outcome Detection** | Auto-detects session results: test pass/fail counts, build status, preview URLs, errors |
+| **Attention Routing** | Pulsing indicators on project cards and title bar badge when sessions need your input; OS-level notifications |
+| **Settings Panel** | Gear icon opens a right slide-in panel with 6 tabs: Repos, Skills, Tokens, Files, Audit, Events |
+| **Editor Escape Hatch** | `Ctrl+Shift+C` opens a bottom Monaco editor panel; code blocks in chat have "View Code" buttons |
+| **Code Block Summaries** | Agent code output collapses to `"python -- 42 lines"` with expand/collapse and one-click editor opening |
+| **Token Control** | Per-skill, per-repo, and session-level token budgets with color-coded warnings |
 | **Decision Logging** | Every architectural decision captured with rationale, confidence, impact category, and reversibility |
 | **Audit Trail** | Append-only log of every action. Never deleted. Export to JSON/CSV. |
-| **Mermaid Diagrams** | Architecture diagrams generated from codebase analysis, rendered with Mermaid.js |
-| **Secondary Panels** | Editor, Console, Preview, and Diff accessible via a toggleable drawer overlay |
-| **Diff Review** | Agent-proposed file changes in a Monaco diff editor. Accept or reject before anything hits disk. |
-| **Python REPL** | Built-in console with command history, colored output, and subprocess management |
+| **Workspace System** | Project workspaces with scaffolded directories, CLAUDE.md as system prompt, workspace-scoped repos/skills |
+| **Multi-Session Chat** | Run multiple Claude Code sessions simultaneously with tab-based switching and input-needed alerts |
 
 ---
 
 ## The Interface
 
+### Home Screen
+
 ```
-+------------------+----------------------------+---------------------------+
-|                  |                            |                           |
-|  Repos           |  CLAUDE CHAT               |  Decisions                |
-|  Skills          |  Session 1  Session 2  +   |  Agent Stream             |
-|  Token Control   |                            |  Audit Log                |
-|  [tabbed]        |  > hi                      |  [tabbed]                 |
-|                  |  Hello! How can I help?    |                           |
-|                  |                            |                           |
-|------------------+----------------------------+                           |
-|                  |                            |                           |
-|  WORKSPACE       |  SESSION DASHBOARD         |  MERMAID DIAGRAM          |
-|  FILES           |  Goal | Context | Stats    |  [architecture view]      |
-|  [file tree]     |  Activity feed             |                           |
-|                  |                            |                           |
-+------------------+----------------------------+---------------------------+
-|  Workspace  |  Python: idle  |  2 sessions (1 working)  |  v0.2.0       |
-+-------------+----------------+--------------------------+----------------+
++-----------------------------------------------------------------------+
+|  VIBE OS                                     [gear] [minimize] [close] |
++-----------------------------------------------------------------------+
+|                                                                       |
+|   PROJECT CARDS                                                       |
+|                                                                       |
+|   +-------------------+  +-------------------+  +-----------------+   |
+|   | my-api        (!) |  | frontend-app      |  | + New Project   |   |
+|   | Working...        |  | idle              |  |                 |   |
+|   | 12/12 tests pass  |  | Build OK          |  |                 |   |
+|   | preview: :3000    |  |                   |  |                 |   |
+|   +-------------------+  +-------------------+  +-----------------+   |
+|                                                                       |
++-----------------------------------------------------------------------+
 ```
 
-**Three resizable columns** (conversation-first layout):
+Each project card shows:
+- Live session status (idle / working / input needed)
+- Attention flag (pulsing orange when input is needed)
+- Outcome badges: test results, build status, preview URLs, errors
 
-| Column | Default | Content |
-|---|---|---|
-| **Left** (20%) | Top: Repos, Skills, Token Control (tabbed). Bottom: Workspace file tree |
-| **Center** (45%) | Top: Claude Chat with session tabs. Bottom: Session Dashboard |
-| **Right** (35%) | Top: Decisions, Agent Stream, Audit Log (tabbed). Bottom: Mermaid diagram |
+### Conversation View
 
-**Secondary Drawer** -- Editor, Console, Preview, and Diff are accessible via the "Panels" button, sliding in as an overlay without disrupting the main layout.
+```
++-----------------------------------------------------------------------+
+|  VIBE OS  |  my-api  Session1  Session2  +       [gear] [min] [close] |
++-----------------------------------------------------------------------+
+|                                                                       |
+|  > scaffold the REST endpoints                                        |
+|                                                                       |
+|  [activity] Created src/routes/users.ts                               |
+|  [activity] Modified src/index.ts                                     |
+|                                                                       |
+|  Sure, I've created the REST endpoints...                             |
+|                                                                       |
+|  [python -- 24 lines]                            [> expand] [View Code]|
+|                                                                       |
+|  [decision] REST over GraphQL (confidence: 85%)                       |
+|                                                                       |
+|  [outcome] 12/12 tests passing | Build OK | Preview: localhost:3000   |
+|                                                                       |
+|  +--------------------------------------------------------------+    |
+|  | Type a message...                                    [Send]   |    |
+|  +--------------------------------------------------------------+    |
++-----------------------------------------------------------------------+
+```
+
+**Overlays (no column disruption):**
+- **Settings Panel** (right slide-in, 400px): Repos, Skills, Tokens, Files, Audit, Events tabs
+- **Editor Panel** (bottom slide-in, 60vh): Full Monaco editor with `Ctrl+Shift+C` toggle
 
 ---
 
 ## Features in Depth
 
-### Workspace System (v2)
+### Project Cards & Home Screen (v3)
+
+The home screen replaces the old multi-column layout with a card-based project overview:
+
+- **Create** projects from the home screen -- named, timestamped, ready to chat
+- **Project cards** show live status with outcome badges (test counts, build status, preview URLs)
+- **Attention routing** flags projects that need your input with pulsing indicators
+- **Click a card** to enter the full-width conversation view
+- **OS notifications** via Tauri notification plugin when background sessions need attention
+
+### Conversation Cards (v3)
+
+Claude's responses include structured inline cards instead of raw text:
+
+| Card Type | What It Shows |
+|---|---|
+| **ActivityLine** | File creates, modifications, test runs -- typed and color-coded |
+| **OutcomeCard** | Session results: test pass/fail, build status, preview URLs |
+| **ErrorCard** | Errors with retry button |
+| **InlineDecisionCard** | Architectural decisions with confidence and impact |
+| **InlinePreviewCard** | Preview URL thumbnails |
+| **TestDetailCard** | Test suite results with pass/fail breakdown |
+| **CodeBlockSummary** | Collapsed code with line count, expand toggle, and "View Code" button |
+
+### Settings Panel (v3)
+
+The gear icon in the title bar opens a right slide-in panel with 6 tabs:
+
+| Tab | Content |
+|---|---|
+| **Repos** | Add/remove git repositories, toggle active context |
+| **Skills** | Browse and toggle skill files |
+| **Tokens** | Per-skill and per-repo token budgets with color-coded bars |
+| **Files** | Workspace file tree (click opens editor panel) |
+| **Audit** | Append-only action log with JSON/CSV export |
+| **Events** | Real-time agent event stream (think, decision, file ops, tests) |
+
+### Editor Escape Hatch (v3)
+
+- **`Ctrl+Shift+C`** toggles a bottom Monaco editor panel (60vh)
+- **Code block summaries** in chat show `"language -- N lines"` with expand/collapse
+- **"View Code" button** on each code block opens it in the editor panel
+- **Files tab** in settings: clicking a file auto-opens the editor
+- Monaco instance stays mounted (CSS display toggle) so editor state persists
+
+### Workspace System
 
 Workspaces organize all project context into a single directory:
 
@@ -146,44 +216,18 @@ Workspaces organize all project context into a single directory:
 +-- output/          # Generated output
 ```
 
-- **Create** a workspace by name -- app scaffolds the directory structure
-- **Open** an existing workspace -- app loads CLAUDE.md, discovers skills, lists repos
-- **CLAUDE.md** serves as the system prompt (replaces the old editable textarea)
-- **File tree** component shows workspace contents with expand/collapse and click-to-open
-
-### Multi-Session Claude Chat (v2)
+### Multi-Session Claude Chat
 
 - Run **multiple concurrent Claude sessions**, each with its own subprocess, conversation history, and working state
 - **Session tabs** in the chat area for switching between active sessions
 - **Input-needed alerts** -- pulsing orange dot when a background session needs your attention
-- **Session Dashboard** below chat shows goal, context summary, activity feed, and stats
 
-### Token Control (v2)
+### Token Control
 
 - **Per-skill limits** -- cap how many tokens each skill can consume
 - **Per-repo limits** -- cap context from each repository
 - **Session budget** -- overall token ceiling with color-coded warnings (green/orange/red)
 - Budget enforcement during prompt composition with soft truncation
-
-### Context Assembly
-
-1. **Repos** -- Add git repositories by URL. Toggle active with a checkbox. Active repos get indexed and injected into the prompt.
-2. **Skills** -- Markdown files with reusable knowledge. Workspace-local skills override global ones on name conflicts.
-3. **Prompt Composition** -- System (CLAUDE.md) + Task + Skills + Repo context, assembled deterministically with budget enforcement.
-
-### Agent Event Stream
-
-Real-time feed of everything Claude does:
-
-| Event | Color | Description |
-|---|---|---|
-| `think` | Blue | Assistant text and reasoning |
-| `decision` | Orange | Architectural decisions (with confidence) |
-| `file_create` | Green | New files created |
-| `file_modify` | Green | Files edited |
-| `test_run` | Cyan | Test executions (PASS/FAIL) |
-| `error` | Red | Errors |
-| `result` | Gray | Completion with duration and cost |
 
 ### Decision Log & Audit Trail
 
@@ -195,7 +239,7 @@ Real-time feed of everything Claude does:
 
 ## Testing
 
-VIBE OS has **67 tests** across the full stack:
+VIBE OS has **43 tests** across the stack:
 
 ```bash
 # Run all tests (TypeScript + Rust)
@@ -215,7 +259,6 @@ npm run test:watch
 
 | Area | Tests | What's Tested |
 |---|---|---|
-| **Rust event parser** | 24 | Real CLI output fixtures, assistant text extraction, tool use classification, result events, system events, edge cases, serialization for frontend |
 | **Frontend eventParser** | 23 | Type guards (`isStatusEvent`, `isAgentEvent`, `isAssistantText`), code block extraction, session ID extraction, input request detection |
 | **Frontend agentSlice** | 20 | Session lifecycle, chat message accumulation, duplication prevention, status derivation, legacy compatibility |
 
@@ -243,25 +286,43 @@ Tests use **real captured Claude CLI output** as fixtures, not assumed formats.
 
 ### State Management
 
-Zustand store with **15 slices**, persisted to SQLite via a custom storage adapter:
+Zustand store with **16 slices**, persisted to SQLite via a custom storage adapter:
 
 | Slice | Responsibility |
 |---|---|
+| `projectSlice` | Project CRUD, active project, project card state |
 | `sessionSlice` | Active session lifecycle |
+| `agentSlice` | Multi-session chat, agent events, outcome detection, CLI validation |
 | `repoSlice` | Repository list and activation state |
 | `skillSlice` | Skill discovery and toggle state |
 | `promptSlice` | System prompt, task context, composed prompt |
 | `editorSlice` | Open files, active file, save with timestamp |
 | `consoleSlice` | REPL output, command history |
-| `agentSlice` | Multi-session chat, agent events, CLI validation |
 | `decisionSlice` | Decision records, loading, export |
 | `auditSlice` | Audit entries, loading, export |
 | `diffSlice` | Pending diffs, accept/reject flow |
 | `previewSlice` | Preview URL, auto-refresh toggle |
 | `workspaceSlice` | Workspace CRUD, file tree, CLAUDE.md watcher |
-| `layoutSlice` | Drawer state, active drawer tab |
+| `layoutSlice` | Settings panel, editor panel, drawer state |
 | `dashboardSlice` | Session goal |
 | `tokenSlice` | Token budgets, budget enforcement |
+
+### Component Architecture
+
+```
+src/components/
+  home/          # HomeScreen, project cards
+  layout/        # TitleBar, MainLayout, TabStrip
+  conversation/  # ActivityLine, OutcomeCard, ErrorCard, InlineDecisionCard,
+                 # InlinePreviewCard, TestDetailCard, CodeBlockSummary
+  panels/        # ClaudeChat, RepoManager, SkillsPanel, TokenControlPanel,
+                 # WorkspaceTree, AuditLog, AgentStream
+  settings/      # SettingsPanel (right slide-in overlay)
+  editor/        # EditorPanel (bottom slide-in overlay)
+  center/        # CodeEditor (Monaco), MermaidPanel
+  shared/        # Reusable UI primitives
+  modals/        # Modal dialogs
+```
 
 ### Database
 
@@ -273,6 +334,7 @@ SQLite with WAL mode. Tables: `sessions`, `settings`, `audit_log`, `decisions`, 
 
 | Shortcut | Action |
 |---|---|
+| `Ctrl+Shift+C` | Toggle editor panel (escape hatch) |
 | `Ctrl+S` / `Cmd+S` | Save active file (audit logged) |
 | `Ctrl+R` / `Cmd+R` | Focus Python console |
 | `Enter` (in chat) | Send message to Claude |
