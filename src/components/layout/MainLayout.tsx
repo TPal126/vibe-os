@@ -20,6 +20,7 @@ import { SkillsPanel } from "../panels/SkillsPanel";
 import { PromptLayer } from "../panels/PromptLayer";
 import { CodeEditor } from "../center/CodeEditor";
 import { Console } from "../center/Console";
+import { ClaudeChat } from "../panels/ClaudeChat";
 
 /* ── Tab definitions ──────────────────────────────────────────────── */
 
@@ -109,11 +110,8 @@ export function MainLayout() {
               <Panel defaultSize={45} minSize={20}>
                 <div className="flex flex-col h-full overflow-hidden">
                   <PanelHeader title="CLAUDE CHAT" icon={<MessageSquare size={12} />} />
-                  <div className="flex-1 overflow-auto">
-                    <PlaceholderPanel
-                      title="Claude Chat"
-                      description="Chat interface will appear here"
-                    />
+                  <div className="flex-1 overflow-hidden">
+                    <ClaudeChat />
                   </div>
                 </div>
               </Panel>
