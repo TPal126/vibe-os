@@ -61,6 +61,7 @@ export function useClaudeStream() {
                 break;
               case "done":
                 if (sid) {
+                  store.finalizeActivityLine(sid);
                   store.setSessionWorking(sid, false);
                   store.setSessionInvocationId(sid, null);
                 }
@@ -69,6 +70,7 @@ export function useClaudeStream() {
                 break;
               case "cancelled":
                 if (sid) {
+                  store.finalizeActivityLine(sid);
                   store.setSessionWorking(sid, false);
                   store.setSessionInvocationId(sid, null);
                 }
@@ -90,6 +92,11 @@ export function useClaudeStream() {
             // Legacy dual-write
             store.addAgentEvent(event);
 
+            // Rich card routing: tool events produce inline activity lines
+            if (event.metadata?.tool && sid) {
+              store.upsertActivityLine(sid, event);
+            }
+
             // Handle result events -- extract conversation_id for multi-turn
             if (
               event.event_type === "result" &&
@@ -103,8 +110,10 @@ export function useClaudeStream() {
             }
 
             // Accumulate assistant text into chat messages
+            // Finalize activity line before appending assistant text
             if (isAssistantText(event) && event.content) {
               if (sid) {
+                store.finalizeActivityLine(sid);
                 store.appendToSessionLastAssistant(sid, event.content);
               } else {
                 store.appendToLastAssistant(event.content);
