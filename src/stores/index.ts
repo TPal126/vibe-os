@@ -13,6 +13,7 @@ import { createDiffSlice } from "./slices/diffSlice";
 import { createPreviewSlice } from "./slices/previewSlice";
 import { createWorkspaceSlice } from "./slices/workspaceSlice";
 import { createLayoutSlice } from "./slices/layoutSlice";
+import { createDashboardSlice } from "./slices/dashboardSlice";
 import { tauriSqliteStorage } from "./storage";
 import type { AppState } from "./types";
 
@@ -32,6 +33,7 @@ export const useAppStore = create<AppState>()(
       ...createPreviewSlice(...a),
       ...createWorkspaceSlice(...a),
       ...createLayoutSlice(...a),
+      ...createDashboardSlice(...a),
     }),
     {
       name: "vibe-os-store",
@@ -40,6 +42,7 @@ export const useAppStore = create<AppState>()(
       // Editor state NOT persisted -- files are on disk
       partialize: (state) => ({
         activeSession: state.activeSession,
+        sessionGoal: state.sessionGoal,
       }),
     },
   ),
@@ -57,4 +60,5 @@ export type {
   WorkspaceMeta,
   WorkspaceSlice,
   LayoutSlice,
+  DashboardSlice,
 } from "./types";

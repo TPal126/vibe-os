@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Developers can see, understand, and direct every decision an AI coding agent makes
-**Current focus:** v2 Milestone -- Workspace-First Vibe Coding Overhaul, starting Phase 8
+**Current focus:** v2 Milestone -- Workspace-First Vibe Coding Overhaul, Phase 8 complete
 
 ## Current Position
 
-Phase: 8 of 11 (Workspace System)
-Plan: 2 of 3 in current phase
-Status: Phase 8 in progress -- 08-01, 08-02 complete, 08-03 next
-Last activity: 2026-03-29 -- Plan 08-02 completed (workspace frontend state)
+Phase: 9 of 11 (Layout Restructure & Dashboard)
+Plan: 1 of 3 in current phase
+Status: Executing Phase 9
+Last activity: 2026-03-29 -- Plan 09-01 complete (layout restructure, secondary drawer, layout state)
 
-Progress: [##--------] 17%
+Progress: [###-------] 25%
 
 ## v1 Summary
 
@@ -29,9 +29,9 @@ Total execution time: ~1.55 hours across all phases.
 - Total execution time: ~1.55 hours
 
 **v2 Velocity:**
-- Total plans completed: 2
-- Average duration: ~4.5m
-- Total execution time: ~9m
+- Total plans completed: 4
+- Average duration: ~3.6m
+- Total execution time: ~14.5m
 
 *Updated after each plan completion*
 
@@ -49,6 +49,8 @@ Key v2 decisions:
 - [v2 Roadmap]: Multi-session support -- power users manage multiple Claude sessions with visual switching and input alerts
 - [v2 Roadmap]: Phase 8 (Workspace) before Phase 9 (Layout) -- workspace file tree must exist before the layout can place it
 - [08-02]: Removed systemPrompt from Zustand partialize -- workspace CLAUDE.md is now the authoritative source
+- [09-01]: Drawer uses fixed overlay with backdrop; Editor/Console use CSS display toggling to preserve state
+- [09-01]: Layout proportions 20/45/35 for conversation-first emphasis; center column dominates
 
 ### Pending Todos
 
@@ -63,5 +65,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 08-02-PLAN.md (workspace frontend state). Ready for 08-03.
+Stopped at: Completed 09-01-PLAN.md (layout restructure). Ready for 09-02 (Session Dashboard).
 Resume file: None

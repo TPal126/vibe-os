@@ -53,7 +53,7 @@ Plans:
   5. Scripts Tracker is no longer a standalone panel; its functionality is absorbed into the workspace file tree (output/ directory) or available through the secondary drawer
 **Plans**: 3 plans
 Plans:
-- [ ] 09-01-PLAN.md -- Layout restructure with new column assignments, secondary drawer, layout state slice
+- [x] 09-01-PLAN.md -- Layout restructure with new column assignments, secondary drawer, layout state slice
 - [ ] 09-02-PLAN.md -- Session Dashboard with editable goal, context summary, activity feed, session stats
 - [ ] 09-03-PLAN.md -- Mermaid architecture diagram, ArchGraph converter, D3 removal
 
@@ -94,7 +94,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 8. Workspace System | 2/3 | In Progress | - |
-| 9. Layout Restructure & Dashboard | 0/3 | Planned | - |
+| 8. Workspace System | 3/3 | Complete | 2026-03-28 |
+| 9. Layout Restructure & Dashboard | 1/3 | In Progress | - |
 | 10. Multi-Session & Token Control | 0/3 | Planned | - |
 | 11. Polish & Bug Fixes | 0/4 | Planned | - |

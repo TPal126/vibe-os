@@ -273,6 +273,13 @@ export interface LayoutSlice {
   openDrawerToTab: (tab: string) => void;
 }
 
+// ── Dashboard Types ──
+
+export interface DashboardSlice {
+  sessionGoal: string;
+  setSessionGoal: (goal: string) => void;
+}
+
 // ── Combined State ──
 
 export type AppState = SessionSlice &
@@ -287,7 +294,8 @@ export type AppState = SessionSlice &
   DiffSlice &
   PreviewSlice &
   WorkspaceSlice &
-  LayoutSlice;
+  LayoutSlice &
+  DashboardSlice;
 
 // ── Slice Creator Helper ──
 

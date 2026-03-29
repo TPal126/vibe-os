@@ -112,11 +112,11 @@ Requirements for the "Workspace-First Vibe Coding Overhaul" milestone. Phases 8-
 
 ### Layout Restructure
 
-- [ ] **LAYOUT-09**: Left column restructured: top area has Repos, Skills, and Token Control as tabs; bottom area has the Workspace File Tree
+- [x] **LAYOUT-09**: Left column restructured: top area has Repos, Skills, and Token Control as tabs; bottom area has the Workspace File Tree
 - [ ] **LAYOUT-10**: Center column restructured: top area (60-70%) is Claude Chat (the primary interaction surface); bottom area (30-40%) is the Session Dashboard
-- [ ] **LAYOUT-11**: Secondary panels (Editor, Console, Preview, Diff) are accessible via a toggleable drawer or overlay, not permanently visible in the main layout
+- [x] **LAYOUT-11**: Secondary panels (Editor, Console, Preview, Diff) are accessible via a toggleable drawer or overlay, not permanently visible in the main layout
 - [ ] **LAYOUT-12**: Right column restructured: top area has Decisions panel as default with Agent Stream and Audit Log as clickable alternatives in the same space; bottom area has the Mermaid architecture diagram
-- [ ] **LAYOUT-13**: Scripts Tracker is absorbed into the workspace file tree (scripts shown in output/ directory) or accessible via the drawer with other secondary panels
+- [x] **LAYOUT-13**: Scripts Tracker is absorbed into the workspace file tree (scripts shown in output/ directory) or accessible via the drawer with other secondary panels
 
 ### Chat Enhancements
 
@@ -244,12 +244,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WS-05 | Phase 8 | In Progress (backend+frontend: 08-01+08-02, needs UI: 08-03) |
 | WS-06 | Phase 8 | In Progress (backend+frontend: 08-01+08-02, needs UI: 08-03) |
 | WS-07 | Phase 8 | Pending |
-| LAYOUT-09 | Phase 9 | Pending |
-| LAYOUT-10 | Phase 9 | Pending |
-| LAYOUT-11 | Phase 9 | Pending |
-| LAYOUT-12 | Phase 9 | Pending |
-| LAYOUT-13 | Phase 9 | Pending |
-| DASH-01 | Phase 9 | Pending |
+| LAYOUT-09 | Phase 9 | Complete (09-01) |
+| LAYOUT-10 | Phase 9 | In Progress (layout: 09-01, dashboard content: 09-02) |
+| LAYOUT-11 | Phase 9 | Complete (09-01) |
+| LAYOUT-12 | Phase 9 | In Progress (layout: 09-01, mermaid content: 09-03) |
+| LAYOUT-13 | Phase 9 | Complete (09-01) |
+| DASH-01 | Phase 9 | In Progress (placeholder: 09-01, content: 09-02) |
 | DASH-02 | Phase 9 | Pending |
 | DASH-03 | Phase 9 | Pending |
 | DASH-04 | Phase 9 | Pending |
