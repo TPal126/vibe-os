@@ -70,7 +70,7 @@ Plans:
 Plans:
 - [x] 10-01-PLAN.md -- Multi-session backend: claude_sessions DB table, session-tagged events, process tracking per session, CRUD commands
 - [x] 10-02-PLAN.md -- Multi-session frontend: per-session AgentSlice, SessionTabs component, input-needed alerts, useClaudeStream routing
-- [ ] 10-03-PLAN.md -- Token Control: token_budgets DB table, TokenControlPanel UI, per-skill/per-repo/session budgets, compose_prompt enforcement
+- [x] 10-03-PLAN.md -- Token Control: token_budgets DB table, TokenControlPanel UI, per-skill/per-repo/session budgets, compose_prompt enforcement
 
 ### Phase 11: Polish & Bug Fixes
 **Goal**: All rough edges from the v2 overhaul are cleaned up -- toggle state bugs fixed, deprecated v1 code removed, status bar updated for the new layout, and the overall experience is cohesive
@@ -96,5 +96,5 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11
 |-------|----------------|--------|-----------|
 | 8. Workspace System | 3/3 | Complete | 2026-03-28 |
 | 9. Layout Restructure & Dashboard | 3/3 | Complete | 2026-03-29 |
-| 10. Multi-Session & Token Control | 2/3 | In Progress | - |
+| 10. Multi-Session & Token Control | 3/3 | Complete | 2026-03-29 |
 | 11. Polish & Bug Fixes | 0/4 | Planned | - |

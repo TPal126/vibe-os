@@ -140,8 +140,8 @@ Requirements for the "Workspace-First Vibe Coding Overhaul" milestone. Phases 8-
 
 ### Token Control
 
-- [ ] **TOKEN-01**: Token Control panel appears as a tab alongside Repos and Skills in the left column top area
-- [ ] **TOKEN-02**: User can set fine-grained token budgets: per-skill limits, per-repo context limits, and an overall session token budget; exceeding limits shows warnings
+- [x] **TOKEN-01**: Token Control panel appears as a tab alongside Repos and Skills in the left column top area
+- [x] **TOKEN-02**: User can set fine-grained token budgets: per-skill limits, per-repo context limits, and an overall session token budget; exceeding limits shows warnings
 
 ### Bug Fixes
 
@@ -260,8 +260,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CHAT-01 | Phase 10 | Complete (10-01, 10-02) |
 | CHAT-02 | Phase 10 | Complete (10-02) |
 | CHAT-03 | Phase 10 | Complete (10-02) |
-| TOKEN-01 | Phase 10 | Pending |
-| TOKEN-02 | Phase 10 | Pending |
+| TOKEN-01 | Phase 10 | Complete (10-03) |
+| TOKEN-02 | Phase 10 | Complete (10-03) |
 | BUG-01 | Phase 11 | Pending |
 | BUG-02 | Phase 11 | Pending |
 
