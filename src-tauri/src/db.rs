@@ -110,5 +110,28 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Migration v4 failed: {}", e))?;
     }
 
+    if version < 5 {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS claude_sessions (
+                 id TEXT PRIMARY KEY,
+                 session_id TEXT NOT NULL,
+                 name TEXT NOT NULL DEFAULT 'Session',
+                 status TEXT NOT NULL DEFAULT 'idle',
+                 conversation_id TEXT,
+                 created_at TEXT NOT NULL,
+                 ended_at TEXT,
+                 FOREIGN KEY (session_id) REFERENCES sessions(id)
+             );
+             CREATE INDEX IF NOT EXISTS idx_claude_sessions_session_id
+                 ON claude_sessions(session_id);
+             CREATE INDEX IF NOT EXISTS idx_claude_sessions_status
+                 ON claude_sessions(status);
+             PRAGMA user_version = 5;
+             COMMIT;",
+        )
+        .map_err(|e| format!("Migration v5 failed: {}", e))?;
+    }
+
     Ok(())
 }

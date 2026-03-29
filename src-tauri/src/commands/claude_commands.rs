@@ -131,6 +131,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                             event_type: AgentEventType::Error,
                             content: text,
                             metadata: None,
+                            claude_session_id: None,
                         };
                         let _ = app_handle.emit("claude-stream", &error_event);
                     }
