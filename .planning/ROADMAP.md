@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - Tauri v2 scaffold, Tailwind v4 CSS config, SQLite with WAL mode, shell plugin validation, production build proof
 - [x] **Phase 2: Layout Shell** - Three-column resizable layout, custom title bar, status bar, shared components, dark theme, typography
 - [x] **Phase 3: Context Assembly** - Repo manager, skills panel, prompt composer, prompt layer display, token budget bar
-- [ ] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
+- [x] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
 - [ ] **Phase 5: Agent Integration** - Claude CLI subprocess, event stream parser, chat panel with streaming, agent event display, working indicator
 - [ ] **Phase 6: Decisions, Audit & Scripts** - Micro-decision log, append-only audit trail, decision/audit export, scripts tracker, skills feedback loop
 - [ ] **Phase 7: Visualization, Diff & Polish** - Architecture D3 graph, live preview panel, diff view with accept/reject, status bar live data, keyboard shortcuts
@@ -85,7 +85,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md -- Backend infrastructure (SQLite v3, file/audit commands, skill bundling) + Monaco editor with custom theme, multi-tab model management, Ctrl+S save, editor store slice
-- [ ] 04-02-PLAN.md -- Python REPL console with subprocess management, colored output, command history, auto-scroll, StatusBar integration
+- [x] 04-02-PLAN.md -- Python REPL console with subprocess management, colored output, command history, auto-scroll, StatusBar integration
 
 ### Phase 5: Agent Integration
 **Goal**: Users can chat with Claude Code CLI through a streaming interface and see every agent event -- thoughts, decisions, file changes, errors -- parsed and displayed in real time with typed, color-coded entries
@@ -113,11 +113,11 @@ Plans:
   2. Append-only audit trail logs every action (file changes, prompt sends, skill toggles, repo activations, test runs, decisions, errors) with timestamp, color-coded action_type, detail, and actor (agent/user/system); entries are never deleted or modified
   3. Decision log supports export to JSON or CSV; audit trail supports export
   4. Scripts tracker catalogs scripts created during sessions; "Generate Skills" button parses tracked scripts and creates .md skill files that appear in the skills panel for future sessions
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md -- Backend infrastructure: dialog plugin, decision_commands (CRUD + export), script_commands (list + generate skill), enhanced audit_commands (session filter + export), decision persistence from claude events, DecisionSlice + AuditSlice, audit wiring in skill/repo toggles
+- [ ] 06-02-PLAN.md -- DecisionLog panel with expandable cards + impact coloring, AuditLog panel with dense color-coded table, ScriptsTracker panel with skill generation, wire all into MainLayout right column
 
 ### Phase 7: Visualization, Diff & Polish
 **Goal**: Users can visualize their codebase as an interactive graph, preview running web apps, review agent-proposed file changes with accept/reject controls, and see live status indicators -- completing the full VIBE OS experience
@@ -146,7 +146,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 1. Foundation | 2/2 | Complete | 2026-03-28 |
 | 2. Layout Shell | 2/2 | Complete | 2026-03-28 |
 | 3. Context Assembly | 3/3 | Complete | 2026-03-28 |
-| 4. Python REPL + Monaco Editor | 1/2 | In Progress | - |
+| 4. Python REPL + Monaco Editor | 2/2 | Complete | 2026-03-29 |
 | 5. Agent Integration | 0/3 | Planned | - |
-| 6. Decisions, Audit & Scripts | 0/? | Not started | - |
+| 6. Decisions, Audit & Scripts | 0/2 | Planned | - |
 | 7. Visualization, Diff & Polish | 0/? | Not started | - |

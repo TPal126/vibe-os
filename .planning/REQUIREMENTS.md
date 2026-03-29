@@ -69,9 +69,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Console
 
-- [ ] **CONSOLE-01**: Lightweight Python console spawns a Python subprocess for running and verifying scripts
-- [ ] **CONSOLE-02**: Console displays input (cyan), output (text), errors (red), and system messages (dim)
-- [ ] **CONSOLE-03**: Command history accessible via up/down arrow keys
+- [x] **CONSOLE-01**: Lightweight Python console spawns a Python subprocess for running and verifying scripts
+- [x] **CONSOLE-02**: Console displays input (cyan), output (text), errors (red), and system messages (dim)
+- [x] **CONSOLE-03**: Command history accessible via up/down arrow keys
 
 ### Visualization
 
@@ -179,9 +179,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCRIPT-01 | Phase 6 | Pending |
 | SCRIPT-02 | Phase 6 | Pending |
 | SCRIPT-03 | Phase 6 | Pending |
-| CONSOLE-01 | Phase 4 | Pending |
-| CONSOLE-02 | Phase 4 | Pending |
-| CONSOLE-03 | Phase 4 | Pending |
+| CONSOLE-01 | Phase 4 | Complete |
+| CONSOLE-02 | Phase 4 | Complete |
+| CONSOLE-03 | Phase 4 | Complete |
 | VIZ-01 | Phase 7 | Pending |
 | VIZ-02 | Phase 7 | Pending |
 | VIZ-03 | Phase 7 | Pending |
