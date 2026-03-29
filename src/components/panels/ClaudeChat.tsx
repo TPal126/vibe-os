@@ -6,6 +6,7 @@ import { extractCodeBlocks } from "../../lib/eventParser";
 import { commands } from "../../lib/tauri";
 import { Dot } from "../shared/Dot";
 import { IconButton } from "../shared/IconButton";
+import { SessionTabs } from "./SessionTabs";
 import { Send, Square, Code, Copy } from "lucide-react";
 import type { ChatMessage } from "../../stores/types";
 
@@ -85,22 +86,32 @@ export function ClaudeChat() {
   useClaudeStream();
 
   const {
-    chatMessages,
-    isWorking,
-    conversationId,
+    claudeSessions,
+    activeClaudeSessionId,
     composedPrompt,
-    addChatMessage,
-    currentInvocationId,
+    addSessionChatMessage,
+    createClaudeSessionLocal,
+    setActiveClaudeSessionId,
+    activeSessionId,
   } = useAppStore(
     useShallow((s) => ({
-      chatMessages: s.chatMessages,
-      isWorking: s.isWorking,
-      conversationId: s.conversationId,
+      claudeSessions: s.claudeSessions,
+      activeClaudeSessionId: s.activeClaudeSessionId,
       composedPrompt: s.composedPrompt,
-      addChatMessage: s.addChatMessage,
-      currentInvocationId: s.currentInvocationId,
+      addSessionChatMessage: s.addSessionChatMessage,
+      createClaudeSessionLocal: s.createClaudeSessionLocal,
+      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      activeSessionId: s.activeSession?.id ?? null,
     }))
   );
+
+  // Derive state from active session
+  const activeSession = activeClaudeSessionId
+    ? claudeSessions.get(activeClaudeSessionId)
+    : undefined;
+  const chatMessages = activeSession?.chatMessages ?? [];
+  const isWorking = activeSession?.isWorking ?? false;
+  const conversationId = activeSession?.conversationId ?? null;
 
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -112,9 +123,24 @@ export function ClaudeChat() {
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isWorking) return;
+    if (!text || isWorking || !activeSessionId) return;
 
-    addChatMessage({
+    // Auto-create a claude session if none exists
+    let sessionId = activeClaudeSessionId;
+    if (!sessionId) {
+      try {
+        const name = "Session 1";
+        const result = await commands.createClaudeSession(activeSessionId, name);
+        createClaudeSessionLocal(result.id, result.name ?? name);
+        setActiveClaudeSessionId(result.id);
+        sessionId = result.id;
+      } catch (err) {
+        console.error("Failed to auto-create session:", err);
+        return;
+      }
+    }
+
+    addSessionChatMessage(sessionId, {
       id: crypto.randomUUID(),
       role: "user",
       content: text,
@@ -131,6 +157,7 @@ export function ClaudeChat() {
           message: text,
           conversation_id: conversationId,
           working_dir: workingDir,
+          claude_session_id: sessionId,
         });
       } else {
         await commands.startClaude({
@@ -138,27 +165,38 @@ export function ClaudeChat() {
           message: text,
           system_prompt: composedPrompt?.full || undefined,
           conversation_id: undefined,
+          claude_session_id: sessionId,
         });
       }
     } catch (err) {
-      addChatMessage({
+      addSessionChatMessage(sessionId, {
         id: crypto.randomUUID(),
         role: "system",
         content: `Error: ${err}`,
         timestamp: new Date().toISOString(),
       });
     }
-  }, [input, isWorking, conversationId, composedPrompt, addChatMessage]);
+  }, [
+    input,
+    isWorking,
+    activeSessionId,
+    activeClaudeSessionId,
+    conversationId,
+    composedPrompt,
+    addSessionChatMessage,
+    createClaudeSessionLocal,
+    setActiveClaudeSessionId,
+  ]);
 
   const handleCancel = useCallback(async () => {
-    if (currentInvocationId) {
+    if (activeClaudeSessionId) {
       try {
-        await commands.cancelClaude(currentInvocationId);
+        await commands.cancelClaude(activeClaudeSessionId);
       } catch (err) {
         console.error("Failed to cancel:", err);
       }
     }
-  }, [currentInvocationId]);
+  }, [activeClaudeSessionId]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -170,10 +208,22 @@ export function ClaudeChat() {
     [handleSend]
   );
 
+  const hasActiveSession = !!activeClaudeSessionId;
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      <SessionTabs />
+
       <div className="flex-1 overflow-y-auto px-2 py-1 space-y-2">
-        {chatMessages.length === 0 && !isWorking && (
+        {!hasActiveSession && (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-[11px] text-v-dim">
+              Click '+' above to start a new Claude session
+            </p>
+          </div>
+        )}
+
+        {hasActiveSession && chatMessages.length === 0 && !isWorking && (
           <div className="flex items-center justify-center h-full">
             <p className="text-[11px] text-v-dim">
               Send a message to start a conversation with Claude
@@ -204,10 +254,14 @@ export function ClaudeChat() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message Claude... (Enter to send, Shift+Enter for newline)"
+            placeholder={
+              hasActiveSession
+                ? "Message Claude... (Enter to send, Shift+Enter for newline)"
+                : "Start a session to chat with Claude"
+            }
             rows={1}
-            className="flex-1 resize-none bg-v-surface border border-v-border rounded px-3 py-1.5 text-[12px] font-sans text-v-text placeholder:text-v-dim/50 focus:border-v-accent focus:outline-none max-h-[80px] overflow-y-auto"
-            disabled={false}
+            className="flex-1 resize-none bg-v-surface border border-v-border rounded px-3 py-1.5 text-[12px] font-sans text-v-text placeholder:text-v-dim/50 focus:border-v-accent focus:outline-none max-h-[80px] overflow-y-auto disabled:opacity-50"
+            disabled={!hasActiveSession}
           />
           {isWorking ? (
             <IconButton
@@ -220,7 +274,7 @@ export function ClaudeChat() {
               icon={<Send size={14} />}
               onClick={handleSend}
               title="Send message"
-              active={input.trim().length > 0}
+              active={input.trim().length > 0 && hasActiveSession}
             />
           )}
         </div>
