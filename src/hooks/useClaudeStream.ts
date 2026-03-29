@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useAppStore } from "../stores";
+import { commands } from "../lib/tauri";
 import {
   isStatusEvent,
   isAgentEvent,
@@ -27,7 +28,7 @@ export function useClaudeStream() {
     async function setup() {
       const unlisten = await listen<unknown>(
         "claude-stream",
-        (tauriEvent) => {
+        async (tauriEvent) => {
           if (!mounted) return;
 
           const payload = tauriEvent.payload;
@@ -75,6 +76,33 @@ export function useClaudeStream() {
             // Set error state for error events
             if (event.event_type === "error") {
               store.setAgentError(event.content);
+            }
+
+            // Wire file_modify/file_create events to pendingDiffs
+            if (
+              event.event_type === "file_modify" ||
+              event.event_type === "file_create"
+            ) {
+              const filePath =
+                (event.metadata?.file_path as string) || "";
+              const proposedContent =
+                (event.metadata?.content as string) || event.content;
+
+              if (filePath && proposedContent) {
+                const originalContent =
+                  event.event_type === "file_modify"
+                    ? await commands
+                        .readFile(filePath)
+                        .catch(() => "")
+                    : "";
+
+                useAppStore.getState().addPendingDiff({
+                  filePath,
+                  originalContent,
+                  proposedContent,
+                  timestamp: event.timestamp,
+                });
+              }
             }
           }
         },
