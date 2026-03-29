@@ -1,16 +1,12 @@
 import { useRef } from "react";
 import { X, Code } from "lucide-react";
-import { useShallow } from "zustand/react/shallow";
 import { CodeEditor } from "../center/CodeEditor";
 import { useAppStore } from "../../stores";
 
 export function EditorPanel() {
-  const { isOpen, close } = useAppStore(
-    useShallow((s) => ({
-      isOpen: s.editorPanelOpen,
-      close: () => s.setEditorPanelOpen(false),
-    })),
-  );
+  const isOpen = useAppStore((s) => s.editorPanelOpen);
+  const setOpen = useAppStore((s) => s.setEditorPanelOpen);
+  const close = () => setOpen(false);
 
   // Defer Monaco mount until first open, then keep mounted via CSS display toggle
   const hasOpened = useRef(false);

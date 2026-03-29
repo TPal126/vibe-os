@@ -8,7 +8,6 @@ import {
   ScrollText,
   Activity,
 } from "lucide-react";
-import { useShallow } from "zustand/react/shallow";
 import { TabStrip, type Tab } from "../layout/TabStrip";
 import { RepoManager } from "../panels/RepoManager";
 import { SkillsPanel } from "../panels/SkillsPanel";
@@ -43,14 +42,11 @@ function FilesTabWrapper() {
 }
 
 export function SettingsPanel() {
-  const { isOpen, activeTab, setTab, close } = useAppStore(
-    useShallow((s) => ({
-      isOpen: s.settingsPanelOpen,
-      activeTab: s.settingsPanelTab,
-      setTab: s.setSettingsPanelTab,
-      close: () => s.setSettingsPanelOpen(false),
-    })),
-  );
+  const isOpen = useAppStore((s) => s.settingsPanelOpen);
+  const activeTab = useAppStore((s) => s.settingsPanelTab);
+  const setTab = useAppStore((s) => s.setSettingsPanelTab);
+  const setOpen = useAppStore((s) => s.setSettingsPanelOpen);
+  const close = () => setOpen(false);
 
   return (
     <>
