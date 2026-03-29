@@ -181,9 +181,9 @@ Requirements for "Project Cards + Attention Routing" milestone. Phases 12+.
 
 ### Outcome Previews
 
-- [ ] **PREV-01**: Web app projects show a live iframe preview on the project card (thumbnail) and expandable in conversation (full-size).
-- [ ] **PREV-02**: Test results show as a colored badge on the project card ("8/8 passing" green, "3 failed" red) and as a summary card in conversation.
-- [ ] **PREV-03**: Build/deploy status shows as a status line on the project card ("Building..." / "Deployed to localhost:3000" / "Build failed").
+- [x] **PREV-01**: Web app projects show a live iframe preview on the project card (thumbnail) and expandable in conversation (full-size).
+- [x] **PREV-02**: Test results show as a colored badge on the project card ("8/8 passing" green, "3 failed" red) and as a summary card in conversation.
+- [x] **PREV-03**: Build/deploy status shows as a status line on the project card ("Building..." / "Deployed to localhost:3000" / "Build failed").
 
 ### Simplified Backend Access
 
@@ -333,9 +333,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ATTN-03 | Phase 15 | Complete |
 | ATTN-04 | Phase 15 | Complete |
 | ATTN-05 | Phase 15 | Complete |
-| PREV-01 | Phase 16 | Pending |
-| PREV-02 | Phase 16 | Pending |
-| PREV-03 | Phase 16 | Pending |
+| PREV-01 | Phase 16 | Complete |
+| PREV-02 | Phase 16 | Complete |
+| PREV-03 | Phase 16 | Complete |
 | SIMP-01 | Phase 17 | Pending |
 | SIMP-02 | Phase 17 | Pending |
 | SIMP-03 | Phase 17 | Pending |

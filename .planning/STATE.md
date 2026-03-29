@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 16 of 17 (Outcome Previews)
-Plan: 2/3 complete
-Status: Phase 16 in progress. Plan 02 delivered: project card outcome display.
-Last activity: 2026-03-29 -- Phase 16 Plan 02 executed: TestBadge, BuildStatusLine, PreviewThumbnail components wired into ProjectCard layout.
+Plan: 3/3 complete
+Status: Phase 16 complete. All 3 plans delivered: detection pipeline, card outcome display, inline conversation previews.
+Last activity: 2026-03-29 -- Phase 16 Plan 03 executed: InlinePreviewCard and TestDetailCard components, test name parsing, card insertion wiring in ClaudeChat.
 
-Progress: [=========#] 53%
+Progress: [=========#] 56%
 
 ## v1 Summary
 
@@ -29,7 +29,7 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 
 **v1 Velocity:** 17 plans, ~5.4m avg, ~1.55 hours total
 **v2 Velocity:** 13 plans, ~3.7m avg, ~48m total
-**v3 Velocity:** 8 plans, ~2.5m avg, ~20.9m total
+**v3 Velocity:** 9 plans, ~2.7m avg, ~23.9m total
 
 ## Accumulated Context
 
@@ -81,5 +81,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 16-02-PLAN.md (Project Card Outcome Display). 5/5 tasks. Phase 16 Plan 02 done. Ready for 16-03.
+Stopped at: Completed 16-03-PLAN.md (Inline Conversation Previews + Test Details). 8/8 tasks. Phase 16 complete. Ready for Phase 17.
 Resume file: None
