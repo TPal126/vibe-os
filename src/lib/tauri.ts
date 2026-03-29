@@ -49,6 +49,28 @@ export interface AuditEntry {
   metadata: string | null;
 }
 
+// ── Architecture types ──
+
+export interface ArchNode {
+  id: string;
+  label: string;
+  node_type: string;
+  repo_name: string;
+  file_path: string;
+  function_list: string[];
+}
+
+export interface ArchEdge {
+  from_id: string;
+  to_id: string;
+  edge_type: string;
+}
+
+export interface ArchGraph {
+  nodes: ArchNode[];
+  edges: ArchEdge[];
+}
+
 // ── Raw types for new commands (snake_case from Rust) ──
 
 export interface DecisionRaw {
@@ -87,6 +109,10 @@ export interface ScriptEntryRaw {
  * Each method maps to a #[tauri::command] in the Rust backend.
  */
 export const commands = {
+  // ── Architecture ──
+  analyzeArchitecture: (repoPaths: string[]) =>
+    invoke<ArchGraph>("analyze_architecture", { repoPaths }),
+
   // ── Phase 1 test commands ──
   testDbWrite: () => invoke<string>("test_db_write"),
   testDbRead: () => invoke<string>("test_db_read"),

@@ -53,18 +53,18 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Decision & Audit
 
-- [ ] **DECIDE-01**: Micro-decision log captures every agent and human decision with: timestamp, decision text, rationale, confidence (0-1), impact category (perf/accuracy/dx/security/architecture), reversibility
+- [x] **DECIDE-01**: Micro-decision log captures every agent and human decision with: timestamp, decision text, rationale, confidence (0-1), impact category (perf/accuracy/dx/security/architecture), reversibility
 - [ ] **DECIDE-02**: Decision cards are expandable inline with left border colored by impact category
-- [ ] **DECIDE-03**: Decision log supports export to JSON or CSV
-- [ ] **AUDIT-01**: Append-only audit trail logs every action: file changes, prompt sends, skill toggles, repo activations, test runs, decisions, errors
+- [x] **DECIDE-03**: Decision log supports export to JSON or CSV
+- [x] **AUDIT-01**: Append-only audit trail logs every action: file changes, prompt sends, skill toggles, repo activations, test runs, decisions, errors
 - [ ] **AUDIT-02**: Each audit entry has: timestamp, action_type (color-coded), detail, actor (agent/user/system)
-- [ ] **AUDIT-03**: Audit log is never deleted or modified — append-only by design
-- [ ] **AUDIT-04**: Audit trail supports export
+- [x] **AUDIT-03**: Audit log is never deleted or modified — append-only by design
+- [x] **AUDIT-04**: Audit trail supports export
 
 ### Scripts & Skills Feedback Loop
 
 - [ ] **SCRIPT-01**: Scripts tracker catalogs scripts created during IDE sessions with name, description, and creation timestamp
-- [ ] **SCRIPT-02**: "Generate Skills" button parses tracked scripts to extract reusable patterns and creates .md skill files
+- [x] **SCRIPT-02**: "Generate Skills" button parses tracked scripts to extract reusable patterns and creates .md skill files
 - [ ] **SCRIPT-03**: Generated skills appear in the skills panel and can be toggled on for future sessions
 
 ### Console
@@ -169,15 +169,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AGENT-06 | Phase 5 | Pending |
 | AGENT-07 | Phase 5 | Pending |
 | AGENT-08 | Phase 5 | Pending |
-| DECIDE-01 | Phase 6 | Pending |
+| DECIDE-01 | Phase 6 | Complete |
 | DECIDE-02 | Phase 6 | Pending |
-| DECIDE-03 | Phase 6 | Pending |
-| AUDIT-01 | Phase 6 | Pending |
+| DECIDE-03 | Phase 6 | Complete |
+| AUDIT-01 | Phase 6 | Complete |
 | AUDIT-02 | Phase 6 | Pending |
-| AUDIT-03 | Phase 6 | Pending |
-| AUDIT-04 | Phase 6 | Pending |
+| AUDIT-03 | Phase 6 | Complete |
+| AUDIT-04 | Phase 6 | Complete |
 | SCRIPT-01 | Phase 6 | Pending |
-| SCRIPT-02 | Phase 6 | Pending |
+| SCRIPT-02 | Phase 6 | Complete |
 | SCRIPT-03 | Phase 6 | Pending |
 | CONSOLE-01 | Phase 4 | Complete |
 | CONSOLE-02 | Phase 4 | Complete |

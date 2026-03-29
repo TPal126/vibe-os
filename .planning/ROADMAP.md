@@ -116,7 +116,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md -- Backend infrastructure: dialog plugin, decision_commands (CRUD + export), script_commands (list + generate skill), enhanced audit_commands (session filter + export), decision persistence from claude events, DecisionSlice + AuditSlice, audit wiring in skill/repo toggles
+- [x] 06-01-PLAN.md -- Backend infrastructure: dialog plugin, decision_commands (CRUD + export), script_commands (list + generate skill), enhanced audit_commands (session filter + export), decision persistence from claude events, DecisionSlice + AuditSlice, audit wiring in skill/repo toggles
 - [ ] 06-02-PLAN.md -- DecisionLog panel with expandable cards + impact coloring, AuditLog panel with dense color-coded table, ScriptsTracker panel with skill generation, wire all into MainLayout right column
 
 ### Phase 7: Visualization, Diff & Polish
@@ -129,12 +129,12 @@ Plans:
   3. Diff view shows agent-proposed file changes with accept/reject controls; accepting applies the change to the editor, rejecting discards it
   4. Title bar shows live session status badge, active repo/skill counts, and total context tokens; status bar shows live Python status, Claude status, session elapsed time, decision count, and action count
   5. "Send to editor" action on code blocks in chat opens the code in the Monaco editor
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
-- [ ] 07-03: TBD
+- [ ] 07-01-PLAN.md -- Backend infrastructure: architecture_commands.rs (Python file analysis + graph), D3 install, diffSlice (accept/reject flow), previewSlice (URL + auto-refresh), openUntitledFile for send-to-editor, useKeyboardShortcuts hook, tauri.ts wrappers
+- [ ] 07-02-PLAN.md -- ArchViewer with D3 force graph (drag/zoom/rebuild/glow/tooltips), LivePreview with iframe + chrome mockup + auto-refresh, DiffView with Monaco diff editor + accept/reject + pending list, wire into MainLayout center column
+- [ ] 07-03-PLAN.md -- StatusBar live data (Claude status, session timer, decision/action counts), TitleBar live data (session badge, repo/skill counts, context tokens), keyboard shortcuts in App.tsx, final cleanup
 
 ## Progress
 
@@ -148,5 +148,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 3. Context Assembly | 3/3 | Complete | 2026-03-28 |
 | 4. Python REPL + Monaco Editor | 2/2 | Complete | 2026-03-29 |
 | 5. Agent Integration | 3/3 | Complete | 2026-03-28 |
-| 6. Decisions, Audit & Scripts | 0/2 | Planned | - |
-| 7. Visualization, Diff & Polish | 0/? | Not started | - |
+| 6. Decisions, Audit & Scripts | 1/2 | In Progress | - |
+| 7. Visualization, Diff & Polish | 0/3 | Planned | - |

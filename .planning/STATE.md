@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Developers can see, understand, and direct every decision an AI coding agent makes
-**Current focus:** Phase 5 complete, ready for Phase 6: Decisions, Audit & Scripts
+**Current focus:** Phase 6 in progress: Decisions, Audit & Scripts
 
 ## Current Position
 
 Phase: 6 of 7 (Decisions, Audit & Scripts)
-Plan: 0 of 2 in current phase (not yet planned)
-Status: Phase 5 complete -- all plans executed
-Last activity: 2026-03-28 -- Completed 05-03 (AgentStream panel)
+Plan: 1 of 2 in current phase
+Status: Plan 06-01 complete -- backend commands + state layer done
+Last activity: 2026-03-29 -- Completed 06-01 (Backend Commands + Frontend State)
 
-Progress: [=======...] 71%
+Progress: [========..] 79%
 
 ## Performance Metrics
 
@@ -32,10 +32,11 @@ Progress: [=======...] 71%
 | 3. Context Assembly | 3/3 | ~11.4m | ~3.8m |
 | 4. Python REPL + Monaco | 2/2 | ~9m 24s | ~4m 42s |
 | 5. Agent Integration | 3/3 | ~8.5m | ~2.8m |
+| 6. Decisions, Audit & Scripts | 1/2 | ~5m 53s | ~5m 53s |
 
 **Recent Trend:**
-- Last 5 plans: 03-03 (3m 25s), 04-01 (5m 46s), 04-02 (3m 38s), 05-01 (~5m), 05-02 (~2m)
-- Trend: Pure frontend plans fast (~2m avg), backend+frontend moderate (~5m), mixed ~3m
+- Last 5 plans: 04-01 (5m 46s), 04-02 (3m 38s), 05-01 (~5m), 05-02 (~2m), 06-01 (5m 53s)
+- Trend: Pure frontend plans fast (~2m avg), backend+frontend moderate (~5m), mixed ~3-6m
 
 *Updated after each plan completion*
 
@@ -79,6 +80,10 @@ Recent decisions affecting current work:
 - [05-01]: Status events (working/done/cancelled) are separate JSON objects, not AgentEvent structs
 - [05-02]: v-orange used instead of v-warning for system/error message styling (theme has v-orange, not v-warning)
 - [05-03]: EVENT_CONFIG uses CSS variables (var(--color-v-green) etc.) for existing theme colors, hex for badge-specific colors
+- [06-01]: SkillMeta tokens field is usize (not i64) -- matched generate_skill_from_script return type accordingly
+- [06-01]: Used super::db_commands::DbState consistently instead of local type aliases in new command files
+- [06-01]: Added both FILE_CREATE and FILECREATE formats to script query for agent event compatibility
+- [06-01]: Decision auto-capture from agent stream uses 0.8 confidence and architecture category as defaults
 
 ### Pending Todos
 
@@ -91,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28
-Stopped at: Completed 05-03-PLAN.md. Phase 5 complete. Ready for Phase 6 planning (Decisions, Audit & Scripts).
+Last session: 2026-03-29
+Stopped at: Completed 06-01-PLAN.md. Ready for 06-02 (Decision, Audit & Script panels).
 Resume file: None
