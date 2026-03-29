@@ -9,6 +9,7 @@ interface StatusEvent {
   status: "working" | "done" | "cancelled";
   invocation_id: string;
   exit_code?: number;
+  claude_session_id?: string;
 }
 
 /**
@@ -67,4 +68,25 @@ export function extractCodeBlocks(
  */
 export function isAssistantText(event: AgentEvent): boolean {
   return event.event_type === "think" && !event.metadata?.tool;
+}
+
+/**
+ * Check if a payload indicates a request for user input.
+ */
+export function isInputRequest(payload: unknown): boolean {
+  if (typeof payload !== "object" || payload === null) return false;
+  const meta = (payload as Record<string, unknown>).metadata;
+  if (typeof meta !== "object" || meta === null) return false;
+  const m = meta as Record<string, unknown>;
+  return !!(m.input_request || m.is_input_request);
+}
+
+/**
+ * Extract claude_session_id from a stream payload (AgentEvent or StatusEvent).
+ */
+export function getSessionId(payload: unknown): string | undefined {
+  if (typeof payload !== "object" || payload === null) return undefined;
+  const p = payload as Record<string, unknown>;
+  if (typeof p.claude_session_id === "string") return p.claude_session_id;
+  return undefined;
 }

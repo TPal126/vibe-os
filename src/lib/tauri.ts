@@ -71,6 +71,16 @@ export interface ArchGraph {
   edges: ArchEdge[];
 }
 
+// ── Claude session types ──
+
+export interface ClaudeSessionInfo {
+  id: string;
+  name: string;
+  created_at: string;
+  status: string;
+  conversation_id: string | null;
+}
+
 // ── Workspace types (matching Rust structs) ──
 
 export interface WorkspaceMeta {
@@ -199,16 +209,31 @@ export const commands = {
     message: string;
     system_prompt?: string;
     conversation_id?: string;
+    claude_session_id: string;
   }) => invoke<string>("start_claude", { args }),
 
   sendMessage: (args: {
     message: string;
     conversation_id: string;
     working_dir: string;
+    claude_session_id: string;
   }) => invoke<string>("send_message", args),
 
-  cancelClaude: (invocationId: string) =>
-    invoke<void>("cancel_claude", { invocationId }),
+  cancelClaude: (claudeSessionId: string) =>
+    invoke<void>("cancel_claude", { claudeSessionId }),
+
+  // ── Claude Session CRUD ──
+  createClaudeSession: (sessionId: string, name: string) =>
+    invoke<ClaudeSessionInfo>("create_claude_session", { sessionId, name }),
+
+  listClaudeSessions: (sessionId: string) =>
+    invoke<ClaudeSessionInfo[]>("list_claude_sessions", { sessionId }),
+
+  closeClaudeSession: (claudeSessionId: string) =>
+    invoke<void>("close_claude_session", { claudeSessionId }),
+
+  getClaudeSession: (claudeSessionId: string) =>
+    invoke<ClaudeSessionInfo>("get_claude_session", { claudeSessionId }),
 
   // ── Decision commands ──
   recordDecision: (

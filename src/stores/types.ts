@@ -187,7 +187,43 @@ export interface ChatMessage {
   codeBlocks?: { language: string; code: string }[];
 }
 
+export interface ClaudeSessionState {
+  id: string;
+  name: string;
+  chatMessages: ChatMessage[];
+  agentEvents: AgentEvent[];
+  isWorking: boolean;
+  conversationId: string | null;
+  currentInvocationId: string | null;
+  agentError: string | null;
+  needsInput: boolean;
+  status: "idle" | "working" | "needs-input" | "error";
+  createdAt: string;
+}
+
 export interface AgentSlice {
+  // Per-session state
+  claudeSessions: Map<string, ClaudeSessionState>;
+  activeClaudeSessionId: string | null;
+
+  // Session lifecycle
+  createClaudeSessionLocal: (id: string, name: string) => void;
+  removeClaudeSession: (id: string) => void;
+  setActiveClaudeSessionId: (id: string | null) => void;
+  renameClaudeSession: (id: string, name: string) => void;
+
+  // Session-scoped mutations
+  addSessionChatMessage: (sessionId: string, message: ChatMessage) => void;
+  addSessionAgentEvent: (sessionId: string, event: AgentEvent) => void;
+  appendToSessionLastAssistant: (sessionId: string, text: string) => void;
+  setSessionWorking: (sessionId: string, working: boolean) => void;
+  setSessionConversationId: (sessionId: string, id: string | null) => void;
+  setSessionInvocationId: (sessionId: string, id: string | null) => void;
+  setSessionError: (sessionId: string, error: string | null) => void;
+  setSessionNeedsInput: (sessionId: string, needsInput: boolean) => void;
+  clearSessionChat: (sessionId: string) => void;
+
+  // Legacy compat (delegate to active session)
   chatMessages: ChatMessage[];
   agentEvents: AgentEvent[];
   isWorking: boolean;
