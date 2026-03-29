@@ -2,90 +2,81 @@
 
 ## What This Is
 
-VIBE OS is a Tauri v2 desktop application -- a workspace-first vibe coding tool where the primary activity is directing Claude through conversation and managing context, not manually editing code. It combines the visual clarity of RStudio (everything visible, tight feedback loops, no context-switching) with the power of Claude Code. Developers can visualize their codebase, load context via checkboxable skills and repos, direct an AI agent through a centered chat interface, and see every decision the agent makes -- all in a single pane-of-glass interface. Built as a public product for developers.
+VIBE OS is a Tauri v2 desktop application -- an AI project control room where you direct multiple Claude agents across different applications and see outcomes, not code. Think of it as a director's dashboard: you give instructions, agents build, and you see running previews, test results, and deploy status. The app tells you when something needs your attention. Built as a public product for developers who want to work at a higher level of abstraction.
 
 ## Core Value
 
-Developers can see, understand, and direct every decision an AI coding agent makes -- no invisible choices, no vanishing context, no trust gaps.
+Developers direct AI agents across multiple projects simultaneously, see outcomes instead of code, and only engage when the agent needs guidance -- no staring at diffs, no monitoring terminal output, no context-switching between IDEs.
 
 ## Current Milestone
 
-**v2: Workspace-First Vibe Coding Overhaul** -- Restructure from a code-editor-centric IDE into a conversation-first vibe coding tool. Introduce workspace system, center Claude Chat as the primary surface, add multi-session support, direct token control, Mermaid architecture diagrams, and a session dashboard.
+**v3: Project Cards + Attention Routing** -- Replace the multi-panel IDE with a card-based home screen. 3-5 project cards, each running an independent Claude agent. Cards show outcomes (live previews, test badges, status), not code. Cards pulse when they need you. Click to open the conversation. Inspired by Gastown's thesis (manage multiple Claude Code instances) but focused on making 3-5 projects effortless instead of 30 projects possible.
+
+## Milestone History
+
+### v1 (Complete, Phases 1-7)
+Full IDE with editor, console, agent integration, decisions, audit, D3 visualization. Code-editor-centric.
+
+### v2 (Complete, Phases 8-11 + post-phase fixes)
+Workspace system, conversation-first layout, multi-session, token control, Mermaid diagrams, session dashboard. Still showed too much: 10+ panels, raw agent events, code-level detail. Post-phase: rewrote CLI integration against real stream-json format, fixed infinite re-render, added 67 tests.
+
+### v3 (Active)
+Chat-dominant redesign. Outcome-focused. Multi-project. Attention-driven.
 
 ## Requirements
 
-### Validated (v1 Complete)
+### Validated (v1+v2 Complete)
+- [x] Tauri v2 scaffold, SQLite, shell plugin, dark theme, typography
+- [x] Repo/skill context management with checkbox toggles
+- [x] Claude Code CLI integration with streaming and event parsing (rewritten against real format)
+- [x] Agent events, decisions, audit trail (backend works, frontend needs redesign)
+- [x] Workspace system with CLAUDE.md, file tree, scaffolding
+- [x] Multi-session Claude support with per-session state
+- [x] Token control with per-skill/repo/session budgets
+- [x] 67 tests across Rust parser and frontend
 
-- [x] Three-column resizable layout with custom title bar, status bar, dark theme
-- [x] Repo manager with checkbox activation, branch display, file indexing
-- [x] Skills manager with checkbox toggles, category badges, and token budget bar
-- [x] Prompt composer that assembles system + task + skill + repo context
-- [x] Claude Code CLI integration with streaming chat and event parsing
-- [x] Agent event stream with typed, color-coded events
-- [x] Micro-decision log with rationale, confidence, and impact category
-- [x] Append-only audit trail logging every action
-- [x] Architecture visualizer (D3 force graph) -- being replaced in v2
-- [x] Live preview panel with embedded webview
-- [x] Monaco code editor with file tabs, Python support, custom dark theme
-- [x] Python REPL console with history and subprocess management
-- [x] Custom dark theme with design system
-- [x] SQLite backend for sessions, decisions, audit log, and settings
-- [x] Title bar with session badges and status indicators
-- [x] Status bar with Python/Claude/sync status and session metrics
-
-### Active (v2)
-
-- [ ] Workspace system: directory scaffolding, CLAUDE.md as system prompt, workspace file tree
-- [ ] Layout restructure: Claude Chat centered, session dashboard, decisions anchored right, secondary panels in drawer
-- [ ] Multi-session Claude support with visual switcher and input-needed alerts
-- [ ] Direct token control with fine-grained budget management
-- [ ] Mermaid architecture diagram (replaces D3 force graph)
-- [ ] Session dashboard with current goal, context summary, activity feed, stats
-- [ ] Checkbox persistence fix for repo/skill toggles across tab navigation
+### Active (v3)
+- [ ] Project cards home screen: 3-5 cards with status, outcome thumbnails, one-line agent summary
+- [ ] Conversation view: full-width chat, inline outcomes/activity/decisions/errors, no side panels
+- [ ] Attention routing: cards pulse when they need you, global "N need you" count, OS notifications
+- [ ] Outcome previews: live iframes, test badges, build status on cards and in conversation
+- [ ] Settings & escape hatch: v2 features behind gear icon, Show Code shortcut for power users
 
 ### Out of Scope
-
-- Jira integration -- defer to v3, focus on workspace + conversation experience
-- OAuth/authentication -- desktop app, no auth needed
-- Multi-language AST analysis -- Python-first; extensibility is a later concern
-- Mobile or web deployment -- Tauri desktop only
-- Plugin/extension marketplace -- skills system covers this
+- Jira integration -- defer further
+- OAuth/authentication -- desktop app
+- Plugin marketplace -- skills system covers this
 - Real-time collaboration -- single-user
-- Inline tab autocomplete -- Copilot/Cursor territory
-
-## Context
-
-- v1 is feature-complete (Phases 1-7): full IDE with editor, console, agent integration, decisions, audit, visualization
-- v2 pivots the UX philosophy: conversation-first, not code-editor-first
-- The workspace system introduces project-scoped context (CLAUDE.md, local skills, cloned repos) vs the global approach in v1
-- Secondary panels (Monaco editor, Console, Preview, Diff) become overlay/drawer content, not permanent screen real estate
-- Mermaid replaces D3 for architecture visualization -- simpler, more readable, less custom code to maintain
+- Inline tab autocomplete -- not an IDE anymore
+- Mobile or web deployment -- Tauri desktop only
+- Code editing -- users don't want to see code, they want outcomes
 
 ## Constraints
 
-- **Tech stack**: Tauri v2 (Rust backend), React 18 + TypeScript + Vite, Tailwind CSS v4, Monaco Editor, Zustand, Mermaid.js, SQLite (rusqlite) -- D3 being phased out
-- **Desktop only**: Tauri v2, window 1440x900 default, min 1024x700, custom title bar (decorations: false)
-- **Subprocess management**: Must use Tauri's Command/sidecar API, not raw std::process::Command
-- **Event streaming**: Rust spawns child processes, reads stdout line-by-line in tokio task, emits Tauri events to frontend
-- **State flow**: Frontend in Zustand, persistent state in SQLite via Tauri commands, hydrate on launch
-- **Audit log**: Append-only, never delete or modify entries
-- **File paths**: Use Tauri's path API for cross-platform resolution, never hardcode
-- **Workspace paths**: ~/vibe-workspaces/ as default root, configurable
+- **Tech stack**: Tauri v2 (Rust), React 18 + TypeScript + Vite, Tailwind CSS v4, Zustand, SQLite
+- **Desktop only**: 1440x900 default, min 1024x700, custom title bar
+- **Process management**: std::process::Command for Claude CLI (Tauri shell plugin PATH broken on Windows)
+- **Event streaming**: Rust reads stdout line-by-line, emits Tauri events, frontend routes by session ID
+- **Audit log**: Append-only, never delete -- but surface inline, not in separate panel
+- **Backward compat**: v2 backend (workspaces, sessions, token budgets, audit) is preserved; v3 is a frontend redesign
+- **Testing**: 67 existing tests must continue passing; new features need tests against real CLI fixtures
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Defer Jira to v3 | Focus v2 on workspace + conversation experience; Jira adds complexity | -- Pending |
-| Python-first, extensible later | Python is the primary audience | -- Standing |
-| Follow spec in spirit, not letter | Smart deviations are expected | -- Standing |
-| Skills as core differentiator | Checkboxable context loading | -- Standing |
-| Public product from day one | UX polish and onboarding matter | -- Standing |
-| v2: Conversation-first layout | Claude Chat is the primary surface, not the code editor | -- Pending |
-| v2: Workspace system | Project-scoped context via directory structure replaces ad-hoc repo/skill management | -- Pending |
-| v2: Mermaid over D3 | Simpler, more readable, less custom code; D3 force graph was impressive but hard to maintain | -- Pending |
-| v2: Secondary panel drawer | Editor/Console/Preview/Diff don't need permanent screen space in a vibe coding workflow | -- Pending |
-| v2: Multi-session support | Power users run multiple Claude sessions; need visual management and input alerts | -- Pending |
+| v1: Python-first | Primary audience | Standing |
+| v1: Skills as core differentiator | Checkboxable context loading | Standing |
+| v1: Public product from day one | UX polish matters | Standing |
+| v2: Conversation-first layout | Chat is primary surface | Standing, amplified in v3 |
+| v2: Workspace system | Project-scoped context | Standing |
+| v2: Mermaid over D3 | Simpler, more readable | Standing but may go on-demand |
+| v2: Multi-session support | Power users run multiple sessions | Evolving → multi-project in v3 |
+| v3: Outcome over code | Users want to see the running app, not the diff | New |
+| v3: Attention-driven UX | App tells you when to engage, you don't monitor | New |
+| v3: Kill the 3-column layout | Too much surface area, too many panels | New |
+| v3: 3-5 projects, not 30 | Gastown proves the model; we make it effortless for normal developers | New |
+| v3: Attention routing is the product | The hard problem isn't running agents, it's knowing which one to talk to next | New |
 
 ---
-*Last updated: 2026-03-28 after v2 milestone initialization*
+*Last updated: 2026-03-29 after v3 milestone initialization*

@@ -207,12 +207,24 @@ export interface AgentEvent {
   metadata?: Record<string, unknown>;
 }
 
+export type CardType = "activity" | "outcome" | "error" | "decision";
+
+export interface ActivityEvent {
+  type: AgentEventType;
+  content: string;
+  tool?: string;
+  path?: string;
+  timestamp: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
   codeBlocks?: { language: string; code: string }[];
+  cardType?: CardType;
+  cardData?: Record<string, unknown>;
 }
 
 export interface ClaudeSessionState {
@@ -227,6 +239,7 @@ export interface ClaudeSessionState {
   needsInput: boolean;
   status: "idle" | "working" | "needs-input" | "error";
   createdAt: string;
+  currentActivityMessageId: string | null;
 }
 
 export interface AgentSlice {
@@ -255,6 +268,11 @@ export interface AgentSlice {
   setSessionError: (sessionId: string, error: string | null) => void;
   setSessionNeedsInput: (sessionId: string, needsInput: boolean) => void;
   clearSessionChat: (sessionId: string) => void;
+
+  // Rich card methods
+  upsertActivityLine: (sessionId: string, event: AgentEvent) => void;
+  finalizeActivityLine: (sessionId: string) => void;
+  insertRichCard: (sessionId: string, cardType: CardType, content: string, cardData: Record<string, unknown>) => void;
 
   // Legacy compat (delegate to active session)
   chatMessages: ChatMessage[];

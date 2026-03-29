@@ -9,10 +9,10 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 
 ## Current Position
 
-Phase: 13 of 17 (Project Cards Home Screen)
+Phase: 14 of 17 (Rich Conversation Cards)
 Plan: 0/? (Not yet planned)
-Status: Phase 12 complete. Ready to plan Phase 13.
-Last activity: 2026-03-29 -- Phase 12 executed: 3/3 tasks, 3 files modified, 67/67 tests passing. Full-width chat layout live.
+Status: Phase 13 complete. Ready to plan Phase 14.
+Last activity: 2026-03-29 -- Phase 13 executed: 3/3 plans, 13 tasks, 9 files (4 new, 5 modified), 67/67 tests passing. Project cards home screen live.
 
 Progress: [=#--------] 17%
 

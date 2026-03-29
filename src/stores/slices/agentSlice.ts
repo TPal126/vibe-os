@@ -4,6 +4,8 @@ import type {
   ChatMessage,
   AgentEvent,
   ClaudeSessionState,
+  ActivityEvent,
+  CardType,
 } from "../types";
 import { commands } from "../../lib/tauri";
 
@@ -22,7 +24,43 @@ function createDefaultSession(id: string, name: string): ClaudeSessionState {
     needsInput: false,
     status: "idle",
     createdAt: new Date().toISOString(),
+    currentActivityMessageId: null,
   };
+}
+
+function summarizeActivity(events: ActivityEvent[]): string {
+  const reads = events.filter(
+    (e) => e.tool === "Read" || e.tool === "Glob" || e.tool === "Grep",
+  );
+  const edits = events.filter((e) => e.tool === "Edit");
+  const creates = events.filter((e) => e.tool === "Write");
+  const tests = events.filter((e) => e.type === "test_run");
+  const cmds = events.filter(
+    (e) => e.tool === "Bash" && e.type !== "test_run",
+  );
+
+  const parts: string[] = [];
+  if (reads.length)
+    parts.push(`Reading ${reads.length} file${reads.length > 1 ? "s" : ""}`);
+  if (edits.length) {
+    const paths = edits
+      .map((e) => e.path?.split(/[/\\]/).pop())
+      .filter(Boolean);
+    parts.push(`Editing ${paths.join(", ") || edits.length + " files"}`);
+  }
+  if (creates.length) {
+    const paths = creates
+      .map((e) => e.path?.split(/[/\\]/).pop())
+      .filter(Boolean);
+    parts.push(`Creating ${paths.join(", ") || creates.length + " files"}`);
+  }
+  if (tests.length) parts.push("Running tests");
+  if (cmds.length)
+    parts.push(
+      `Running ${cmds.length} command${cmds.length > 1 ? "s" : ""}`,
+    );
+
+  return parts.join(" \u00b7 ") || "Working...";
 }
 
 function updateSession(
@@ -289,6 +327,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           currentInvocationId: null,
           agentError: null,
           needsInput: false,
+          currentActivityMessageId: null,
         }),
       );
       const isActive = sessionId === state.activeClaudeSessionId;
@@ -302,6 +341,128 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
               currentInvocationId: null,
               agentError: null,
             }
+          : {}),
+      };
+    }),
+
+  // ── Rich card methods ──
+
+  upsertActivityLine: (sessionId: string, event: AgentEvent) =>
+    set((state) => {
+      const session = state.claudeSessions.get(sessionId);
+      if (!session) return {};
+
+      const tool = event.metadata?.tool as string | undefined;
+      const path = event.metadata?.path as string | undefined;
+      const activityEvent: ActivityEvent = {
+        type: event.event_type,
+        content: event.content,
+        tool,
+        path,
+        timestamp: event.timestamp,
+      };
+
+      if (session.currentActivityMessageId) {
+        // Update existing activity line
+        const sessions = updateSession(
+          state.claudeSessions,
+          sessionId,
+          (s) => {
+            const messages = s.chatMessages.map((msg) => {
+              if (msg.id !== s.currentActivityMessageId) return msg;
+              const existingEvents = (msg.cardData?.events as ActivityEvent[]) ?? [];
+              const updatedEvents = [...existingEvents, activityEvent];
+              return {
+                ...msg,
+                content: summarizeActivity(updatedEvents),
+                cardData: { ...msg.cardData, events: updatedEvents },
+              };
+            });
+            return { chatMessages: messages };
+          },
+        );
+        const isActive = sessionId === state.activeClaudeSessionId;
+        return {
+          claudeSessions: sessions,
+          ...(isActive
+            ? { chatMessages: sessions.get(sessionId)!.chatMessages }
+            : {}),
+        };
+      } else {
+        // Create new activity line message
+        const newId = crypto.randomUUID();
+        const newMsg: ChatMessage = {
+          id: newId,
+          role: "system",
+          content: summarizeActivity([activityEvent]),
+          timestamp: event.timestamp,
+          cardType: "activity",
+          cardData: { events: [activityEvent] },
+        };
+        const sessions = updateSession(
+          state.claudeSessions,
+          sessionId,
+          (s) => ({
+            chatMessages: [...s.chatMessages, newMsg],
+            currentActivityMessageId: newId,
+          }),
+        );
+        const isActive = sessionId === state.activeClaudeSessionId;
+        return {
+          claudeSessions: sessions,
+          ...(isActive
+            ? { chatMessages: sessions.get(sessionId)!.chatMessages }
+            : {}),
+        };
+      }
+    }),
+
+  finalizeActivityLine: (sessionId: string) =>
+    set((state) => {
+      const session = state.claudeSessions.get(sessionId);
+      if (!session || !session.currentActivityMessageId) return {};
+      const sessions = updateSession(
+        state.claudeSessions,
+        sessionId,
+        () => ({ currentActivityMessageId: null }),
+      );
+      return { claudeSessions: sessions };
+    }),
+
+  insertRichCard: (
+    sessionId: string,
+    cardType: CardType,
+    content: string,
+    cardData: Record<string, unknown>,
+  ) =>
+    set((state) => {
+      const session = state.claudeSessions.get(sessionId);
+      if (!session) return {};
+
+      // Finalize any open activity line first
+      let sessions = state.claudeSessions;
+      if (session.currentActivityMessageId) {
+        sessions = updateSession(sessions, sessionId, () => ({
+          currentActivityMessageId: null,
+        }));
+      }
+
+      const newMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "system",
+        content,
+        timestamp: new Date().toISOString(),
+        cardType,
+        cardData,
+      };
+      sessions = updateSession(sessions, sessionId, (s) => ({
+        chatMessages: [...s.chatMessages, newMsg],
+      }));
+      const isActive = sessionId === state.activeClaudeSessionId;
+      return {
+        claudeSessions: sessions,
+        ...(isActive
+          ? { chatMessages: sessions.get(sessionId)!.chatMessages }
           : {}),
       };
     }),
