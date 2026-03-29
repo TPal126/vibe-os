@@ -207,7 +207,15 @@ export interface AgentEvent {
   metadata?: Record<string, unknown>;
 }
 
-export type CardType = "activity" | "outcome" | "error" | "decision";
+export interface TestSummary {
+  passed: number;
+  failed: number;
+  total: number;
+}
+
+export type BuildStatus = "idle" | "building" | "running" | "failed";
+
+export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail";
 
 export interface ActivityEvent {
   type: AgentEventType;
@@ -242,6 +250,10 @@ export interface ClaudeSessionState {
   status: "idle" | "working" | "needs-input" | "error";
   createdAt: string;
   currentActivityMessageId: string | null;
+  previewUrl: string | null;
+  testSummary: TestSummary | null;
+  buildStatus: BuildStatus;
+  buildStatusText: string | null;
 }
 
 export interface AgentSlice {
@@ -279,6 +291,11 @@ export interface AgentSlice {
   upsertActivityLine: (sessionId: string, event: AgentEvent) => void;
   finalizeActivityLine: (sessionId: string) => void;
   insertRichCard: (sessionId: string, cardType: CardType, content: string, cardData: Record<string, unknown>) => void;
+
+  // Outcome state methods
+  setSessionPreviewUrl: (sessionId: string, url: string | null) => void;
+  setSessionTestSummary: (sessionId: string, summary: TestSummary | null) => void;
+  setSessionBuildStatus: (sessionId: string, status: BuildStatus, text: string | null) => void;
 
   // Legacy compat (delegate to active session)
   chatMessages: ChatMessage[];
