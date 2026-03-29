@@ -134,9 +134,9 @@ Requirements for the "Workspace-First Vibe Coding Overhaul" milestone. Phases 8-
 
 ### Architecture Visualization
 
-- [ ] **ARCH-01**: Mermaid.js renders architecture diagrams in the right column bottom area, replacing the D3 force-directed graph
-- [ ] **ARCH-02**: Architecture diagram is generated from codebase analysis of active repos, showing module relationships, key classes, and data flow
-- [ ] **ARCH-03**: D3 force graph component and its dependencies are removed or deprecated; ArchViewer is replaced by MermaidDiagram
+- [x] **ARCH-01**: Mermaid.js renders architecture diagrams in the right column bottom area, replacing the D3 force-directed graph
+- [x] **ARCH-02**: Architecture diagram is generated from codebase analysis of active repos, showing module relationships, key classes, and data flow
+- [x] **ARCH-03**: D3 force graph component and its dependencies are removed or deprecated; ArchViewer is replaced by MermaidDiagram
 
 ### Token Control
 
@@ -254,9 +254,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-03 | Phase 9 | Complete (09-02) |
 | DASH-04 | Phase 9 | Complete (09-02) |
 | DASH-05 | Phase 9 | Complete (09-02) |
-| ARCH-01 | Phase 9 | Pending |
-| ARCH-02 | Phase 9 | Pending |
-| ARCH-03 | Phase 9 | Pending |
+| ARCH-01 | Phase 9 | Complete (09-03) |
+| ARCH-02 | Phase 9 | Complete (09-03) |
+| ARCH-03 | Phase 9 | Complete (09-03) |
 | CHAT-01 | Phase 10 | Pending |
 | CHAT-02 | Phase 10 | Pending |
 | CHAT-03 | Phase 10 | Pending |
