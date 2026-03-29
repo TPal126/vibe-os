@@ -214,3 +214,144 @@ pub fn delete_setting(state: State<'_, DbState>, key: String) -> Result<(), Stri
     .map_err(|e| format!("Failed to delete setting: {}", e))?;
     Ok(())
 }
+
+// ── Claude Session Management ──
+
+/// Create a new Claude session record. Does NOT deactivate other sessions
+/// (multiple Claude sessions can be active simultaneously).
+#[tauri::command]
+pub fn create_claude_session(
+    state: State<'_, DbState>,
+    session_id: String,
+    name: String,
+) -> Result<serde_json::Value, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
+
+    let id = uuid::Uuid::new_v4().to_string();
+    let created_at = Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT INTO claude_sessions (id, session_id, name, status, created_at) VALUES (?1, ?2, ?3, 'idle', ?4)",
+        rusqlite::params![id, session_id, name, created_at],
+    )
+    .map_err(|e| format!("Failed to create claude session: {}", e))?;
+
+    Ok(serde_json::json!({
+        "id": id,
+        "sessionId": session_id,
+        "name": name,
+        "status": "idle",
+        "conversationId": null,
+        "createdAt": created_at,
+        "endedAt": null,
+    }))
+}
+
+/// List all Claude sessions for a given app session, ordered by created_at desc.
+#[tauri::command]
+pub fn list_claude_sessions(
+    state: State<'_, DbState>,
+    session_id: String,
+) -> Result<Vec<serde_json::Value>, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
+
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, session_id, name, status, conversation_id, created_at, ended_at
+             FROM claude_sessions WHERE session_id = ?1 ORDER BY created_at DESC",
+        )
+        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+    let rows = stmt
+        .query_map(rusqlite::params![session_id], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "sessionId": row.get::<_, String>(1)?,
+                "name": row.get::<_, String>(2)?,
+                "status": row.get::<_, String>(3)?,
+                "conversationId": row.get::<_, Option<String>>(4)?,
+                "createdAt": row.get::<_, String>(5)?,
+                "endedAt": row.get::<_, Option<String>>(6)?,
+            }))
+        })
+        .map_err(|e| format!("Failed to query claude sessions: {}", e))?;
+
+    let mut sessions = Vec::new();
+    for row in rows {
+        sessions.push(row.map_err(|e| format!("Row error: {}", e))?);
+    }
+
+    Ok(sessions)
+}
+
+/// Get a single Claude session by its ID.
+#[tauri::command]
+pub fn get_claude_session(
+    state: State<'_, DbState>,
+    claude_session_id: String,
+) -> Result<serde_json::Value, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
+
+    conn.query_row(
+        "SELECT id, session_id, name, status, conversation_id, created_at, ended_at
+         FROM claude_sessions WHERE id = ?1",
+        rusqlite::params![claude_session_id],
+        |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "sessionId": row.get::<_, String>(1)?,
+                "name": row.get::<_, String>(2)?,
+                "status": row.get::<_, String>(3)?,
+                "conversationId": row.get::<_, Option<String>>(4)?,
+                "createdAt": row.get::<_, String>(5)?,
+                "endedAt": row.get::<_, Option<String>>(6)?,
+            }))
+        },
+    )
+    .map_err(|e| format!("Failed to get claude session: {}", e))
+}
+
+/// Mark a Claude session as closed and set ended_at timestamp.
+/// Does NOT kill the process -- the frontend should call cancel_claude first
+/// if the session is active.
+#[tauri::command]
+pub fn close_claude_session(
+    state: State<'_, DbState>,
+    claude_session_id: String,
+) -> Result<(), String> {
+    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
+
+    conn.execute(
+        "UPDATE claude_sessions SET status = 'closed', ended_at = ?1 WHERE id = ?2",
+        rusqlite::params![Utc::now().to_rfc3339(), claude_session_id],
+    )
+    .map_err(|e| format!("Failed to close claude session: {}", e))?;
+
+    Ok(())
+}
+
+/// Update the status of a Claude session. Validates against allowed status values.
+#[tauri::command]
+pub fn update_claude_session_status(
+    state: State<'_, DbState>,
+    claude_session_id: String,
+    status: String,
+) -> Result<(), String> {
+    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
+
+    // Validate status
+    let valid_statuses = ["idle", "active", "input_needed", "closed"];
+    if !valid_statuses.contains(&status.as_str()) {
+        return Err(format!(
+            "Invalid status '{}'. Must be one of: {:?}",
+            status, valid_statuses
+        ));
+    }
+
+    conn.execute(
+        "UPDATE claude_sessions SET status = ?1 WHERE id = ?2",
+        rusqlite::params![status, claude_session_id],
+    )
+    .map_err(|e| format!("Failed to update claude session status: {}", e))?;
+
+    Ok(())
+}
