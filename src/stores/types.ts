@@ -262,6 +262,17 @@ export interface WorkspaceSlice {
   closeWorkspace: () => Promise<void>;
 }
 
+// ── Layout Types ──
+
+export interface LayoutSlice {
+  drawerOpen: boolean;
+  activeDrawerTab: string;
+  toggleDrawer: () => void;
+  setDrawerOpen: (open: boolean) => void;
+  setActiveDrawerTab: (tab: string) => void;
+  openDrawerToTab: (tab: string) => void;
+}
+
 // ── Combined State ──
 
 export type AppState = SessionSlice &
@@ -275,7 +286,8 @@ export type AppState = SessionSlice &
   AuditSlice &
   DiffSlice &
   PreviewSlice &
-  WorkspaceSlice;
+  WorkspaceSlice &
+  LayoutSlice;
 
 // ── Slice Creator Helper ──
 
