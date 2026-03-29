@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Layout Shell** - Three-column resizable layout, custom title bar, status bar, shared components, dark theme, typography
 - [x] **Phase 3: Context Assembly** - Repo manager, skills panel, prompt composer, prompt layer display, token budget bar
 - [x] **Phase 4: Python REPL + Monaco Editor** - Python subprocess via shell plugin, console panel, Monaco editor with custom theme, file tabs, save-to-disk
-- [ ] **Phase 5: Agent Integration** - Claude CLI subprocess, event stream parser, chat panel with streaming, agent event display, working indicator
+- [x] **Phase 5: Agent Integration** - Claude CLI subprocess, event stream parser, chat panel with streaming, agent event display, working indicator
 - [ ] **Phase 6: Decisions, Audit & Scripts** - Micro-decision log, append-only audit trail, decision/audit export, scripts tracker, skills feedback loop
 - [ ] **Phase 7: Visualization, Diff & Polish** - Architecture D3 graph, live preview panel, diff view with accept/reject, status bar live data, keyboard shortcuts
 
@@ -100,9 +100,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Backend infrastructure: tokio + DB migration v3 (audit_log + decisions), event_stream.rs parser, claude_commands.rs (start/send/cancel), agentSlice, useClaudeStream hook, eventParser utility, typed Tauri wrappers
-- [ ] 05-02-PLAN.md -- ClaudeChat panel with streaming messages, working indicator, code blocks with send-to-editor, message input, wire into MainLayout left bottom
-- [ ] 05-03-PLAN.md -- AgentStream panel with typed icons, color-coded events, confidence/line/pass-fail badges, fade-slide-in animation, wire into MainLayout right column
+- [x] 05-01-PLAN.md -- Backend infrastructure: tokio + DB migration v4 (decisions), event_stream.rs parser, claude_commands.rs (start/send/cancel), agentSlice, useClaudeStream hook, eventParser utility, typed Tauri wrappers
+- [x] 05-02-PLAN.md -- ClaudeChat panel with streaming messages, working indicator, code blocks with send-to-editor, message input, wire into MainLayout left bottom
+- [x] 05-03-PLAN.md -- AgentStream panel with typed icons, color-coded events, confidence/line/pass-fail badges, fade-slide-in animation, wire into MainLayout right column
 
 ### Phase 6: Decisions, Audit & Scripts
 **Goal**: Every agent and human action is captured in an immutable audit trail, every agent decision is logged with rationale and confidence, and users can extract reusable skills from tracked scripts -- completing the trust and feedback loop that differentiates VIBE OS
@@ -147,6 +147,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Layout Shell | 2/2 | Complete | 2026-03-28 |
 | 3. Context Assembly | 3/3 | Complete | 2026-03-28 |
 | 4. Python REPL + Monaco Editor | 2/2 | Complete | 2026-03-29 |
-| 5. Agent Integration | 0/3 | Planned | - |
+| 5. Agent Integration | 3/3 | Complete | 2026-03-28 |
 | 6. Decisions, Audit & Scripts | 0/2 | Planned | - |
 | 7. Visualization, Diff & Polish | 0/? | Not started | - |

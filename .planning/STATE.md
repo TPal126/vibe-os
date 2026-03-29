@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Developers can see, understand, and direct every decision an AI coding agent makes
-**Current focus:** Phase 4 complete, ready for Phase 5: Agent Integration
+**Current focus:** Phase 5 complete, ready for Phase 6: Decisions, Audit & Scripts
 
 ## Current Position
 
-Phase: 5 of 7 (Agent Integration)
-Plan: 0 of ? in current phase (not yet planned)
-Status: Phase 4 complete -- all plans executed
-Last activity: 2026-03-29 -- Completed 04-02 (Python REPL console)
+Phase: 6 of 7 (Decisions, Audit & Scripts)
+Plan: 0 of 2 in current phase (not yet planned)
+Status: Phase 5 complete -- all plans executed
+Last activity: 2026-03-28 -- Completed 05-03 (AgentStream panel)
 
-Progress: [======....] 63%
+Progress: [=======...] 71%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
-- Average duration: ~7.6m
-- Total execution time: ~1.1 hours
+- Total plans completed: 12
+- Average duration: ~6.2m
+- Total execution time: ~1.25 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [======....] 63%
 | 2. Layout Shell | 2/2 | ~5m | ~2.5m |
 | 3. Context Assembly | 3/3 | ~11.4m | ~3.8m |
 | 4. Python REPL + Monaco | 2/2 | ~9m 24s | ~4m 42s |
+| 5. Agent Integration | 3/3 | ~8.5m | ~2.8m |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (5m 30s), 03-02 (2m 24s), 03-03 (3m 25s), 04-01 (5m 46s), 04-02 (3m 38s)
-- Trend: Pure frontend plans fast (~2.5m avg), backend+frontend moderate (~5.5m), mixed ~3m
+- Last 5 plans: 03-03 (3m 25s), 04-01 (5m 46s), 04-02 (3m 38s), 05-01 (~5m), 05-02 (~2m)
+- Trend: Pure frontend plans fast (~2m avg), backend+frontend moderate (~5m), mixed ~3m
 
 *Updated after each plan completion*
 
@@ -73,6 +74,11 @@ Recent decisions affecting current work:
 - [04-02]: usePythonProcess event handlers use useAppStore.getState() for fresh state reads (stale closure avoidance)
 - [04-02]: Console component owns its toolbar (Restart/Clear) instead of PanelHeader wrapper
 - [04-02]: stderr classification regex separates Python prompts (>>> ...) from actual errors (Traceback, Error:, File)
+- [05-01]: Migration v4 for decisions table (not v3 -- audit_log already existed at v3)
+- [05-01]: Per-message spawn with --conversation-id for multi-turn (no stdin management)
+- [05-01]: Status events (working/done/cancelled) are separate JSON objects, not AgentEvent structs
+- [05-02]: v-orange used instead of v-warning for system/error message styling (theme has v-orange, not v-warning)
+- [05-03]: EVENT_CONFIG uses CSS variables (var(--color-v-green) etc.) for existing theme colors, hex for badge-specific colors
 
 ### Pending Todos
 
@@ -80,12 +86,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 5, HIGH risk]: Claude CLI stdout format is the lowest-confidence area -- must verify --output-format or --json flag availability before building event_stream.rs
 - [Phase 3, MEDIUM risk]: Python AST extraction strategy (Rust vs Python subprocess) needs a design decision before repo indexing implementation
 - [Phase 2]: Must verify react-resizable-panels vs allotment via quick comparison test at phase start
 
 ## Session Continuity
 
-Last session: 2026-03-29
-Stopped at: Completed 04-02-PLAN.md. Phase 4 complete. Ready for Phase 5 planning (Agent Integration).
+Last session: 2026-03-28
+Stopped at: Completed 05-03-PLAN.md. Phase 5 complete. Ready for Phase 6 planning (Decisions, Audit & Scripts).
 Resume file: None
