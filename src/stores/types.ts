@@ -64,9 +64,31 @@ export interface PromptSlice {
   recompose: () => Promise<void>;
 }
 
+export interface EditorFile {
+  path: string;
+  name: string;
+  language: string;
+  content: string;
+  isDirty: boolean;
+}
+
+export interface EditorSlice {
+  openFiles: EditorFile[];
+  activeFilePath: string | null;
+  openFile: (path: string) => Promise<void>;
+  closeFile: (path: string) => void;
+  setActiveFile: (path: string) => void;
+  updateFileContent: (path: string, content: string) => void;
+  saveFile: (path: string) => Promise<void>;
+}
+
 // ── Combined State ──
 
-export type AppState = SessionSlice & RepoSlice & SkillSlice & PromptSlice;
+export type AppState = SessionSlice &
+  RepoSlice &
+  SkillSlice &
+  PromptSlice &
+  EditorSlice;
 
 // ── Slice Creator Helper ──
 

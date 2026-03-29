@@ -19,6 +19,7 @@ import { PlaceholderPanel } from "../panels/PlaceholderPanel";
 import { RepoManager } from "../panels/RepoManager";
 import { SkillsPanel } from "../panels/SkillsPanel";
 import { PromptLayer } from "../panels/PromptLayer";
+import { CodeEditor } from "../center/CodeEditor";
 
 /* ── Tab definitions ──────────────────────────────────────────────── */
 
@@ -130,11 +131,15 @@ export function MainLayout() {
               <Panel defaultSize={60} minSize={30}>
                 <div className="flex flex-col h-full overflow-hidden">
                   <TabStrip tabs={centerTabs} activeId={centerTab} onChange={setCenterTab} />
-                  <div className="flex-1 overflow-auto">
-                    <PlaceholderPanel
-                      title={centerContent[centerTab].title}
-                      description={centerContent[centerTab].description}
-                    />
+                  <div className="flex-1 overflow-hidden">
+                    {centerTab === "editor" ? (
+                      <CodeEditor />
+                    ) : (
+                      <PlaceholderPanel
+                        title={centerContent[centerTab].title}
+                        description={centerContent[centerTab].description}
+                      />
+                    )}
                   </div>
                 </div>
               </Panel>
