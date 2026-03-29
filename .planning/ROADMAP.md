@@ -81,11 +81,11 @@ Plans:
   3. File tabs allow opening multiple files with close buttons; closing a tab disposes the Monaco model (no memory leaks)
   4. User can save the current file to disk via Ctrl+S, and the save triggers an audit log entry
   5. Default skill .md files are bundled and copied to ~/.vibe-os/skills/ on first launch
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [x] 04-01-PLAN.md -- Backend infrastructure (SQLite v3, file/audit commands, skill bundling) + Monaco editor with custom theme, multi-tab model management, Ctrl+S save, editor store slice
+- [ ] 04-02-PLAN.md -- Python REPL console with subprocess management, colored output, command history, auto-scroll, StatusBar integration
 
 ### Phase 5: Agent Integration
 **Goal**: Users can chat with Claude Code CLI through a streaming interface and see every agent event -- thoughts, decisions, file changes, errors -- parsed and displayed in real time with typed, color-coded entries
@@ -97,12 +97,12 @@ Plans:
   3. "Working..." indicator with pulsing dot appears while Claude is processing and disappears when the response completes
   4. Agent event stream displays typed, color-coded events (Think, Decision, FileCreate, FileModify, TestRun, PreviewUpdate, Error) with timestamps, type icons, colored indicators, and optional badges; new events auto-scroll with fade-slide-in animation
   5. event_stream.rs parses Claude CLI stdout into structured AgentEvent objects with a raw-text fallback mode for unparseable output (graceful degradation, not crashes)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
-- [ ] 05-03: TBD
+- [ ] 05-01-PLAN.md -- Backend infrastructure: tokio + DB migration v3 (audit_log + decisions), event_stream.rs parser, claude_commands.rs (start/send/cancel), agentSlice, useClaudeStream hook, eventParser utility, typed Tauri wrappers
+- [ ] 05-02-PLAN.md -- ClaudeChat panel with streaming messages, working indicator, code blocks with send-to-editor, message input, wire into MainLayout left bottom
+- [ ] 05-03-PLAN.md -- AgentStream panel with typed icons, color-coded events, confidence/line/pass-fail badges, fade-slide-in animation, wire into MainLayout right column
 
 ### Phase 6: Decisions, Audit & Scripts
 **Goal**: Every agent and human action is captured in an immutable audit trail, every agent decision is logged with rationale and confidence, and users can extract reusable skills from tracked scripts -- completing the trust and feedback loop that differentiates VIBE OS
@@ -145,8 +145,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Foundation | 2/2 | Complete | 2026-03-28 |
 | 2. Layout Shell | 2/2 | Complete | 2026-03-28 |
-| 3. Context Assembly | 2/3 | In progress | - |
-| 4. Python REPL + Monaco Editor | 0/? | Not started | - |
-| 5. Agent Integration | 0/? | Not started | - |
+| 3. Context Assembly | 3/3 | Complete | 2026-03-28 |
+| 4. Python REPL + Monaco Editor | 1/2 | In Progress | - |
+| 5. Agent Integration | 0/3 | Planned | - |
 | 6. Decisions, Audit & Scripts | 0/? | Not started | - |
 | 7. Visualization, Diff & Polish | 0/? | Not started | - |

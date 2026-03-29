@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-03-28)
 
 **Core value:** Developers can see, understand, and direct every decision an AI coding agent makes
-**Current focus:** Phase 3: Context Assembly
+**Current focus:** Phase 4: Python REPL + Monaco Editor
 
 ## Current Position
 
-Phase: 3 of 7 (Context Assembly) -- COMPLETE
-Plan: 3 of 3 in current phase (all complete)
-Status: Phase 3 complete. Ready for Phase 4.
-Last activity: 2026-03-28 -- 03-03 PromptLayer + App init + session wiring completed
+Phase: 4 of 7 (Python REPL + Monaco Editor)
+Plan: 1 of 2 in current phase
+Status: Executing -- plan 04-01 complete, 04-02 next
+Last activity: 2026-03-29 -- Completed 04-01 (backend infrastructure + Monaco editor)
 
-Progress: [=====.....] 50%
+Progress: [======....] 57%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: ~9m
-- Total execution time: ~0.94 hours
+- Total plans completed: 8
+- Average duration: ~8.5m
+- Total execution time: ~1.04 hours
 
 **By Phase:**
 
@@ -30,9 +30,10 @@ Progress: [=====.....] 50%
 | 1. Foundation | 2/2 | ~40m | ~20m |
 | 2. Layout Shell | 2/2 | ~5m | ~2.5m |
 | 3. Context Assembly | 3/3 | ~11.4m | ~3.8m |
+| 4. Python REPL + Monaco | 1/2 | ~5m 46s | ~5m 46s |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (1m 40s), 03-01 (5m 30s), 03-02 (2m 24s), 03-03 (3m 25s)
+- Last 5 plans: 03-01 (5m 30s), 03-02 (2m 24s), 03-03 (3m 25s), 04-01 (5m 46s)
 - Trend: Pure frontend plans fast (~2.5m avg), backend+frontend moderate (~5.5m), mixed ~3m
 
 *Updated after each plan completion*
@@ -65,6 +66,10 @@ Recent decisions affecting current work:
 - [03-03]: useShallow for PromptLayer store access -- prevents unnecessary re-renders on unrelated slice changes
 - [03-03]: Local state + 500ms debounced sync for system prompt textarea -- avoids SQLite writes on every keystroke
 - [03-03]: App init uses useAppStore.getState() for post-async state reads to avoid stale closures
+- [04-01]: Monaco local bundling via loader.config({ monaco }) -- CDN fails in Tauri webview
+- [04-01]: Ctrl+S uses useAppStore.getState().saveFile() to avoid stale closure in Monaco command handler
+- [04-01]: EditorSlice not persisted -- open files are transient, loaded from disk on demand
+- [04-01]: write_file audit logging is best-effort -- save succeeds even without active session
 
 ### Pending Todos
 
@@ -78,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28
-Stopped at: Completed 03-03-PLAN.md. Phase 3 (Context Assembly) complete. Ready for Phase 4.
+Last session: 2026-03-29
+Stopped at: Completed 04-01-PLAN.md. Ready to execute 04-02 (Python REPL + console).
 Resume file: None

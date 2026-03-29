@@ -20,9 +20,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Code Editor
 
-- [ ] **EDIT-01**: Monaco editor opens Python files with syntax highlighting and a custom VIBE OS theme
-- [ ] **EDIT-02**: File tabs allow opening multiple files with close buttons
-- [ ] **EDIT-03**: User can save files to disk via keyboard shortcut (Cmd/Ctrl+S), triggering an audit log entry
+- [x] **EDIT-01**: Monaco editor opens Python files with syntax highlighting and a custom VIBE OS theme
+- [x] **EDIT-02**: File tabs allow opening multiple files with close buttons
+- [x] **EDIT-03**: User can save files to disk via keyboard shortcut (Cmd/Ctrl+S), triggering an audit log entry
 - [ ] **EDIT-04**: Editor receives code from Claude chat via a "send to editor" action on code blocks
 - [ ] **EDIT-05**: Diff view shows agent-proposed file changes with accept/reject controls
 
@@ -93,7 +93,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PLAT-01**: App builds and runs on Windows, macOS, and Linux via Tauri v2
 - [x] **PLAT-02**: Tauri shell plugin permissions properly scoped in capabilities/default.json for subprocess spawning
 - [x] **PLAT-03**: File paths resolved via Tauri path API, never hardcoded
-- [ ] **PLAT-04**: Default skill .md files bundled and copied to ~/.vibe-os/skills/ on first launch
+- [x] **PLAT-04**: Default skill .md files bundled and copied to ~/.vibe-os/skills/ on first launch
 - [x] **PLAT-05**: All Tauri commands return Result<T, String> with frontend error handling
 
 ## v2 Requirements
@@ -145,9 +145,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LAYOUT-06 | Phase 2 | Complete |
 | LAYOUT-07 | Phase 2 | Complete |
 | LAYOUT-08 | Phase 2 | Complete |
-| EDIT-01 | Phase 4 | Pending |
-| EDIT-02 | Phase 4 | Pending |
-| EDIT-03 | Phase 4 | Pending |
+| EDIT-01 | Phase 4 | Complete |
+| EDIT-02 | Phase 4 | Complete |
+| EDIT-03 | Phase 4 | Complete |
 | EDIT-04 | Phase 5 | Pending |
 | EDIT-05 | Phase 7 | Pending |
 | CTX-01 | Phase 3 | Complete |
@@ -194,7 +194,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAT-01 | Phase 1 | Complete |
 | PLAT-02 | Phase 1 | Complete |
 | PLAT-03 | Phase 1 | Complete |
-| PLAT-04 | Phase 4 | Pending |
+| PLAT-04 | Phase 4 | Complete |
 | PLAT-05 | Phase 1 | Complete |
 
 **Coverage:**
