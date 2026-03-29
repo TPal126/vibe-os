@@ -15,6 +15,7 @@ use commands::decision_commands;
 use commands::file_commands;
 use commands::script_commands;
 use commands::shell_commands;
+use commands::token_commands;
 use commands::workspace_commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -125,6 +126,9 @@ pub fn run() {
             workspace_commands::read_workspace_tree,
             workspace_commands::watch_workspace_claude_md,
             workspace_commands::stop_workspace_watcher,
+            token_commands::set_token_budget,
+            token_commands::get_token_budgets,
+            token_commands::delete_token_budget,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

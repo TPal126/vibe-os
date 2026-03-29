@@ -7,4 +7,5 @@ pub mod decision_commands;
 pub mod file_commands;
 pub mod script_commands;
 pub mod shell_commands;
+pub mod token_commands;
 pub mod workspace_commands;

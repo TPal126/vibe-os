@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use tauri_plugin_shell::ShellExt;
@@ -378,20 +378,45 @@ pub struct ComposedPrompt {
 
 /// Assemble the full prompt deterministically.
 /// Order: system -> task -> skills (sorted by path) -> repos (sorted).
+/// Optional budget parameters enable per-skill, per-repo, and session-level truncation.
 #[tauri::command]
 pub fn compose_prompt(
     system_prompt: String,
     task_context: String,
     active_skill_paths: Vec<String>,
     active_repo_summaries: Vec<String>,
+    skill_budgets: Option<Vec<(String, usize)>>,
+    repo_budgets: Option<Vec<(String, usize)>>,
+    session_budget: Option<usize>,
 ) -> Result<ComposedPrompt, String> {
+    // Convert optional budget vectors into HashMaps for O(1) lookup
+    let skill_limits: HashMap<String, usize> = skill_budgets
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
+
+    let repo_limits: HashMap<String, usize> = repo_budgets
+        .unwrap_or_default()
+        .into_iter()
+        .collect();
+
     let mut skill_paths = active_skill_paths;
     skill_paths.sort();
 
     let mut skill_sections = Vec::new();
     for path in &skill_paths {
-        let content = fs::read_to_string(path)
+        let mut content = fs::read_to_string(path)
             .map_err(|e| format!("Failed to read skill {}: {}", path, e))?;
+
+        // Apply per-skill budget if set
+        if let Some(&limit) = skill_limits.get(path.as_str()) {
+            let max_chars = (limit as f64 * 3.5) as usize;
+            if content.len() > max_chars {
+                content.truncate(max_chars);
+                content.push_str("\n\n[... truncated to fit token budget]");
+            }
+        }
+
         let name = std::path::Path::new(path)
             .file_stem()
             .unwrap_or_default()
@@ -402,12 +427,37 @@ pub fn compose_prompt(
 
     let mut repo_summaries = active_repo_summaries;
     repo_summaries.sort();
-    let repo_text = repo_summaries.join("\n\n");
+    let repo_text = repo_summaries
+        .iter()
+        .enumerate()
+        .map(|(i, summary)| {
+            let mut s = summary.clone();
+            // Check if any repo budget applies (matched by index)
+            if let Some(&limit) = repo_limits.get(&i.to_string()) {
+                let max_chars = (limit as f64 * 3.5) as usize;
+                if s.len() > max_chars {
+                    s.truncate(max_chars);
+                    s.push_str("\n\n[... truncated to fit token budget]");
+                }
+            }
+            s
+        })
+        .collect::<Vec<_>>()
+        .join("\n\n");
 
-    let full = format!(
+    let mut full = format!(
         "## System\n{}\n\n## Task\n{}\n\n## Skills\n{}\n\n## Repository Context\n{}",
         system_prompt, task_context, skills_text, repo_text
     );
+
+    // Apply session-level budget
+    if let Some(budget) = session_budget {
+        let max_chars = (budget as f64 * 3.5) as usize;
+        if full.len() > max_chars {
+            full.truncate(max_chars);
+            full.push_str("\n\n[... truncated to fit session token budget]");
+        }
+    }
 
     let total_tokens = (full.len() as f64 / 3.5).round() as usize;
 

@@ -133,5 +133,25 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Migration v5 failed: {}", e))?;
     }
 
+    if version < 6 {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS token_budgets (
+                 id TEXT PRIMARY KEY,
+                 scope_type TEXT NOT NULL CHECK(scope_type IN ('skill', 'repo', 'session')),
+                 scope_id TEXT NOT NULL,
+                 max_tokens INTEGER NOT NULL,
+                 warning_threshold REAL NOT NULL DEFAULT 0.75,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL
+             );
+             CREATE UNIQUE INDEX IF NOT EXISTS idx_token_budgets_scope
+                 ON token_budgets(scope_type, scope_id);
+             PRAGMA user_version = 6;
+             COMMIT;",
+        )
+        .map_err(|e| format!("Migration v6 failed: {}", e))?;
+    }
+
     Ok(())
 }
