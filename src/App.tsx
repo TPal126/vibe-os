@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { TitleBar } from "./components/layout/TitleBar";
 import { MainLayout } from "./components/layout/MainLayout";
-import { StatusBar } from "./components/layout/StatusBar";
 import { useAppStore } from "./stores";
 import { commands } from "./lib/tauri";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
@@ -97,7 +96,6 @@ function App() {
     <div className="h-screen flex flex-col bg-v-bg overflow-hidden">
       <TitleBar />
       <MainLayout />
-      <StatusBar />
     </div>
   );
 }
