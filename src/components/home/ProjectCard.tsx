@@ -1,5 +1,6 @@
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import type { Project, ClaudeSessionState } from "../../stores/types";
+import type { Project, ClaudeSessionState, BuildStatus } from "../../stores/types";
+import { PreviewThumbnail } from "./PreviewThumbnail";
 
 interface ProjectCardProps {
   project: Project;
@@ -24,6 +25,38 @@ function deriveDisplayStatus(session: ClaudeSessionState | undefined): DisplaySt
   const lastEvent = session.agentEvents[session.agentEvents.length - 1];
   if (lastEvent?.event_type === "result") return "done";
   return "idle";
+}
+
+function TestBadge({ summary }: { summary: { passed: number; failed: number; total: number } }) {
+  const allPassed = summary.failed === 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono ${
+        allPassed
+          ? "bg-v-green/10 text-v-green"
+          : "bg-v-red/10 text-v-red"
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${allPassed ? "bg-v-green" : "bg-v-red"}`} />
+      {allPassed ? `${summary.passed}/${summary.total} passing` : `${summary.failed} failed`}
+    </span>
+  );
+}
+
+function BuildStatusLine({ status, text }: { status: BuildStatus; text: string | null }) {
+  if (status === "idle" || !text) return null;
+
+  const statusStyles = {
+    building: "text-v-accent animate-pulse",
+    running: "text-v-green",
+    failed: "text-v-red",
+  } as const;
+
+  return (
+    <p className={`text-[10px] font-mono truncate ${statusStyles[status]}`}>
+      {text}
+    </p>
+  );
 }
 
 export function ProjectCard({ project, session, onClick }: ProjectCardProps) {
