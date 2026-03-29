@@ -60,7 +60,8 @@ export const createSkillSlice: SliceCreator<SkillSlice> = (set, get) => ({
       const activeRepoPaths = get()
         .repos.filter((r) => r.active)
         .map((r) => r.localPath);
-      const metas = await commands.discoverSkills(activeRepoPaths);
+      const workspacePath = get().activeWorkspace?.path ?? undefined;
+      const metas = await commands.discoverSkills(activeRepoPaths, workspacePath);
       const skills = metas.map(skillMetaToSkill);
       set({ skills });
     } catch (err) {

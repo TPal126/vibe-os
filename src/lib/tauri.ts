@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { save } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
 
 // ── Types matching Rust structs ──
 
@@ -71,6 +71,24 @@ export interface ArchGraph {
   edges: ArchEdge[];
 }
 
+// ── Workspace types (matching Rust structs) ──
+
+export interface WorkspaceMeta {
+  name: string;
+  path: string;
+  has_claude_md: boolean;
+  repo_count: number;
+  skill_count: number;
+}
+
+export interface FileTreeEntry {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  children: FileTreeEntry[] | null;
+  extension: string | null;
+}
+
 // ── Raw types for new commands (snake_case from Rust) ──
 
 export interface DecisionRaw {
@@ -137,13 +155,15 @@ export const commands = {
   deleteSetting: (key: string) => invoke<void>("delete_setting", { key }),
 
   // ── Repo management ──
-  cloneRepo: (gitUrl: string) => invoke<RepoMeta>("clone_repo", { gitUrl }),
-  getRepos: () => invoke<RepoMeta[]>("get_repos"),
+  cloneRepo: (gitUrl: string, workspacePath?: string) =>
+    invoke<RepoMeta>("clone_repo", { gitUrl, workspacePath: workspacePath ?? null }),
+  getRepos: (workspacePath?: string) =>
+    invoke<RepoMeta[]>("get_repos", { workspacePath: workspacePath ?? null }),
   indexRepo: (repoPath: string) => invoke<string>("index_repo", { repoPath }),
 
   // ── Context commands ──
-  discoverSkills: (activeRepoPaths: string[]) =>
-    invoke<SkillMeta[]>("discover_skills", { activeRepoPaths }),
+  discoverSkills: (activeRepoPaths: string[], workspacePath?: string) =>
+    invoke<SkillMeta[]>("discover_skills", { activeRepoPaths, workspacePath: workspacePath ?? null }),
   composePrompt: (
     systemPrompt: string,
     taskContext: string,
@@ -227,6 +247,18 @@ export const commands = {
     invoke<ScriptEntryRaw[]>("get_session_scripts", { sessionId }),
   generateSkillFromScript: (scriptPath: string) =>
     invoke<SkillMeta>("generate_skill_from_script", { scriptPath }),
+
+  // ── Workspace commands ──
+  createWorkspace: (name: string) =>
+    invoke<WorkspaceMeta>("create_workspace", { name }),
+  openWorkspace: (workspacePath: string) =>
+    invoke<WorkspaceMeta>("open_workspace", { workspacePath }),
+  readWorkspaceTree: (workspacePath: string, maxDepth?: number) =>
+    invoke<FileTreeEntry[]>("read_workspace_tree", { workspacePath, maxDepth: maxDepth ?? null }),
+  watchWorkspaceClaudeMd: (workspacePath: string) =>
+    invoke<void>("watch_workspace_claude_md", { workspacePath }),
+  stopWorkspaceWatcher: () =>
+    invoke<void>("stop_workspace_watcher"),
 };
 
 // ── Dialog helpers ──
@@ -237,4 +269,13 @@ export async function showSaveDialog(
 ): Promise<string | null> {
   const path = await save({ defaultPath: defaultName, filters });
   return path;
+}
+
+export async function showOpenWorkspaceDialog(): Promise<string | null> {
+  const path = await open({
+    directory: true,
+    multiple: false,
+    title: "Open Workspace",
+  });
+  return path as string | null;
 }

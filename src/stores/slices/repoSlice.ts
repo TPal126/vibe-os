@@ -78,7 +78,8 @@ export const createRepoSlice: SliceCreator<RepoSlice> = (set, get) => ({
   addRepo: async (gitUrl: string) => {
     set({ repoLoading: true });
     try {
-      const meta = await commands.cloneRepo(gitUrl);
+      const workspacePath = get().activeWorkspace?.path ?? undefined;
+      const meta = await commands.cloneRepo(gitUrl, workspacePath);
       const repo = repoMetaToRepo(meta);
       set((state) => ({ repos: [...state.repos, repo], repoLoading: false }));
 
@@ -99,7 +100,8 @@ export const createRepoSlice: SliceCreator<RepoSlice> = (set, get) => ({
 
   loadRepos: async () => {
     try {
-      const metas = await commands.getRepos();
+      const workspacePath = get().activeWorkspace?.path ?? undefined;
+      const metas = await commands.getRepos(workspacePath);
       const repos = metas.map(repoMetaToRepo);
       set({ repos });
     } catch (err) {

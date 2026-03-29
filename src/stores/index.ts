@@ -11,6 +11,7 @@ import { createDecisionSlice } from "./slices/decisionSlice";
 import { createAuditSlice } from "./slices/auditSlice";
 import { createDiffSlice } from "./slices/diffSlice";
 import { createPreviewSlice } from "./slices/previewSlice";
+import { createWorkspaceSlice } from "./slices/workspaceSlice";
 import { tauriSqliteStorage } from "./storage";
 import type { AppState } from "./types";
 
@@ -28,6 +29,7 @@ export const useAppStore = create<AppState>()(
       ...createAuditSlice(...a),
       ...createDiffSlice(...a),
       ...createPreviewSlice(...a),
+      ...createWorkspaceSlice(...a),
     }),
     {
       name: "vibe-os-store",
@@ -35,7 +37,6 @@ export const useAppStore = create<AppState>()(
       // Only persist user-editable state, not computed values
       // Editor state NOT persisted -- files are on disk
       partialize: (state) => ({
-        systemPrompt: state.systemPrompt,
         activeSession: state.activeSession,
       }),
     },
@@ -50,4 +51,7 @@ export type {
   Decision,
   AuditEntry,
   ScriptEntry,
+  FileTreeEntry,
+  WorkspaceMeta,
+  WorkspaceSlice,
 } from "./types";

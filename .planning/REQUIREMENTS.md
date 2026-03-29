@@ -146,6 +146,7 @@ Requirements for the "Workspace-First Vibe Coding Overhaul" milestone. Phases 8-
 ### Bug Fixes
 
 - [ ] **BUG-01**: Repo and skill checkbox toggle state persists correctly when navigating between tabs in the left column (no reset on tab switch)
+- [ ] **BUG-02**: Claude CLI spawn handles "program not found" gracefully — shows actionable error message with install instructions instead of raw error, and validates CLI availability on workspace open
 
 ## Out of Scope
 
@@ -236,12 +237,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WS-01 | Phase 8 | Pending |
+| WS-01 | Phase 8 | In Progress (backend: 08-01) |
 | WS-02 | Phase 8 | Pending |
 | WS-03 | Phase 8 | Pending |
-| WS-04 | Phase 8 | Pending |
-| WS-05 | Phase 8 | Pending |
-| WS-06 | Phase 8 | Pending |
+| WS-04 | Phase 8 | In Progress (backend: 08-01) |
+| WS-05 | Phase 8 | In Progress (backend: 08-01) |
+| WS-06 | Phase 8 | In Progress (backend: 08-01) |
 | WS-07 | Phase 8 | Pending |
 | LAYOUT-09 | Phase 9 | Pending |
 | LAYOUT-10 | Phase 9 | Pending |
@@ -262,6 +263,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TOKEN-01 | Phase 10 | Pending |
 | TOKEN-02 | Phase 10 | Pending |
 | BUG-01 | Phase 11 | Pending |
+| BUG-02 | Phase 11 | Pending |
 
 **Coverage:**
 - v1 requirements: 59 total (all complete)

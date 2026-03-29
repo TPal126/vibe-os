@@ -22,7 +22,7 @@ export interface Skill {
   active: boolean;
   tokens: number;
   filePath: string;
-  source: "global" | "project";
+  source: "global" | "project" | "workspace";
 }
 
 // ── Slice Interfaces ──
@@ -233,6 +233,35 @@ export interface PreviewSlice {
   toggleAutoRefresh: () => void;
 }
 
+// ── Workspace Types ──
+
+export interface FileTreeEntry {
+  name: string;
+  path: string;
+  is_dir: boolean;
+  children: FileTreeEntry[] | null;
+  extension: string | null;
+}
+
+export interface WorkspaceMeta {
+  name: string;
+  path: string;
+  has_claude_md: boolean;
+  repo_count: number;
+  skill_count: number;
+}
+
+export interface WorkspaceSlice {
+  activeWorkspace: { name: string; path: string } | null;
+  workspaceTree: FileTreeEntry[] | null;
+  workspaceLoading: boolean;
+  createWorkspace: (name: string) => Promise<void>;
+  openWorkspace: (path?: string) => Promise<void>;
+  loadWorkspaceTree: () => Promise<void>;
+  refreshWorkspaceTree: () => Promise<void>;
+  closeWorkspace: () => Promise<void>;
+}
+
 // ── Combined State ──
 
 export type AppState = SessionSlice &
@@ -245,7 +274,8 @@ export type AppState = SessionSlice &
   DecisionSlice &
   AuditSlice &
   DiffSlice &
-  PreviewSlice;
+  PreviewSlice &
+  WorkspaceSlice;
 
 // ── Slice Creator Helper ──
 

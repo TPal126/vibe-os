@@ -3,15 +3,19 @@ import { TitleBar } from "./components/layout/TitleBar";
 import { MainLayout } from "./components/layout/MainLayout";
 import { StatusBar } from "./components/layout/StatusBar";
 import { useAppStore } from "./stores";
+import { commands } from "./lib/tauri";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useWorkspaceWatcher } from "./hooks/useWorkspaceWatcher";
 
 function App() {
   useKeyboardShortcuts();
+  useWorkspaceWatcher();
 
   const loadActiveSession = useAppStore((s) => s.loadActiveSession);
   const createSession = useAppStore((s) => s.createSession);
   const loadRepos = useAppStore((s) => s.loadRepos);
   const discoverSkills = useAppStore((s) => s.discoverSkills);
+  const openWorkspace = useAppStore((s) => s.openWorkspace);
   const recompose = useAppStore((s) => s.recompose);
 
   useEffect(() => {
@@ -25,13 +29,25 @@ function App() {
         await createSession();
       }
 
-      // 3. Load repos from disk
-      await loadRepos();
+      // 3. Restore active workspace from settings (if any)
+      // openWorkspace already loads repos, skills, tree, and CLAUDE.md
+      const savedWorkspacePath = await commands.getSetting("active_workspace_path");
+      if (savedWorkspacePath) {
+        try {
+          await openWorkspace(savedWorkspacePath);
+        } catch {
+          // Workspace no longer valid -- clear setting and fall through to default loading
+          await commands.deleteSetting("active_workspace_path");
+          await loadRepos();
+          await discoverSkills();
+        }
+      } else {
+        // No workspace -- load repos and skills from global location
+        await loadRepos();
+        await discoverSkills();
+      }
 
-      // 4. Discover skills from global + project dirs
-      await discoverSkills();
-
-      // 5. Restore active toggles from session data
+      // 4. Restore active toggles from session data
       // The session stores which repos/skills were active as JSON arrays of IDs.
       // After loading repos/skills, restore those toggles so the user's state persists across restarts.
       if (sessionData) {
@@ -62,7 +78,7 @@ function App() {
         }
       }
 
-      // 6. Compose initial prompt
+      // 5. Compose initial prompt
       await recompose();
     }
 
