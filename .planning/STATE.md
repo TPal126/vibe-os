@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-03-29)
 ## Current Position
 
 Phase: 16 of 17 (Outcome Previews)
-Plan: 1/3 complete
-Status: Phase 16 in progress. Plan 01 delivered: session outcome state + detection pipeline.
-Last activity: 2026-03-29 -- Phase 16 Plan 01 executed: TestSummary/BuildStatus types, store methods, URL/test/build detection in useClaudeStream.
+Plan: 2/3 complete
+Status: Phase 16 in progress. Plan 02 delivered: project card outcome display.
+Last activity: 2026-03-29 -- Phase 16 Plan 02 executed: TestBadge, BuildStatusLine, PreviewThumbnail components wired into ProjectCard layout.
 
 Progress: [=========#] 53%
 
@@ -64,6 +64,8 @@ Post-phase: rewrote CLI integration, fixed infinite re-render, added 67 tests.
 - [Phase 15-03]: Deduplication via notifiedRef Set with cleanup when attention clears
 - [Phase 16-01]: Detection helpers (extractDevServerUrl, parseTestResults, classifyBashCommand) are pure functions at module scope for testability
 - [Phase 16-01]: First URL wins for previewUrl -- user can override via manual entry in Plan 02
+- [Phase 16-02]: PreviewThumbnail uses React.memo to prevent unnecessary iframe reloads on parent re-renders
+- [Phase 16-02]: Outcome section conditionally renders only when data present -- cards without outcomes stay compact
 
 ### Pending Todos
 
@@ -79,5 +81,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 16-01-PLAN.md (Session Outcome State + Detection Pipeline). 5/5 tasks. Phase 16 Plan 01 done. Ready for 16-02.
+Stopped at: Completed 16-02-PLAN.md (Project Card Outcome Display). 5/5 tasks. Phase 16 Plan 02 done. Ready for 16-03.
 Resume file: None

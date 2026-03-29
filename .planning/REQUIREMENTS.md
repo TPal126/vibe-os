@@ -160,7 +160,7 @@ Requirements for "Project Cards + Attention Routing" milestone. Phases 12+.
 - [ ] **CARD-02**: Clicking a card opens its full conversation view. Back button returns to the card grid.
 - [ ] **CARD-03**: "New Project" card creates a workspace, assigns a Claude session, and opens the conversation view to accept the first instruction.
 - [ ] **CARD-04**: Each project card persists its workspace, Claude session, conversation history, active repos/skills, and token budgets independently.
-- [ ] **CARD-05**: Project cards show a live-updating outcome thumbnail: an iframe preview for web apps, a test result badge for CLI tools, or a status icon for in-progress work.
+- [x] **CARD-05**: Project cards show a live-updating outcome thumbnail: an iframe preview for web apps, a test result badge for CLI tools, or a status icon for in-progress work.
 
 ### Conversation View
 
@@ -327,7 +327,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CARD-02 | Phase 13 | Pending |
 | CARD-03 | Phase 13 | Pending |
 | CARD-04 | Phase 13 | Pending |
-| CARD-05 | Phase 16 | Pending |
+| CARD-05 | Phase 16 | Complete |
 | ATTN-01 | Phase 15 | Complete |
 | ATTN-02 | Phase 15 | Complete |
 | ATTN-03 | Phase 15 | Complete |
