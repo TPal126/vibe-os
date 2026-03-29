@@ -1,19 +1,24 @@
+import { useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X } from "lucide-react";
+import { Minus, Square, X, FolderOpen, FolderPlus, Folder } from "lucide-react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { Badge } from "../shared/Badge";
 import { Dot } from "../shared/Dot";
+import { CreateWorkspaceModal } from "../panels/CreateWorkspaceModal";
 
 export function TitleBar() {
   const appWindow = getCurrentWindow();
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const { activeSession, repos, skills, composedPrompt } = useAppStore(
+  const { activeSession, repos, skills, composedPrompt, activeWorkspace, openWorkspace } = useAppStore(
     useShallow((s) => ({
       activeSession: s.activeSession,
       repos: s.repos,
       skills: s.skills,
       composedPrompt: s.composedPrompt,
+      activeWorkspace: s.activeWorkspace,
+      openWorkspace: s.openWorkspace,
     })),
   );
 
@@ -56,6 +61,31 @@ export function TitleBar() {
             <span className="ml-1.5">No Session</span>
           </Badge>
         )}
+
+        {/* Workspace badge/controls */}
+        {activeWorkspace ? (
+          <Badge color="text-v-accent" bg="bg-v-accent/10">
+            <Folder size={10} className="mr-1" />
+            {activeWorkspace.name}
+          </Badge>
+        ) : (
+          <span className="text-[10px] text-v-dim">No workspace</span>
+        )}
+
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="p-1.5 hover:bg-v-surfaceHi rounded transition-colors"
+          title="New Workspace"
+        >
+          <FolderPlus size={12} className="text-v-muted" />
+        </button>
+        <button
+          onClick={() => openWorkspace()}
+          className="p-1.5 hover:bg-v-surfaceHi rounded transition-colors"
+          title="Open Workspace"
+        >
+          <FolderOpen size={12} className="text-v-muted" />
+        </button>
 
         {/* Repo count */}
         <Badge color="text-v-accent" bg="bg-v-accent/10">
@@ -101,6 +131,11 @@ export function TitleBar() {
           <X size={12} className="text-v-dim group-hover:text-v-red" />
         </button>
       </div>
+
+      <CreateWorkspaceModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+      />
     </div>
   );
 }

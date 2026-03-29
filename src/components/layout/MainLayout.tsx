@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import {
   FolderGit2,
+  FolderTree,
   BookOpen,
   Layers,
   Eye,
@@ -19,6 +20,7 @@ import { PanelHeader } from "./PanelHeader";
 import { RepoManager } from "../panels/RepoManager";
 import { SkillsPanel } from "../panels/SkillsPanel";
 import { PromptLayer } from "../panels/PromptLayer";
+import { WorkspaceTree } from "../panels/WorkspaceTree";
 import { CodeEditor } from "../center/CodeEditor";
 import { Console } from "../center/Console";
 import { ClaudeChat } from "../panels/ClaudeChat";
@@ -33,6 +35,7 @@ import { ScriptsTracker } from "../panels/ScriptsTracker";
 /* ── Tab definitions ──────────────────────────────────────────────── */
 
 const leftTabs: Tab[] = [
+  { id: "workspace", label: "Workspace", icon: <FolderTree size={10} /> },
   { id: "repos", label: "Repos", icon: <FolderGit2 size={10} /> },
   { id: "skills", label: "Skills", icon: <BookOpen size={10} /> },
   { id: "prompt", label: "Prompt Layer", icon: <Layers size={10} /> },
@@ -89,7 +92,9 @@ export function MainLayout() {
                 <div className="flex flex-col h-full overflow-hidden">
                   <TabStrip tabs={leftTabs} activeId={leftTab} onChange={setLeftTab} />
                   <div className="flex-1 overflow-hidden">
-                    {leftTab === "repos" ? (
+                    {leftTab === "workspace" ? (
+                      <WorkspaceTree />
+                    ) : leftTab === "repos" ? (
                       <RepoManager />
                     ) : leftTab === "skills" ? (
                       <SkillsPanel />

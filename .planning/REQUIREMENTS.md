@@ -238,11 +238,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | WS-01 | Phase 8 | In Progress (backend: 08-01) |
-| WS-02 | Phase 8 | Pending |
-| WS-03 | Phase 8 | Pending |
-| WS-04 | Phase 8 | In Progress (backend: 08-01) |
-| WS-05 | Phase 8 | In Progress (backend: 08-01) |
-| WS-06 | Phase 8 | In Progress (backend: 08-01) |
+| WS-02 | Phase 8 | In Progress (frontend: 08-02, needs UI: 08-03) |
+| WS-03 | Phase 8 | In Progress (frontend: 08-02, needs UI: 08-03) |
+| WS-04 | Phase 8 | In Progress (watcher: 08-01+08-02, needs UI: 08-03) |
+| WS-05 | Phase 8 | In Progress (backend+frontend: 08-01+08-02, needs UI: 08-03) |
+| WS-06 | Phase 8 | In Progress (backend+frontend: 08-01+08-02, needs UI: 08-03) |
 | WS-07 | Phase 8 | Pending |
 | LAYOUT-09 | Phase 9 | Pending |
 | LAYOUT-10 | Phase 9 | Pending |

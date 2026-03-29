@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Current Position
 
 Phase: 8 of 11 (Workspace System)
-Plan: 1 of 3 in current phase
-Status: Phase 8 in progress -- 08-01 complete, 08-02 next
-Last activity: 2026-03-29 -- Plan 08-01 completed (workspace backend)
+Plan: 2 of 3 in current phase
+Status: Phase 8 in progress -- 08-01, 08-02 complete, 08-03 next
+Last activity: 2026-03-29 -- Plan 08-02 completed (workspace frontend state)
 
-Progress: [#---------] 8%
+Progress: [##--------] 17%
 
 ## v1 Summary
 
@@ -29,9 +29,9 @@ Total execution time: ~1.55 hours across all phases.
 - Total execution time: ~1.55 hours
 
 **v2 Velocity:**
-- Total plans completed: 1
-- Average duration: ~4m
-- Total execution time: ~4m
+- Total plans completed: 2
+- Average duration: ~4.5m
+- Total execution time: ~9m
 
 *Updated after each plan completion*
 
@@ -48,6 +48,7 @@ Key v2 decisions:
 - [v2 Roadmap]: Secondary panel drawer -- Editor/Console/Preview/Diff don't need permanent screen space
 - [v2 Roadmap]: Multi-session support -- power users manage multiple Claude sessions with visual switching and input alerts
 - [v2 Roadmap]: Phase 8 (Workspace) before Phase 9 (Layout) -- workspace file tree must exist before the layout can place it
+- [08-02]: Removed systemPrompt from Zustand partialize -- workspace CLAUDE.md is now the authoritative source
 
 ### Pending Todos
 
@@ -62,5 +63,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-29
-Stopped at: Completed 08-01-PLAN.md (workspace backend). Ready for 08-02.
+Stopped at: Completed 08-02-PLAN.md (workspace frontend state). Ready for 08-03.
 Resume file: None

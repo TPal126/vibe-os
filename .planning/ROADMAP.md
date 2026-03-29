@@ -38,7 +38,7 @@ VIBE OS v2 ("Workspace-First Vibe Coding Overhaul") restructures the application
 **Plans**: 3 plans
 Plans:
 - [x] 08-01-PLAN.md -- Workspace backend: Rust commands for scaffold, open, read tree, watch CLAUDE.md, modified clone_repo/discover_skills
-- [ ] 08-02-PLAN.md -- Workspace frontend state: Zustand slice, tauri command wrappers, watcher hook, modified repo/skill slices, app init
+- [x] 08-02-PLAN.md -- Workspace frontend state: Zustand slice, tauri command wrappers, watcher hook, modified repo/skill slices, app init
 - [ ] 08-03-PLAN.md -- Workspace UI: file tree component, create workspace modal, title bar controls, layout integration
 
 ### Phase 9: Layout Restructure & Dashboard
@@ -94,7 +94,7 @@ Phases execute in numeric order: 8 -> 9 -> 10 -> 11
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 8. Workspace System | 1/3 | In Progress | - |
+| 8. Workspace System | 2/3 | In Progress | - |
 | 9. Layout Restructure & Dashboard | 0/3 | Planned | - |
 | 10. Multi-Session & Token Control | 0/3 | Planned | - |
 | 11. Polish & Bug Fixes | 0/4 | Planned | - |
