@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/VIBE_OS-v0.1.0-5b7cfa?style=for-the-badge&labelColor=08090d" alt="VIBE OS v0.1.0" />
+  <img src="https://img.shields.io/badge/VIBE_OS-v0.2.0-5b7cfa?style=for-the-badge&labelColor=08090d" alt="VIBE OS v0.2.0" />
   <img src="https://img.shields.io/badge/Tauri-v2-24C8D8?style=for-the-badge&logo=tauri&logoColor=white&labelColor=08090d" alt="Tauri v2" />
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white&labelColor=08090d" alt="React 18" />
   <img src="https://img.shields.io/badge/Rust-1.77+-DEA584?style=for-the-badge&logo=rust&logoColor=white&labelColor=08090d" alt="Rust" />
@@ -16,8 +16,8 @@
 <p align="center">
   <strong>See every decision. Direct every action. Audit everything.</strong>
   <br />
-  A desktop IDE where you visualize your codebase, load context like checking a box,<br />
-  chat with Claude, and watch every agent decision in real time.
+  A conversation-first desktop IDE where you chat with Claude Code,<br />
+  manage workspaces, control token budgets, and watch every agent decision in real time.
 </p>
 
 <p align="center">
@@ -25,8 +25,8 @@
   <a href="#what-it-does">What It Does</a> &bull;
   <a href="#the-interface">The Interface</a> &bull;
   <a href="#features-in-depth">Features</a> &bull;
-  <a href="#architecture">Architecture</a> &bull;
-  <a href="#keyboard-shortcuts">Shortcuts</a>
+  <a href="#testing">Testing</a> &bull;
+  <a href="#architecture">Architecture</a>
 </p>
 
 ---
@@ -48,7 +48,7 @@ AI coding tools are black boxes. You paste a prompt, hope for the best, and get 
 | **Node.js** | 18+ | Frontend build tooling |
 | **Rust** | 1.77+ | Tauri backend compilation |
 | **Python** | 3.8+ | Integrated REPL console |
-| **Claude Code CLI** | Latest | AI agent backbone |
+| **Claude Code CLI** | Latest | AI agent backbone (`npm install -g @anthropic-ai/claude-code`) |
 | **Git** | Any | Repository management |
 
 ### Install & Run
@@ -61,6 +61,9 @@ cd vibe-os
 # Install frontend dependencies
 npm install
 
+# Run tests (67 tests across Rust + TypeScript)
+npm run test:all
+
 # Launch in development mode (starts Vite + Tauri together)
 npm run tauri dev
 
@@ -68,187 +71,155 @@ npm run tauri dev
 npm run tauri build
 ```
 
-That's it. First launch creates your database at `~/.vibe-os/vibe-os.db` and copies starter skill files to `~/.vibe-os/skills/`.
+First launch creates your database at `~/.vibe-os/vibe-os.db` and copies starter skill files to `~/.vibe-os/skills/`.
 
 ---
 
 ## What It Does
 
-VIBE OS is a **single-pane-of-glass IDE** for AI-assisted Python development. Think RStudio's visual clarity meets Claude Code's power.
+VIBE OS is a **conversation-first desktop IDE** for AI-assisted development. Claude Chat is the primary surface, with context management, decision auditing, and workspace organization built around it.
 
 | Capability | What You Get |
 |---|---|
-| **Context Loading** | Check a box to load repos and skills into Claude's prompt. Like `library()` in R. |
-| **Prompt Transparency** | See the exact prompt Claude receives — system, task, skills, repo context — in a debuggable panel. |
-| **Streaming Chat** | Talk to Claude with real-time token streaming. Code blocks have "Open in Editor" buttons. |
-| **Agent Event Stream** | Watch Claude think, create files, modify code, run tests — every action typed and color-coded. |
-| **Decision Logging** | Every architectural decision captured with rationale, confidence score, impact category, and reversibility. |
-| **Append-Only Audit Trail** | Every action (yours, Claude's, system's) logged with timestamps. Never deleted. Export to JSON/CSV. |
-| **Architecture Visualization** | Interactive D3 force graph of your Python codebase — modules, classes, imports — colored by repo. |
-| **Diff Review** | Agent-proposed file changes shown in a Monaco diff editor. Accept or reject before anything hits disk. |
-| **Live Preview** | Embed your running dev server (Streamlit, Flask, Vite, etc.) with auto-refresh on file save. |
-| **Python REPL** | Built-in console with command history, colored output, and subprocess management. |
-| **Monaco Editor** | Multi-tab code editor with the VIBE OS dark theme, Ctrl+S save with audit logging. |
-| **Skill Generation** | Turn any script from your session into a reusable `.md` skill file for future sessions. |
+| **Workspace System** | Create/open project workspaces with scaffolded directories, CLAUDE.md as system prompt, and workspace-scoped repos/skills |
+| **Multi-Session Chat** | Run multiple Claude Code sessions simultaneously with tab-based switching and input-needed alerts |
+| **Token Control** | Set per-skill, per-repo, and session-level token budgets with color-coded warnings |
+| **Context Loading** | Check a box to load repos and skills into Claude's prompt |
+| **Agent Event Stream** | Watch Claude think, create files, modify code, run tests -- every action typed and color-coded |
+| **Session Dashboard** | At-a-glance view of current goal, active context, activity feed, and session stats |
+| **Decision Logging** | Every architectural decision captured with rationale, confidence, impact category, and reversibility |
+| **Audit Trail** | Append-only log of every action. Never deleted. Export to JSON/CSV. |
+| **Mermaid Diagrams** | Architecture diagrams generated from codebase analysis, rendered with Mermaid.js |
+| **Secondary Panels** | Editor, Console, Preview, and Diff accessible via a toggleable drawer overlay |
+| **Diff Review** | Agent-proposed file changes in a Monaco diff editor. Accept or reject before anything hits disk. |
+| **Python REPL** | Built-in console with command history, colored output, and subprocess management |
 
 ---
 
 ## The Interface
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│  VIBE OS   Agentic Development System    ● Active   2 repos  3 skills      │
-├───────────────────┬────────────────────────┬─────────────────────────────────┤
-│                   │                        │                                 │
-│   ┌─────────────┐ │  ┌──────────────────┐  │  ┌───────────────────────────┐  │
-│   │ Repos       │ │  │ Preview          │  │  │ Agent Stream              │  │
-│   │ Skills      │ │  │ Architecture     │  │  │ Decisions                 │  │
-│   │ Prompt Layer│ │  │ Editor           │  │  │ Audit Log                 │  │
-│   └─────────────┘ │  │ Diff             │  │  │ Scripts                   │  │
-│   ┌─────────────┐ │  └──────────────────┘  │  └───────────────────────────┘  │
-│   │             │ │  ┌──────────────────┐  │                                 │
-│   │ Claude Chat │ │  │ Python Console   │  │                                 │
-│   │             │ │  │ >>>              │  │                                 │
-│   └─────────────┘ │  └──────────────────┘  │                                 │
-├───────────────────┴────────────────────────┴─────────────────────────────────┤
-│  ● Python: idle   ● Claude: working   │ Session: 0:14:32  Decisions: 7      │
-└──────────────────────────────────────────────────────────────────────────────┘
++------------------+----------------------------+---------------------------+
+|                  |                            |                           |
+|  Repos           |  CLAUDE CHAT               |  Decisions                |
+|  Skills          |  Session 1  Session 2  +   |  Agent Stream             |
+|  Token Control   |                            |  Audit Log                |
+|  [tabbed]        |  > hi                      |  [tabbed]                 |
+|                  |  Hello! How can I help?    |                           |
+|                  |                            |                           |
+|------------------+----------------------------+                           |
+|                  |                            |                           |
+|  WORKSPACE       |  SESSION DASHBOARD         |  MERMAID DIAGRAM          |
+|  FILES           |  Goal | Context | Stats    |  [architecture view]      |
+|  [file tree]     |  Activity feed             |                           |
+|                  |                            |                           |
++------------------+----------------------------+---------------------------+
+|  Workspace  |  Python: idle  |  2 sessions (1 working)  |  v0.2.0       |
++-------------+----------------+--------------------------+----------------+
 ```
 
-**Three resizable columns** (drag the separators):
+**Three resizable columns** (conversation-first layout):
 
-| Column | Default Width | Panels |
+| Column | Default | Content |
 |---|---|---|
-| **Left** | 22% | Repos, Skills, Prompt Layer (tabbed) + Claude Chat (fixed below) |
-| **Center** | 40% | Preview, Architecture, Editor, Diff (tabbed) + Python Console (fixed below) |
-| **Right** | 38% | Agent Stream, Decisions, Audit Log, Scripts (tabbed) |
+| **Left** (20%) | Top: Repos, Skills, Token Control (tabbed). Bottom: Workspace file tree |
+| **Center** (45%) | Top: Claude Chat with session tabs. Bottom: Session Dashboard |
+| **Right** (35%) | Top: Decisions, Agent Stream, Audit Log (tabbed). Bottom: Mermaid diagram |
 
-**Title Bar** — Live indicators: session status, active repo count, active skill count, total context tokens (color-coded by budget).
-
-**Status Bar** — Python process status, Claude status (idle/working/error with pulsing dots), session elapsed time, decision count, action count.
+**Secondary Drawer** -- Editor, Console, Preview, and Diff are accessible via the "Panels" button, sliding in as an overlay without disrupting the main layout.
 
 ---
 
 ## Features in Depth
 
-### Context Assembly — The Core Differentiator
+### Workspace System (v2)
 
-VIBE OS treats context like a **composable pipeline**. Instead of manually writing prompts, you assemble them:
+Workspaces organize all project context into a single directory:
 
-1. **Repos** — Add git repositories by URL. Toggle them active with a checkbox. Active repos get indexed (modules, classes, functions) and their structure is injected into the prompt.
+```
+~/vibe-workspaces/my-project/
++-- CLAUDE.md        # System prompt (editable, live-updating)
++-- docs/            # Project documentation
++-- repos/           # Cloned repositories
++-- skills/          # Workspace-local skill files
++-- data/            # Data files
++-- output/          # Generated output
+```
 
-2. **Skills** — Markdown files in `~/.vibe-os/skills/` that contain reusable knowledge (patterns, techniques, domain context). Check the ones you want. Each shows its token count and category badge (`data` `ml` `core` `web` `infra` `viz`).
+- **Create** a workspace by name -- app scaffolds the directory structure
+- **Open** an existing workspace -- app loads CLAUDE.md, discovers skills, lists repos
+- **CLAUDE.md** serves as the system prompt (replaces the old editable textarea)
+- **File tree** component shows workspace contents with expand/collapse and click-to-open
 
-3. **Token Budget Bar** — Visual progress bar showing how much of your context budget active skills consume. Green under 50%, yellow at 50-80%, red above 80%.
+### Multi-Session Claude Chat (v2)
 
-4. **Prompt Layer** — Four sub-tabs showing exactly what Claude will see:
-   - **System** — Editable system prompt (debounced 500ms save to SQLite)
-   - **Task** — Your current task context
-   - **Skills** — Concatenated content of all checked skills
-   - **Repo** — Summaries of active repository structures
-   - One-click "Copy Full Prompt" to clipboard
+- Run **multiple concurrent Claude sessions**, each with its own subprocess, conversation history, and working state
+- **Session tabs** in the chat area for switching between active sessions
+- **Input-needed alerts** -- pulsing orange dot when a background session needs your attention
+- **Session Dashboard** below chat shows goal, context summary, activity feed, and stats
 
-### Architecture Viewer
+### Token Control (v2)
 
-Interactive **D3.js force-directed graph** of your Python codebase:
+- **Per-skill limits** -- cap how many tokens each skill can consume
+- **Per-repo limits** -- cap context from each repository
+- **Session budget** -- overall token ceiling with color-coded warnings (green/orange/red)
+- Budget enforcement during prompt composition with soft truncation
 
-- **Nodes** = Python modules, classes. Colored by which repo they belong to (8 distinct colors). Sized by importance (incoming dependency count).
-- **Edges** = import relationships. Dashed lines at 30% opacity.
-- **Glow effect** on high-connectivity nodes (>3 incoming edges).
-- **Hover** any node to highlight its connections and see a tooltip with file path and function list. Everything else dims to 20% opacity.
-- **Drag** nodes to rearrange. **Zoom** with scroll wheel.
-- **Rebuild** button re-analyzes after code changes.
+### Context Assembly
 
-The Rust backend (`architecture_commands.rs`) walks all `.py` files, extracts modules/imports/classes/functions via regex, resolves internal import edges, and drops external library imports for a clean graph.
-
-### Diff Review
-
-When Claude proposes file changes, they appear as **pending diffs** in the Diff tab:
-
-- **Sidebar** lists all pending changes with filename and timestamp
-- **Main area** shows a **Monaco DiffEditor** — original on the left, proposed on the right, side-by-side
-- **Accept** writes the change to disk, updates the editor if the file is open, and logs a `FILE_MODIFY` audit entry
-- **Reject** discards the change and logs a `FILE_REJECT` entry
-
-No file changes hit disk until you explicitly accept them.
+1. **Repos** -- Add git repositories by URL. Toggle active with a checkbox. Active repos get indexed and injected into the prompt.
+2. **Skills** -- Markdown files with reusable knowledge. Workspace-local skills override global ones on name conflicts.
+3. **Prompt Composition** -- System (CLAUDE.md) + Task + Skills + Repo context, assembled deterministically with budget enforcement.
 
 ### Agent Event Stream
 
-Real-time feed of everything Claude does, with typed, color-coded entries:
+Real-time feed of everything Claude does:
 
-| Event | Color | Badge |
+| Event | Color | Description |
 |---|---|---|
-| `think` | Blue | — |
-| `decision` | Orange | Confidence % |
-| `file_create` | Green | — |
-| `file_modify` | Green | +/- line counts |
-| `test_run` | Cyan | PASS / FAIL |
-| `preview_update` | Orange | — |
-| `error` | Red | — |
-| `result` | Gray | Duration, cost |
+| `think` | Blue | Assistant text and reasoning |
+| `decision` | Orange | Architectural decisions (with confidence) |
+| `file_create` | Green | New files created |
+| `file_modify` | Green | Files edited |
+| `test_run` | Cyan | Test executions (PASS/FAIL) |
+| `error` | Red | Errors |
+| `result` | Gray | Completion with duration and cost |
 
-Events auto-scroll with a fade-slide-in animation. Each has a precise timestamp.
+### Decision Log & Audit Trail
 
-### Decision Log
+- **Decisions** -- impact category, confidence score, reversibility, expandable rationale
+- **Audit** -- append-only, never deleted, exportable to JSON/CSV
+- Both are the compliance and transparency layer
 
-Every agent decision captured with:
+---
 
-- **Impact category** — `perf` (cyan), `accuracy` (green), `dx` (blue), `security` (red), `architecture` (purple) — shown as a colored left border
-- **Confidence** — 0-100%, badge colored green (>90%), yellow (80-90%), orange (<80%)
-- **Reversibility** indicator
-- **Expandable** — click to reveal rationale, related files, and related tickets
-- **Export** — JSON or CSV via native save-as dialog
+## Testing
 
-### Audit Trail
+VIBE OS has **67 tests** across the full stack:
 
-Append-only log of every action in the system:
+```bash
+# Run all tests (TypeScript + Rust)
+npm run test:all
 
-| Action Type | Color | Examples |
-|---|---|---|
-| `FILE_CREATE` `FILE_MODIFY` `FILE_SAVE` | Green | File operations |
-| `TEST_RUN` | Cyan | Test executions |
-| `PROMPT_SENT` | Blue | Prompt submissions |
-| `SESSION_START` `SESSION_END` | Yellow | Session lifecycle |
-| `SKILL_TOGGLE` | Orange | Skill activation |
-| `REPO_ACTIVATE` | Blue | Repo toggling |
-| `DECISION_MADE` | Yellow | Decision records |
-| `ERROR` | Red | Errors |
+# TypeScript only (Vitest)
+npm run test
 
-Each entry shows timestamp, colored action type, detail message, and actor (`agent` / `user` / `system`). Exportable to JSON/CSV. **Never deleted or modified** — this is the compliance layer.
+# Rust only (Cargo)
+npm run test:rust
 
-### Skills System
-
-Skills are **markdown files** that inject domain knowledge into Claude's context:
-
-```
-~/.vibe-os/skills/
-├── python-basics.md      # Core Python patterns (list comps, pathlib, dataclasses)
-├── debugging.md          # pdb, breakpoint(), traceback analysis
-├── my-api-patterns.md    # Your custom patterns (generated from scripts)
-└── ...
+# Watch mode
+npm run test:watch
 ```
 
-**Built-in skills** are bundled with the app and copied on first launch. You can:
-- Write your own `.md` files and drop them in `~/.vibe-os/skills/`
-- **Generate skills from scripts** — click "→ Skill" on any Python script in the Scripts Tracker to auto-generate a skill file from it
-- Skills from active repos are also discovered (project-local `{repo}/.vibe/skills/`)
+### Test Coverage
 
-### Live Preview
+| Area | Tests | What's Tested |
+|---|---|---|
+| **Rust event parser** | 24 | Real CLI output fixtures, assistant text extraction, tool use classification, result events, system events, edge cases, serialization for frontend |
+| **Frontend eventParser** | 23 | Type guards (`isStatusEvent`, `isAgentEvent`, `isAssistantText`), code block extraction, session ID extraction, input request detection |
+| **Frontend agentSlice** | 20 | Session lifecycle, chat message accumulation, duplication prevention, status derivation, legacy compatibility |
 
-Point it at any running dev server:
-- Enter `http://localhost:3000` (or 8501, 5000, whatever your framework uses)
-- Browser chrome mockup with traffic light dots, URL bar, green "Live" indicator
-- **Auto-refresh** on file save — debounced 500ms, only triggers when you actually save a file
-- Toggle auto-refresh on/off. Manual refresh button always available.
-- Sandboxed iframe for security
-
-### Python Console
-
-Built-in REPL with subprocess management:
-- Colored output: input (cyan), output (white), errors (red), system messages (dim)
-- **Command history** — arrow up/down to navigate
-- **Restart** and **Clear** buttons in the toolbar
-- Status shown in the bottom status bar (idle/running with pulsing dot)
+Tests use **real captured Claude CLI output** as fixtures, not assumed formats.
 
 ---
 
@@ -257,38 +228,22 @@ Built-in REPL with subprocess management:
 ### Tech Stack
 
 ```
-┌─────────────────────────────────────────────────┐
-│                  Frontend                        │
-│  React 18 · TypeScript 5.5 · Vite 6 · Tailwind 4│
-│  Monaco Editor · D3.js · Zustand · Lucide       │
-├─────────────────────────────────────────────────┤
-│               Tauri v2 IPC Bridge                │
-├─────────────────────────────────────────────────┤
-│                  Backend (Rust)                   │
-│  Tokio · SQLite (WAL) · Serde · Shell Plugin     │
-│  Claude CLI subprocess · File I/O · Regex        │
-└─────────────────────────────────────────────────┘
-```
-
-**~4,700 lines of TypeScript/React** + **~2,200 lines of Rust** across 80 source files.
-
-### Data Flow
-
-```
-User clicks checkbox  →  Zustand store action  →  Tauri IPC invoke
-                                                        ↓
-                                                  Rust command handler
-                                                        ↓
-                                              SQLite / File system / Claude CLI
-                                                        ↓
-                                                  Response to frontend
-                                                        ↓
-                                              Store update → React re-render
++--------------------------------------------------+
+|                  Frontend                         |
+|  React 18 . TypeScript 5.5 . Vite 6 . Tailwind 4 |
+|  Monaco Editor . Mermaid.js . Zustand . Lucide    |
++--------------------------------------------------+
+|               Tauri v2 IPC Bridge                  |
++--------------------------------------------------+
+|                  Backend (Rust)                     |
+|  Tokio . SQLite (WAL) . Serde . std::process      |
+|  Claude CLI subprocess . File I/O . Regex          |
++--------------------------------------------------+
 ```
 
 ### State Management
 
-Zustand store with **11 slices**, persisted to SQLite via a custom storage adapter:
+Zustand store with **15 slices**, persisted to SQLite via a custom storage adapter:
 
 | Slice | Responsibility |
 |---|---|
@@ -298,30 +253,19 @@ Zustand store with **11 slices**, persisted to SQLite via a custom storage adapt
 | `promptSlice` | System prompt, task context, composed prompt |
 | `editorSlice` | Open files, active file, save with timestamp |
 | `consoleSlice` | REPL output, command history |
-| `agentSlice` | Chat messages, agent events, working state |
+| `agentSlice` | Multi-session chat, agent events, CLI validation |
 | `decisionSlice` | Decision records, loading, export |
 | `auditSlice` | Audit entries, loading, export |
 | `diffSlice` | Pending diffs, accept/reject flow |
 | `previewSlice` | Preview URL, auto-refresh toggle |
-
-Only `systemPrompt` and `activeSession` are persisted across app restarts. Everything else hydrates fresh from the backend.
-
-### Rust Backend Commands
-
-| Module | Commands |
-|---|---|
-| `architecture_commands.rs` | `analyze_architecture` — walks Python files, builds dependency graph |
-| `claude_commands.rs` | `start_claude`, `send_message`, `cancel_claude` — Claude CLI subprocess |
-| `context_commands.rs` | `discover_skills`, `clone_repo`, `get_repos`, `index_repo`, `compose_prompt` |
-| `decision_commands.rs` | `record_decision`, `get_decisions`, `export_decisions` |
-| `audit_commands.rs` | `log_action`, `get_audit_log`, `export_audit_log` |
-| `script_commands.rs` | `get_session_scripts`, `generate_skill_from_script` |
-| `file_commands.rs` | `read_file`, `write_file` (with audit logging) |
-| `db_commands.rs` | Session CRUD, settings CRUD |
+| `workspaceSlice` | Workspace CRUD, file tree, CLAUDE.md watcher |
+| `layoutSlice` | Drawer state, active drawer tab |
+| `dashboardSlice` | Session goal |
+| `tokenSlice` | Token budgets, budget enforcement |
 
 ### Database
 
-SQLite with WAL mode at `~/.vibe-os/vibe-os.db`. Four tables: `sessions`, `settings`, `audit_log`, `decisions`. Schema migrations managed via `PRAGMA user_version` (currently at v4).
+SQLite with WAL mode. Tables: `sessions`, `settings`, `audit_log`, `decisions`, `claude_sessions`, `token_budgets`. Schema migrations via `PRAGMA user_version`.
 
 ---
 
@@ -330,61 +274,29 @@ SQLite with WAL mode at `~/.vibe-os/vibe-os.db`. Four tables: `sessions`, `setti
 | Shortcut | Action |
 |---|---|
 | `Ctrl+S` / `Cmd+S` | Save active file (audit logged) |
-| `Ctrl+R` / `Cmd+R` | Focus Python console (prevents browser reload) |
+| `Ctrl+R` / `Cmd+R` | Focus Python console |
 | `Enter` (in chat) | Send message to Claude |
 | `Shift+Enter` (in chat) | New line |
-| `↑` / `↓` (in console) | Navigate command history |
-
-Plus all standard Monaco editor shortcuts (find, replace, go to line, fold, format).
 
 ---
 
 ## Design System
 
-A purpose-built dark theme optimized for extended coding sessions:
+Dark theme optimized for extended coding sessions:
 
-| Role | Color | Hex |
-|---|---|---|
-| Background | ![#08090d](https://via.placeholder.com/12/08090d/08090d.png) | `#08090d` |
-| Surface | ![#12141c](https://via.placeholder.com/12/12141c/12141c.png) | `#12141c` |
-| Border | ![#232738](https://via.placeholder.com/12/232738/232738.png) | `#232738` |
-| Text | ![#b8bdd4](https://via.placeholder.com/12/b8bdd4/b8bdd4.png) | `#b8bdd4` |
-| Text Hi | ![#e1e4f0](https://via.placeholder.com/12/e1e4f0/e1e4f0.png) | `#e1e4f0` |
-| Dim | ![#5a6080](https://via.placeholder.com/12/5a6080/5a6080.png) | `#5a6080` |
-| Accent | ![#5b7cfa](https://via.placeholder.com/12/5b7cfa/5b7cfa.png) | `#5b7cfa` |
-| Green | ![#34d399](https://via.placeholder.com/12/34d399/34d399.png) | `#34d399` |
-| Red | ![#f87171](https://via.placeholder.com/12/f87171/f87171.png) | `#f87171` |
-| Orange | ![#fbbf24](https://via.placeholder.com/12/fbbf24/fbbf24.png) | `#fbbf24` |
-| Cyan | ![#22d3ee](https://via.placeholder.com/12/22d3ee/22d3ee.png) | `#22d3ee` |
+| Role | Hex |
+|---|---|
+| Background | `#08090d` |
+| Surface | `#12141c` |
+| Border | `#232738` |
+| Text | `#b8bdd4` |
+| Accent | `#5b7cfa` |
+| Green | `#34d399` |
+| Red | `#f87171` |
+| Orange | `#fbbf24` |
+| Cyan | `#22d3ee` |
 
 **Typography**: Instrument Sans (UI), JetBrains Mono (code), Space Mono (branding).
-
----
-
-## Project Structure
-
-```
-vibe-os/
-├── src/                          # React frontend
-│   ├── components/
-│   │   ├── center/               # CodeEditor, Console, EditorTabs
-│   │   ├── layout/               # MainLayout, TitleBar, StatusBar, TabStrip, PanelHeader
-│   │   ├── panels/               # All feature panels (13 panels)
-│   │   ├── modals/               # AddRepoModal
-│   │   └── shared/               # Badge, Dot, IconButton, Tooltip
-│   ├── hooks/                    # useClaudeStream, usePythonProcess, useKeyboardShortcuts
-│   ├── lib/                      # tauri.ts (IPC), monacoTheme, eventParser, tokens
-│   └── stores/                   # Zustand store with 11 slices
-├── src-tauri/                    # Rust backend
-│   ├── src/
-│   │   ├── commands/             # 8 command modules
-│   │   ├── services/             # event_stream.rs (Claude output parser)
-│   │   ├── db.rs                 # SQLite init + migrations
-│   │   └── lib.rs                # Tauri app setup + plugin registration
-│   ├── skills/                   # Bundled .md skill files
-│   └── capabilities/             # Shell + clipboard permissions
-└── package.json                  # Frontend deps + scripts
-```
 
 ---
 
