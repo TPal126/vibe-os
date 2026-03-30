@@ -4,6 +4,7 @@ use surrealdb::Surreal;
 use crate::graph::queries;
 use crate::graph::nodes;
 use crate::graph::edges;
+use crate::graph::indexer;
 
 // ── Graph query commands ──
 
@@ -163,6 +164,15 @@ pub async fn graph_relate(
     data: Option<edges::EdgeData>,
 ) -> Result<(), String> {
     edges::relate(&db, &from, &edge_table, &to, data.as_ref()).await
+}
+
+#[tauri::command]
+pub async fn graph_index_repo(
+    db: tauri::State<'_, Surreal<Db>>,
+    repo_path: String,
+    session_id: String,
+) -> Result<indexer::IndexResult, String> {
+    indexer::index_repo(&db, &repo_path, &session_id).await
 }
 
 #[tauri::command]

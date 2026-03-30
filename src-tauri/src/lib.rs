@@ -159,6 +159,7 @@ pub fn run() {
             graph_commands::graph_delete_node,
             graph_commands::graph_relate,
             graph_commands::graph_get_edges,
+            graph_commands::graph_index_repo,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

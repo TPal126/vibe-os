@@ -8,6 +8,7 @@ import {
   ZoomOut,
   Maximize2,
   Filter,
+  FolderGit2,
 } from "lucide-react";
 
 // ── Types matching Rust GraphData ──
@@ -123,6 +124,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
   const [visibleTypes, setVisibleTypes] = useState<Set<string>>(
     new Set(ALL_NODE_TYPES),
   );
+  const [indexing, setIndexing] = useState(false);
+  const [indexResult, setIndexResult] = useState<string | null>(null);
 
   // ── Fetch graph data ──
 
@@ -143,6 +146,35 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
 
   useEffect(() => {
     fetchGraph();
+  }, [fetchGraph]);
+
+  // ── Index repo ──
+
+  const indexRepo = useCallback(async () => {
+    // Index the vibe-os repo itself as a test
+    setIndexing(true);
+    setIndexResult(null);
+    try {
+      const result = await invoke<{
+        repo_name: string;
+        total_files: number;
+        modules_created: number;
+        functions_created: number;
+        classes_created: number;
+        edges_created: number;
+      }>("graph_index_repo", {
+        repoPath: "C:\\Users\\Thoma\\vibe-os",
+        sessionId: "test-session",
+      });
+      setIndexResult(
+        `${result.repo_name}: ${result.modules_created} modules, ${result.functions_created} functions, ${result.classes_created} classes, ${result.edges_created} edges`,
+      );
+      await fetchGraph();
+    } catch (e) {
+      setIndexResult(`Error: ${e}`);
+    } finally {
+      setIndexing(false);
+    }
   }, [fetchGraph]);
 
   // ── Search ──
@@ -381,6 +413,16 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
         </div>
 
         <button
+          onClick={indexRepo}
+          disabled={indexing}
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-v-accent bg-v-accent/10 hover:bg-v-accent/20 transition-colors disabled:opacity-50"
+          title="Index vibe-os repo"
+        >
+          <FolderGit2 size={10} className={indexing ? "animate-spin" : ""} />
+          {indexing ? "Indexing..." : "Index Repo"}
+        </button>
+
+        <button
           onClick={fetchGraph}
           className="p-1 text-v-dim hover:text-v-text transition-colors"
           title="Refresh"
@@ -429,6 +471,11 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
         </div>
 
         <div className="flex-1" />
+        {indexResult && (
+          <span className={`text-[9px] font-mono ${indexResult.startsWith("Error") ? "text-v-red" : "text-v-green"}`}>
+            {indexResult}
+          </span>
+        )}
         <span className="text-[9px] text-v-dim font-mono">
           {nodeCount} nodes &middot; {edgeCount} edges
         </span>
