@@ -5,6 +5,7 @@ pub mod context_commands;
 pub mod db_commands;
 pub mod decision_commands;
 pub mod file_commands;
+pub mod graph_commands;
 pub mod script_commands;
 pub mod shell_commands;
 pub mod token_commands;

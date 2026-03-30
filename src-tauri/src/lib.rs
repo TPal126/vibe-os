@@ -4,6 +4,7 @@ use tokio::sync::Mutex as TokioMutex;
 
 mod commands;
 mod db;
+mod graph;
 mod services;
 
 use commands::architecture_commands;
@@ -13,6 +14,7 @@ use commands::context_commands;
 use commands::db_commands;
 use commands::decision_commands;
 use commands::file_commands;
+use commands::graph_commands;
 use commands::script_commands;
 use commands::shell_commands;
 use commands::token_commands;
@@ -38,8 +40,20 @@ pub fn run() {
             let conn = db::initialize_db(&db_path)
                 .expect("Failed to initialize database");
 
-            // Register the database connection as managed state
+            // Register the SQLite database connection as managed state
             app.manage(Mutex::new(conn));
+
+            // Initialize SurrealDB graph database
+            let graph_db = tauri::async_runtime::block_on(async {
+                let gdb = graph::connection::initialize_graph_db(&app_data_dir)
+                    .await
+                    .expect("Failed to initialize graph DB");
+                graph::schema::define_schema(&gdb)
+                    .await
+                    .expect("Failed to define graph schema");
+                gdb
+            });
+            app.manage(graph_db);
 
             // Register workspace watcher state
             app.manage(Arc::new(TokioMutex::new(
@@ -131,6 +145,20 @@ pub fn run() {
             token_commands::set_token_budget,
             token_commands::get_token_budgets,
             token_commands::delete_token_budget,
+            // Graph commands
+            graph_commands::graph_get_full,
+            graph_commands::graph_get_provenance,
+            graph_commands::graph_get_impact,
+            graph_commands::graph_get_session_report,
+            graph_commands::graph_get_skill_effectiveness,
+            graph_commands::graph_search,
+            graph_commands::graph_create_node,
+            graph_commands::graph_upsert_node,
+            graph_commands::graph_get_node,
+            graph_commands::graph_list_nodes,
+            graph_commands::graph_delete_node,
+            graph_commands::graph_relate,
+            graph_commands::graph_get_edges,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
