@@ -4,3 +4,4 @@ pub mod nodes;
 pub mod edges;
 pub mod queries;
 pub mod indexer;
+pub mod population;

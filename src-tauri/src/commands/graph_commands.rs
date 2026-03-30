@@ -5,6 +5,7 @@ use crate::graph::queries;
 use crate::graph::nodes;
 use crate::graph::edges;
 use crate::graph::indexer;
+use crate::graph::population;
 
 // ── Graph query commands ──
 
@@ -173,6 +174,85 @@ pub async fn graph_index_repo(
     session_id: String,
 ) -> Result<indexer::IndexResult, String> {
     indexer::index_repo(&db, &repo_path, &session_id).await
+}
+
+// ── Population commands ──
+
+#[tauri::command]
+pub async fn graph_populate_decision(
+    db: tauri::State<'_, Surreal<Db>>,
+    id: String,
+    session_id: String,
+    summary: String,
+    rationale: String,
+    confidence: f64,
+    impact: String,
+    reversible: bool,
+    related_files: Vec<String>,
+    related_tickets: Vec<String>,
+    timestamp: String,
+) -> Result<(), String> {
+    population::populate_decision(
+        &db, &id, &session_id, &summary, &rationale, confidence,
+        &impact, reversible, &related_files, &related_tickets, &timestamp,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn graph_populate_action(
+    db: tauri::State<'_, Surreal<Db>>,
+    id: String,
+    session_id: String,
+    action_type: String,
+    detail: String,
+    actor: String,
+    timestamp: String,
+    metadata: Option<String>,
+) -> Result<(), String> {
+    population::populate_action(
+        &db, &id, &session_id, &action_type, &detail, &actor,
+        &timestamp, metadata.as_deref(),
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn graph_populate_skill(
+    db: tauri::State<'_, Surreal<Db>>,
+    name: String,
+    file_path: String,
+    category: String,
+    token_count: i64,
+    active: bool,
+    session_id: String,
+) -> Result<(), String> {
+    population::populate_skill(&db, &name, &file_path, &category, token_count, active, &session_id).await
+}
+
+#[tauri::command]
+pub async fn graph_populate_session(
+    db: tauri::State<'_, Surreal<Db>>,
+    session_id: String,
+    system_prompt: String,
+) -> Result<(), String> {
+    population::populate_session(&db, &session_id, &system_prompt).await
+}
+
+#[tauri::command]
+pub async fn graph_sync_decisions(
+    db: tauri::State<'_, Surreal<Db>>,
+    decisions: Vec<serde_json::Value>,
+) -> Result<i64, String> {
+    population::sync_decisions_from_sqlite(&db, decisions).await
+}
+
+#[tauri::command]
+pub async fn graph_sync_audit(
+    db: tauri::State<'_, Surreal<Db>>,
+    entries: Vec<serde_json::Value>,
+) -> Result<i64, String> {
+    population::sync_audit_from_sqlite(&db, entries).await
 }
 
 #[tauri::command]

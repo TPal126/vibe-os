@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { commands, showSaveDialog } from "../../lib/tauri";
 import type { Decision, SliceCreator, DecisionSlice } from "../types";
 
@@ -65,6 +66,20 @@ export const createDecisionSlice: SliceCreator<DecisionSlice> = (set, get) => ({
         relatedTickets: raw.related_tickets,
       };
       set((state) => ({ decisions: [newDecision, ...state.decisions] }));
+
+      // Mirror to knowledge graph (fire-and-forget)
+      invoke("graph_populate_decision", {
+        id: raw.id,
+        sessionId: raw.session_id,
+        summary: raw.decision,
+        rationale: raw.rationale,
+        confidence: raw.confidence,
+        impact: raw.impact_category,
+        reversible: raw.reversible,
+        relatedFiles: raw.related_files,
+        relatedTickets: raw.related_tickets,
+        timestamp: raw.timestamp,
+      }).catch(() => {});
     } catch (e) {
       console.error("Failed to record decision:", e);
     }

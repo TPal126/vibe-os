@@ -363,6 +363,22 @@ fn log_to_audit(app: &AppHandle, event: &AgentEvent) {
                     rusqlite::params![id, session_id, event.timestamp, action_type, event.content, metadata_str],
                 );
 
+                // Mirror action to knowledge graph (fire-and-forget async)
+                if let Some(graph_db) = app.try_state::<surrealdb::Surreal<surrealdb::engine::local::Db>>() {
+                    let gdb = graph_db.inner().clone();
+                    let gid = id.clone();
+                    let gsid = session_id.clone();
+                    let gat = action_type.clone();
+                    let gdet = event.content.clone();
+                    let gts = event.timestamp.clone();
+                    let gmeta = metadata_str.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let _ = crate::graph::population::populate_action(
+                            &gdb, &gid, &gsid, &gat, &gdet, "agent", &gts, gmeta.as_deref(),
+                        ).await;
+                    });
+                }
+
                 if event.event_type == AgentEventType::Decision {
                     let decision = decision_commands::Decision {
                         id: uuid::Uuid::new_v4().to_string(),
@@ -383,6 +399,20 @@ fn log_to_audit(app: &AppHandle, event: &AgentEvent) {
                         related_tickets: Vec::new(),
                     };
                     let _ = decision_commands::insert_decision(&conn, &decision);
+
+                    // Mirror decision to knowledge graph
+                    if let Some(graph_db) = app.try_state::<surrealdb::Surreal<surrealdb::engine::local::Db>>() {
+                        let gdb = graph_db.inner().clone();
+                        let dec = decision;
+                        tauri::async_runtime::spawn(async move {
+                            let _ = crate::graph::population::populate_decision(
+                                &gdb, &dec.id, &dec.session_id, &dec.decision,
+                                &dec.rationale, dec.confidence, &dec.impact_category,
+                                dec.reversible, &dec.related_files, &dec.related_tickets,
+                                &dec.timestamp,
+                            ).await;
+                        });
+                    }
                 }
             }
         }

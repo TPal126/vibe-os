@@ -160,6 +160,12 @@ pub fn run() {
             graph_commands::graph_relate,
             graph_commands::graph_get_edges,
             graph_commands::graph_index_repo,
+            graph_commands::graph_populate_decision,
+            graph_commands::graph_populate_action,
+            graph_commands::graph_populate_skill,
+            graph_commands::graph_populate_session,
+            graph_commands::graph_sync_decisions,
+            graph_commands::graph_sync_audit,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
