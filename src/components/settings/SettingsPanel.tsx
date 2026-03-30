@@ -6,6 +6,7 @@ import {
   Folder,
   ScrollText,
   Activity,
+  Share2,
 } from "lucide-react";
 import { TabStrip, type Tab } from "../layout/TabStrip";
 import { RepoManager } from "../panels/RepoManager";
@@ -14,6 +15,7 @@ import { TokenControlPanel } from "../panels/TokenControlPanel";
 import { WorkspaceTree } from "../panels/WorkspaceTree";
 import { AuditLog } from "../panels/AuditLog";
 import { AgentStream } from "../panels/AgentStream";
+import { KnowledgeGraph } from "../center/KnowledgeGraph";
 import { useAppStore } from "../../stores";
 
 const settingsTabs: Tab[] = [
@@ -23,6 +25,7 @@ const settingsTabs: Tab[] = [
   { id: "files", label: "Files", icon: <Folder size={10} /> },
   { id: "audit", label: "Audit", icon: <ScrollText size={10} /> },
   { id: "events", label: "Events", icon: <Activity size={10} /> },
+  { id: "graph", label: "Graph", icon: <Share2 size={10} /> },
 ];
 
 function FilesTabWrapper() {
@@ -56,6 +59,7 @@ export function SettingsPanel() {
         {activeTab === "files" && <FilesTabWrapper />}
         {activeTab === "audit" && <AuditLog />}
         {activeTab === "events" && <AgentStream />}
+        {activeTab === "graph" && <KnowledgeGraph />}
       </div>
     </div>
   );
