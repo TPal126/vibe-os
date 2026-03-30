@@ -1,6 +1,5 @@
 import { useRef, useEffect } from "react";
 import {
-  X,
   FolderGit2,
   BookOpen,
   Gauge,
@@ -42,46 +41,22 @@ function FilesTabWrapper() {
 }
 
 export function SettingsPanel() {
-  const isOpen = useAppStore((s) => s.settingsPanelOpen);
   const activeTab = useAppStore((s) => s.settingsPanelTab);
   const setTab = useAppStore((s) => s.setSettingsPanelTab);
-  const setOpen = useAppStore((s) => s.setSettingsPanelOpen);
-  const close = () => setOpen(false);
 
   return (
-    <>
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/30 z-40" onClick={close} />
-      )}
-      <div
-        className={`fixed top-10 bottom-0 right-0 z-50 bg-v-bg border-l border-v-border flex flex-col transition-transform duration-200 ease-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-        style={{ width: "400px" }}
-      >
-        <div className="flex items-center shrink-0 border-b border-v-border">
-          <div className="flex-1 overflow-hidden">
-            <TabStrip tabs={settingsTabs} activeId={activeTab} onChange={setTab} />
-          </div>
-          <button
-            onClick={close}
-            className="px-3 py-1.5 text-v-dim hover:text-v-text transition-colors"
-            title="Close settings"
-          >
-            <X size={14} />
-          </button>
-        </div>
-        {isOpen && (
-          <div className="flex-1 overflow-hidden">
-            {activeTab === "repos" && <RepoManager />}
-            {activeTab === "skills" && <SkillsPanel />}
-            {activeTab === "tokens" && <TokenControlPanel />}
-            {activeTab === "files" && <FilesTabWrapper />}
-            {activeTab === "audit" && <AuditLog />}
-            {activeTab === "events" && <AgentStream />}
-          </div>
-        )}
+    <div className="w-[320px] shrink-0 border-l border-v-border bg-v-bg flex flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-v-border">
+        <TabStrip tabs={settingsTabs} activeId={activeTab} onChange={setTab} />
       </div>
-    </>
+      <div className="flex-1 overflow-hidden">
+        {activeTab === "repos" && <RepoManager />}
+        {activeTab === "skills" && <SkillsPanel />}
+        {activeTab === "tokens" && <TokenControlPanel />}
+        {activeTab === "files" && <FilesTabWrapper />}
+        {activeTab === "audit" && <AuditLog />}
+        {activeTab === "events" && <AgentStream />}
+      </div>
+    </div>
   );
 }

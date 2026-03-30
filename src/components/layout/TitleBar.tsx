@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X, Settings, ArrowLeft, Bell } from "lucide-react";
+import { Minus, Square, X, ArrowLeft, Bell } from "lucide-react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { Badge } from "../shared/Badge";
@@ -24,7 +24,6 @@ export function TitleBar() {
     openProject,
     setActiveClaudeSessionId,
     openWorkspace,
-    toggleSettingsPanel,
   } = useAppStore(
     useShallow((s) => ({
       repos: s.repos,
@@ -38,7 +37,6 @@ export function TitleBar() {
       openProject: s.openProject,
       setActiveClaudeSessionId: s.setActiveClaudeSessionId,
       openWorkspace: s.openWorkspace,
-      toggleSettingsPanel: s.toggleSettingsPanel,
     })),
   );
 
@@ -138,15 +136,6 @@ export function TitleBar() {
             <span className="text-[11px] font-medium text-v-orange">
               {attentionCount} need{attentionCount === 1 ? "s" : ""} you
             </span>
-          </button>
-        )}
-        {!isHome && (
-          <button
-            onClick={toggleSettingsPanel}
-            className="p-2 hover:bg-v-surfaceHi rounded transition-colors"
-            title="Settings"
-          >
-            <Settings size={12} className="text-v-dim" />
           </button>
         )}
         <button
