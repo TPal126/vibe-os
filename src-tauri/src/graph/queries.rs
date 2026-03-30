@@ -67,13 +67,35 @@ pub struct SkillStats {
 
 // ── Helper to extract nodes from union results ──
 
+/// Extract a string from a SurrealDB value that might be a plain string,
+/// a Record ID object, or a nested structure.
+fn val_to_string(v: &serde_json::Value) -> Option<String> {
+    // Plain string
+    if let Some(s) = v.as_str() {
+        return Some(s.to_string());
+    }
+    // SurrealDB Thing: {"tb": "repo", "id": {"String": "vibe_os"}}
+    if let Some(obj) = v.as_object() {
+        if let (Some(tb), Some(id)) = (obj.get("tb"), obj.get("id")) {
+            let tb_s = tb.as_str().unwrap_or("");
+            let id_s = id.as_str()
+                .map(|s| s.to_string())
+                .or_else(|| id.get("String").and_then(|s| s.as_str()).map(|s| s.to_string()))
+                .unwrap_or_else(|| format!("{}", id));
+            return Some(format!("{tb_s}:{id_s}"));
+        }
+    }
+    // Fallback: stringify it
+    Some(format!("{}", v).trim_matches('"').to_string())
+}
+
 fn extract_graph_nodes(values: Vec<serde_json::Value>) -> Vec<GraphNode> {
     values
         .into_iter()
         .filter_map(|val| {
-            let id = val.get("id")?.as_str()?.to_string();
+            let id = val_to_string(val.get("id")?)?;
             let node_type = val.get("node_type")?.as_str()?.to_string();
-            let label = val.get("label")?.as_str()?.to_string();
+            let label = val.get("label").and_then(|v| v.as_str()).unwrap_or(&id).to_string();
             Some(GraphNode { id, node_type, label, data: val })
         })
         .collect()
@@ -83,10 +105,10 @@ fn extract_graph_edges(values: Vec<serde_json::Value>) -> Vec<GraphEdge> {
     values
         .into_iter()
         .filter_map(|val| {
-            let source = val.get("source")?.as_str()?.to_string();
-            let target = val.get("target")?.as_str()?.to_string();
+            let source = val_to_string(val.get("source")?)?;
+            let target = val_to_string(val.get("target")?)?;
             let edge_type = val.get("edge_type")?.as_str()?.to_string();
-            let id = val.get("id").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let id = val.get("id").and_then(|v| val_to_string(v)).unwrap_or_default();
             Some(GraphEdge { id, source, target, edge_type, data: val })
         })
         .collect()
