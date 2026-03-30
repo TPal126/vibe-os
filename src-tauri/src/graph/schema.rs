@@ -40,7 +40,7 @@ fn err<E: std::fmt::Display>(e: E) -> String {
 // ── Node Schemas ──
 
 const REPO_SCHEMA: &str = "
-DEFINE TABLE repo SCHEMAFULL OVERWRITE;
+DEFINE TABLE repo SCHEMAFULL;
 DEFINE FIELD name           ON repo TYPE string;
 DEFINE FIELD org            ON repo TYPE string;
 DEFINE FIELD url            ON repo TYPE option<string>;
@@ -58,7 +58,7 @@ DEFINE FIELD metadata       ON repo TYPE option<object>;
 ";
 
 const MODULE_SCHEMA: &str = "
-DEFINE TABLE module SCHEMAFULL OVERWRITE;
+DEFINE TABLE module SCHEMAFULL;
 DEFINE FIELD name           ON module TYPE string;
 DEFINE FIELD file_path      ON module TYPE string;
 DEFINE FIELD repo_id        ON module TYPE record<repo>;
@@ -73,7 +73,7 @@ DEFINE FIELD metadata       ON module TYPE option<object>;
 ";
 
 const FUNCTION_SCHEMA: &str = "
-DEFINE TABLE function SCHEMAFULL OVERWRITE;
+DEFINE TABLE function SCHEMAFULL;
 DEFINE FIELD name           ON function TYPE string;
 DEFINE FIELD qualified_name ON function TYPE string;
 DEFINE FIELD module_id      ON function TYPE record<module>;
@@ -96,7 +96,7 @@ DEFINE FIELD metadata       ON function TYPE option<object>;
 ";
 
 const CLASS_SCHEMA: &str = "
-DEFINE TABLE class SCHEMAFULL OVERWRITE;
+DEFINE TABLE class SCHEMAFULL;
 DEFINE FIELD name           ON class TYPE string;
 DEFINE FIELD qualified_name ON class TYPE string;
 DEFINE FIELD module_id      ON class TYPE record<module>;
@@ -114,7 +114,7 @@ DEFINE FIELD metadata       ON class TYPE option<object>;
 ";
 
 const TICKET_SCHEMA: &str = "
-DEFINE TABLE ticket SCHEMAFULL OVERWRITE;
+DEFINE TABLE ticket SCHEMAFULL;
 DEFINE FIELD key            ON ticket TYPE string;
 DEFINE FIELD title          ON ticket TYPE string;
 DEFINE FIELD description    ON ticket TYPE option<string>;
@@ -133,7 +133,7 @@ DEFINE FIELD metadata       ON ticket TYPE option<object>;
 ";
 
 const SKILL_SCHEMA: &str = "
-DEFINE TABLE skill SCHEMAFULL OVERWRITE;
+DEFINE TABLE skill SCHEMAFULL;
 DEFINE FIELD name           ON skill TYPE string;
 DEFINE FIELD file_path      ON skill TYPE string;
 DEFINE FIELD category       ON skill TYPE string;
@@ -148,7 +148,7 @@ DEFINE FIELD metadata       ON skill TYPE option<object>;
 ";
 
 const DECISION_SCHEMA: &str = "
-DEFINE TABLE decision SCHEMAFULL OVERWRITE;
+DEFINE TABLE decision SCHEMAFULL;
 DEFINE FIELD summary        ON decision TYPE string;
 DEFINE FIELD rationale      ON decision TYPE string;
 DEFINE FIELD confidence     ON decision TYPE float;
@@ -166,7 +166,7 @@ DEFINE FIELD metadata       ON decision TYPE option<object>;
 ";
 
 const ACTION_SCHEMA: &str = "
-DEFINE TABLE action SCHEMAFULL OVERWRITE;
+DEFINE TABLE action SCHEMAFULL;
 DEFINE FIELD action_type    ON action TYPE string;
 DEFINE FIELD detail         ON action TYPE string;
 DEFINE FIELD actor          ON action TYPE string;
@@ -180,7 +180,7 @@ DEFINE FIELD metadata       ON action TYPE option<object>;
 ";
 
 const TEST_SCHEMA: &str = "
-DEFINE TABLE test SCHEMAFULL OVERWRITE;
+DEFINE TABLE test SCHEMAFULL;
 DEFINE FIELD name           ON test TYPE string;
 DEFINE FIELD file_path      ON test TYPE string;
 DEFINE FIELD module_id      ON test TYPE option<record<module>>;
@@ -194,7 +194,7 @@ DEFINE FIELD metadata       ON test TYPE option<object>;
 ";
 
 const SESSION_SCHEMA: &str = "
-DEFINE TABLE session SCHEMAFULL OVERWRITE;
+DEFINE TABLE session SCHEMAFULL;
 DEFINE FIELD started_at     ON session TYPE datetime;
 DEFINE FIELD ended_at       ON session TYPE option<datetime>;
 DEFINE FIELD system_prompt  ON session TYPE string;
@@ -206,7 +206,7 @@ DEFINE FIELD metadata       ON session TYPE option<object>;
 ";
 
 const PROMPT_SCHEMA: &str = "
-DEFINE TABLE prompt SCHEMAFULL OVERWRITE;
+DEFINE TABLE prompt SCHEMAFULL;
 DEFINE FIELD purpose        ON prompt TYPE string;
 DEFINE FIELD system_text    ON prompt TYPE string;
 DEFINE FIELD task_text      ON prompt TYPE string;
@@ -223,53 +223,53 @@ DEFINE FIELD metadata       ON prompt TYPE option<object>;
 // ── Edge Schemas ──
 
 const STRUCTURAL_EDGES: &str = "
-DEFINE TABLE belongs_to SCHEMALESS OVERWRITE;
-DEFINE TABLE imports SCHEMALESS OVERWRITE;
+DEFINE TABLE belongs_to SCHEMALESS;
+DEFINE TABLE imports SCHEMALESS;
 DEFINE FIELD import_type ON imports TYPE option<string>;
-DEFINE TABLE calls SCHEMALESS OVERWRITE;
+DEFINE TABLE calls SCHEMALESS;
 DEFINE FIELD call_count ON calls TYPE int DEFAULT 1;
-DEFINE TABLE inherits SCHEMALESS OVERWRITE;
-DEFINE TABLE defined_in SCHEMALESS OVERWRITE;
+DEFINE TABLE inherits SCHEMALESS;
+DEFINE TABLE defined_in SCHEMALESS;
 ";
 
 const REASONING_EDGES: &str = "
-DEFINE TABLE informed_by SCHEMALESS OVERWRITE;
+DEFINE TABLE informed_by SCHEMALESS;
 DEFINE FIELD relevance ON informed_by TYPE option<float>;
-DEFINE TABLE modified SCHEMALESS OVERWRITE;
+DEFINE TABLE modified SCHEMALESS;
 DEFINE FIELD change_type ON modified TYPE option<string>;
 DEFINE FIELD diff_stats ON modified TYPE option<object>;
-DEFINE TABLE addresses SCHEMALESS OVERWRITE;
-DEFINE TABLE led_to SCHEMALESS OVERWRITE;
+DEFINE TABLE addresses SCHEMALESS;
+DEFINE TABLE led_to SCHEMALESS;
 DEFINE FIELD relationship ON led_to TYPE option<string>;
-DEFINE TABLE validated_by SCHEMALESS OVERWRITE;
+DEFINE TABLE validated_by SCHEMALESS;
 DEFINE FIELD result ON validated_by TYPE option<string>;
-DEFINE TABLE triggered_by SCHEMALESS OVERWRITE;
+DEFINE TABLE triggered_by SCHEMALESS;
 ";
 
 const WORK_EDGES: &str = "
-DEFINE TABLE implemented_by SCHEMALESS OVERWRITE;
+DEFINE TABLE implemented_by SCHEMALESS;
 DEFINE FIELD completion ON implemented_by TYPE option<float>;
-DEFINE TABLE linked_to SCHEMALESS OVERWRITE;
-DEFINE TABLE depends_on SCHEMALESS OVERWRITE;
+DEFINE TABLE linked_to SCHEMALESS;
+DEFINE TABLE depends_on SCHEMALESS;
 DEFINE FIELD dependency_type ON depends_on TYPE option<string>;
-DEFINE TABLE updated_by SCHEMALESS OVERWRITE;
+DEFINE TABLE updated_by SCHEMALESS;
 DEFINE FIELD field_changed ON updated_by TYPE option<string>;
 DEFINE FIELD old_value ON updated_by TYPE option<string>;
 DEFINE FIELD new_value ON updated_by TYPE option<string>;
 ";
 
 const CONTEXT_EDGES: &str = "
-DEFINE TABLE included_in SCHEMALESS OVERWRITE;
+DEFINE TABLE included_in SCHEMALESS;
 DEFINE FIELD token_contribution ON included_in TYPE option<int>;
-DEFINE TABLE contextualized SCHEMALESS OVERWRITE;
+DEFINE TABLE contextualized SCHEMALESS;
 DEFINE FIELD index_summary ON contextualized TYPE option<string>;
-DEFINE TABLE produced SCHEMALESS OVERWRITE;
+DEFINE TABLE produced SCHEMALESS;
 ";
 
 const TEMPORAL_EDGES: &str = "
-DEFINE TABLE occurred_in SCHEMALESS OVERWRITE;
+DEFINE TABLE occurred_in SCHEMALESS;
 DEFINE FIELD sequence_num ON occurred_in TYPE option<int>;
-DEFINE TABLE followed SCHEMALESS OVERWRITE;
+DEFINE TABLE followed SCHEMALESS;
 DEFINE FIELD gap_ms ON followed TYPE option<int>;
 ";
 
