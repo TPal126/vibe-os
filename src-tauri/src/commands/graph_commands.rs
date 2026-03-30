@@ -183,20 +183,27 @@ pub async fn graph_debug_dump(
     db: tauri::State<'_, Surreal<Db>>,
 ) -> Result<serde_json::Value, String> {
     let mut r = db
-        .query("SELECT id, 'module' AS node_type, name AS label FROM module LIMIT 3")
+        .query("SELECT count() AS cnt FROM fn_def GROUP ALL")
         .await
         .map_err(|e| e.to_string())?;
-    let rows: Vec<serde_json::Value> = r.take(0).unwrap_or_default();
+    let fn_count: Vec<serde_json::Value> = r.take(0).unwrap_or_default();
 
     let mut r2 = db
         .query("SELECT count() AS cnt FROM module GROUP ALL")
         .await
         .map_err(|e| e.to_string())?;
-    let count: Vec<serde_json::Value> = r2.take(0).unwrap_or_default();
+    let mod_count: Vec<serde_json::Value> = r2.take(0).unwrap_or_default();
+
+    let mut r3 = db
+        .query("SELECT id, name FROM fn_def LIMIT 3")
+        .await
+        .map_err(|e| e.to_string())?;
+    let sample_fns: Vec<serde_json::Value> = r3.take(0).unwrap_or_default();
 
     Ok(serde_json::json!({
-        "sample_modules": rows,
-        "module_count": count,
+        "fn_count": fn_count,
+        "module_count": mod_count,
+        "sample_fns": sample_fns,
     }))
 }
 

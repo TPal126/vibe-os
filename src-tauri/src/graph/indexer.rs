@@ -77,6 +77,7 @@ pub async fn index_repo(
     let mut functions_created = 0i64;
     let mut classes_created = 0i64;
     let mut edges_created = 0i64;
+    let mut first_fn_error: Option<String> = None;
 
     // Process each source file
     for (rel_path, ext) in &source_files {
@@ -145,9 +146,25 @@ pub async fn index_repo(
                 "session_id": session_id,
             });
 
-            db.query(&format!("CREATE fn_def:{fn_id} CONTENT {}", serde_json::to_string(&fn_json).unwrap()))
-                .await
-                .ok();
+            let fn_query = format!("CREATE fn_def:{fn_id} CONTENT {}", serde_json::to_string(&fn_json).unwrap());
+            match db.query(&fn_query).await {
+                Ok(mut res) => {
+                    if let Err(e) = res.check() {
+                        // Store first error for debugging
+                        if functions_created == 0 {
+                            log::warn!("fn_def create check failed: {e}");
+                            // Store error in metadata for debug visibility
+                            first_fn_error = Some(format!("{e}"));
+                        }
+                    }
+                }
+                Err(e) => {
+                    if functions_created == 0 {
+                        log::warn!("fn_def create query failed: {e}");
+                        first_fn_error = Some(format!("{e}"));
+                    }
+                }
+            }
             functions_created += 1;
 
             // defined_in edge: function -> module
@@ -200,6 +217,7 @@ pub async fn index_repo(
         classes_created,
         edges_created,
         language,
+        first_fn_error,
     })
 }
 
@@ -213,6 +231,7 @@ pub struct IndexResult {
     pub classes_created: i64,
     pub edges_created: i64,
     pub language: String,
+    pub first_fn_error: Option<String>,
 }
 
 // ── Extracted structures ──

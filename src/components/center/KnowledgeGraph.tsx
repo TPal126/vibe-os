@@ -162,12 +162,14 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
         functions_created: number;
         classes_created: number;
         edges_created: number;
+        first_fn_error: string | null;
       }>("graph_index_repo", {
         repoPath: "C:\\Users\\Thoma\\vibe-os",
         sessionId: "test-session",
       });
+      const errMsg = result.first_fn_error ? ` | FN ERROR: ${result.first_fn_error}` : "";
       setIndexResult(
-        `${result.repo_name}: ${result.modules_created} modules, ${result.functions_created} functions, ${result.classes_created} classes, ${result.edges_created} edges`,
+        `${result.repo_name}: ${result.modules_created} mod, ${result.functions_created} fn, ${result.classes_created} cls, ${result.edges_created} edges${errMsg}`,
       );
       await fetchGraph();
     } catch (e) {
@@ -426,8 +428,8 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
         <button
           onClick={async () => {
             try {
-              const dump = await invoke("graph_debug_dump");
-              setIndexResult(JSON.stringify(dump));
+              const dump = await invoke("graph_debug_dump") as any;
+              setIndexResult(`fn_def DB count: ${dump.fn_count?.[0]?.cnt ?? 0} | modules: ${dump.module_count?.[0]?.cnt ?? 0} | sample_fns: ${JSON.stringify(dump.sample_fns)}`);
             } catch (e) {
               setIndexResult(`Debug error: ${e}`);
             }
