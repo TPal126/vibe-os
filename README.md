@@ -86,7 +86,8 @@ VIBE OS is a **conversation-first desktop IDE** for AI-assisted development. Eve
 | **Inline Activity Cards** | File creates, modifications, test runs, decisions, and errors render as typed cards inside the chat stream |
 | **Outcome Detection** | Auto-detects session results: test pass/fail counts, build status, preview URLs, errors |
 | **Attention Routing** | Pulsing indicators on project cards and title bar badge when sessions need your input; OS-level notifications |
-| **Settings Panel** | Gear icon opens a right slide-in panel with 6 tabs: Repos, Skills, Tokens, Files, Audit, Events |
+| **Knowledge Graph** | Embedded SurrealDB graph database tracks every entity (code, decisions, tasks, skills) and relationship. Interactive D3 force-directed visualizer with filtering, search, and node inspection |
+| **Settings Panel** | Always-visible right sidebar with 7 tabs: Repos, Skills, Tokens, Files, Audit, Events, Graph |
 | **Editor Escape Hatch** | `Ctrl+Shift+C` opens a bottom Monaco editor panel; code blocks in chat have "View Code" buttons |
 | **Code Block Summaries** | Agent code output collapses to `"python -- 42 lines"` with expand/collapse and one-click editor opening |
 | **Token Control** | Per-skill, per-repo, and session-level token budgets with color-coded warnings |
@@ -181,9 +182,24 @@ Claude's responses include structured inline cards instead of raw text:
 | **TestDetailCard** | Test suite results with pass/fail breakdown |
 | **CodeBlockSummary** | Collapsed code with line count, expand toggle, and "View Code" button |
 
-### Settings Panel (v3)
+### Knowledge Graph (v3)
 
-The gear icon in the title bar opens a right slide-in panel with 6 tabs:
+An embedded SurrealDB graph database that connects every entity in the development process:
+
+- **11 node types**: repo, module, function, class, ticket, skill, decision, action, test, session, prompt
+- **16 edge types**: structural (imports, calls, inherits), reasoning (informed_by, modified, addresses), work (implemented_by, depends_on), context (included_in, produced), temporal (occurred_in, followed)
+- **D3 force-directed visualizer** with colored nodes by type, directed edges, drag/zoom/pan
+- **Type filter toggles** to show/hide node categories
+- **Search** across all node labels
+- **Click-to-inspect** panel showing full node properties
+- **Hover** highlights connected edges, dims unrelated nodes
+- **Composite queries**: provenance trace, impact radius, session report, skill effectiveness
+
+The graph answers questions like: "Show me every decision that touched this function." "Which skills drive the highest-confidence decisions?" "What's the blast radius if I change this module?"
+
+### Settings Sidebar (v3)
+
+Always-visible right sidebar in conversation view with 7 tabs:
 
 | Tab | Content |
 |---|---|
@@ -193,6 +209,7 @@ The gear icon in the title bar opens a right slide-in panel with 6 tabs:
 | **Files** | Workspace file tree (click opens editor panel) |
 | **Audit** | Append-only action log with JSON/CSV export |
 | **Events** | Real-time agent event stream (think, decision, file ops, tests) |
+| **Graph** | Interactive knowledge graph visualizer |
 
 ### Editor Escape Hatch (v3)
 
@@ -274,13 +291,13 @@ Tests use **real captured Claude CLI output** as fixtures, not assumed formats.
 +--------------------------------------------------+
 |                  Frontend                         |
 |  React 18 . TypeScript 5.5 . Vite 6 . Tailwind 4 |
-|  Monaco Editor . Mermaid.js . Zustand . Lucide    |
+|  Monaco Editor . D3.js . Zustand . Lucide         |
 +--------------------------------------------------+
 |               Tauri v2 IPC Bridge                  |
 +--------------------------------------------------+
 |                  Backend (Rust)                     |
-|  Tokio . SQLite (WAL) . Serde . std::process      |
-|  Claude CLI subprocess . File I/O . Regex          |
+|  Tokio . SQLite (WAL) . SurrealDB (embedded)      |
+|  Serde . std::process . Claude CLI subprocess     |
 +--------------------------------------------------+
 ```
 
@@ -324,9 +341,11 @@ src/components/
   modals/        # Modal dialogs
 ```
 
-### Database
+### Databases
 
-SQLite with WAL mode. Tables: `sessions`, `settings`, `audit_log`, `decisions`, `claude_sessions`, `token_budgets`. Schema migrations via `PRAGMA user_version`.
+**SQLite** (WAL mode) for operational data: `sessions`, `settings`, `audit_log`, `decisions`, `claude_sessions`, `token_budgets`. Schema migrations via `PRAGMA user_version`.
+
+**SurrealDB** (embedded, kv-surrealkv) for the knowledge graph: 11 node tables, 16 edge tables, indexes on all hot paths. Stores at `~/.vibe-os/graph/`. Queried via SurrealQL with composite graph traversals (provenance, impact, session reports).
 
 ---
 
