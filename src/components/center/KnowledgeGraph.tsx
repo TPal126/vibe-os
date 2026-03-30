@@ -424,6 +424,20 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
         </div>
 
         <button
+          onClick={async () => {
+            try {
+              const dump = await invoke("graph_debug_dump");
+              setIndexResult(JSON.stringify(dump));
+            } catch (e) {
+              setIndexResult(`Debug error: ${e}`);
+            }
+          }}
+          className="px-1.5 py-0.5 rounded text-[9px] font-mono text-v-dim bg-v-surface hover:bg-v-surfaceHi transition-colors"
+        >
+          Debug
+        </button>
+
+        <button
           onClick={fetchGraph}
           className="p-1 text-v-dim hover:text-v-text transition-colors"
           title="Refresh"

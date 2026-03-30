@@ -160,6 +160,7 @@ pub fn run() {
             graph_commands::graph_relate,
             graph_commands::graph_get_edges,
             graph_commands::graph_index_repo,
+            graph_commands::graph_debug_dump,
             graph_commands::graph_populate_decision,
             graph_commands::graph_populate_action,
             graph_commands::graph_populate_skill,

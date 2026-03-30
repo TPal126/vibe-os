@@ -61,7 +61,7 @@ const MODULE_SCHEMA: &str = "
 DEFINE TABLE IF NOT EXISTS module SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS name           ON module TYPE string;
 DEFINE FIELD IF NOT EXISTS file_path      ON module TYPE string;
-DEFINE FIELD IF NOT EXISTS repo_id        ON module TYPE record<repo>;
+DEFINE FIELD IF NOT EXISTS repo_id        ON module TYPE string;
 DEFINE FIELD IF NOT EXISTS line_count     ON module TYPE int;
 DEFINE FIELD IF NOT EXISTS docstring      ON module TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS imports        ON module TYPE array<string>;
@@ -76,8 +76,8 @@ const FUNCTION_SCHEMA: &str = "
 DEFINE TABLE IF NOT EXISTS fn_def SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS name           ON fn_def TYPE string;
 DEFINE FIELD IF NOT EXISTS qualified_name ON fn_def TYPE string;
-DEFINE FIELD IF NOT EXISTS module_id      ON fn_def TYPE record<module>;
-DEFINE FIELD IF NOT EXISTS repo_id        ON fn_def TYPE record<repo>;
+DEFINE FIELD IF NOT EXISTS module_id      ON fn_def TYPE string;
+DEFINE FIELD IF NOT EXISTS repo_id        ON fn_def TYPE string;
 DEFINE FIELD IF NOT EXISTS file_path      ON fn_def TYPE string;
 DEFINE FIELD IF NOT EXISTS line_start     ON fn_def TYPE int;
 DEFINE FIELD IF NOT EXISTS line_end       ON fn_def TYPE int;
@@ -99,8 +99,8 @@ const CLASS_SCHEMA: &str = "
 DEFINE TABLE IF NOT EXISTS class SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS name           ON class TYPE string;
 DEFINE FIELD IF NOT EXISTS qualified_name ON class TYPE string;
-DEFINE FIELD IF NOT EXISTS module_id      ON class TYPE record<module>;
-DEFINE FIELD IF NOT EXISTS repo_id        ON class TYPE record<repo>;
+DEFINE FIELD IF NOT EXISTS module_id      ON class TYPE string;
+DEFINE FIELD IF NOT EXISTS repo_id        ON class TYPE string;
 DEFINE FIELD IF NOT EXISTS file_path      ON class TYPE string;
 DEFINE FIELD IF NOT EXISTS line_start     ON class TYPE int;
 DEFINE FIELD IF NOT EXISTS line_end       ON class TYPE int;
@@ -183,7 +183,7 @@ const TEST_SCHEMA: &str = "
 DEFINE TABLE IF NOT EXISTS test SCHEMAFULL;
 DEFINE FIELD IF NOT EXISTS name           ON test TYPE string;
 DEFINE FIELD IF NOT EXISTS file_path      ON test TYPE string;
-DEFINE FIELD IF NOT EXISTS module_id      ON test TYPE option<record<module>>;
+DEFINE FIELD IF NOT EXISTS module_id      ON test TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS status         ON test TYPE string;
 DEFINE FIELD IF NOT EXISTS duration_ms    ON test TYPE option<int>;
 DEFINE FIELD IF NOT EXISTS error_output   ON test TYPE option<string>;
