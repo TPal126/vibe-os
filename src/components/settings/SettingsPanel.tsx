@@ -47,8 +47,11 @@ export function SettingsPanel() {
   const activeTab = useAppStore((s) => s.settingsPanelTab);
   const setTab = useAppStore((s) => s.setSettingsPanelTab);
 
+  // Graph tab gets more real estate
+  const isWide = activeTab === "graph";
+
   return (
-    <div className="w-[320px] shrink-0 border-l border-v-border bg-v-bg flex flex-col overflow-hidden">
+    <div className={`${isWide ? "w-[55vw]" : "w-[320px]"} shrink-0 border-l border-v-border bg-v-bg flex flex-col overflow-hidden transition-all duration-200`}>
       <div className="shrink-0 border-b border-v-border">
         <TabStrip tabs={settingsTabs} activeId={activeTab} onChange={setTab} />
       </div>

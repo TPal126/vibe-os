@@ -23,7 +23,7 @@ pub async fn index_repo(
         .unwrap_or("unknown");
 
     let safe_id = sanitize_id(repo_name);
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
     // Collect all source files
     let mut source_files: Vec<(String, String)> = Vec::new(); // (relative_path, extension)

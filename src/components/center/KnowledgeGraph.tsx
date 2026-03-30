@@ -399,28 +399,29 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
   return (
     <div className="flex flex-col h-full bg-v-bg">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-v-border shrink-0">
-        <div className="flex items-center gap-1 bg-v-surface rounded px-2 py-0.5 flex-1 max-w-[240px]">
+      <div className="flex flex-wrap items-center gap-1.5 px-2 py-1.5 border-b border-v-border shrink-0">
+        {/* Row 1: Index + Search + Refresh + Zoom */}
+        <button
+          onClick={indexRepo}
+          disabled={indexing}
+          className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono text-v-accent bg-v-accent/10 hover:bg-v-accent/20 transition-colors disabled:opacity-50"
+          title="Index vibe-os repo"
+        >
+          <FolderGit2 size={11} className={indexing ? "animate-spin" : ""} />
+          {indexing ? "Indexing..." : "Index Repo"}
+        </button>
+
+        <div className="flex items-center gap-1 bg-v-surface rounded px-2 py-0.5 min-w-[120px] flex-1 max-w-[200px]">
           <Search size={10} className="text-v-dim shrink-0" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && searchGraph()}
-            placeholder="Search graph..."
+            placeholder="Search..."
             className="bg-transparent text-[11px] text-v-text outline-none w-full placeholder:text-v-dim"
           />
         </div>
-
-        <button
-          onClick={indexRepo}
-          disabled={indexing}
-          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono text-v-accent bg-v-accent/10 hover:bg-v-accent/20 transition-colors disabled:opacity-50"
-          title="Index vibe-os repo"
-        >
-          <FolderGit2 size={10} className={indexing ? "animate-spin" : ""} />
-          {indexing ? "Indexing..." : "Index Repo"}
-        </button>
 
         <button
           onClick={fetchGraph}
@@ -429,8 +430,6 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
         >
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
         </button>
-
-        <div className="w-px h-4 bg-v-border" />
 
         <button onClick={() => handleZoom(1.5)} className="p-1 text-v-dim hover:text-v-text" title="Zoom in">
           <ZoomIn size={12} />
@@ -442,43 +441,40 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
           <Maximize2 size={12} />
         </button>
 
-        <div className="w-px h-4 bg-v-border" />
+        <span className="text-[9px] text-v-dim font-mono ml-auto">
+          {nodeCount}n &middot; {edgeCount}e
+        </span>
+      </div>
 
-        {/* Type filters */}
-        <div className="flex items-center gap-1">
-          <Filter size={10} className="text-v-dim" />
-          {ALL_NODE_TYPES.map((type) => (
-            <button
-              key={type}
-              onClick={() => toggleType(type)}
-              className={`px-1.5 py-0.5 rounded text-[9px] font-mono transition-colors ${
-                visibleTypes.has(type)
-                  ? "bg-opacity-20 text-opacity-100"
-                  : "bg-v-surface text-v-dim/40"
-              }`}
-              style={{
-                backgroundColor: visibleTypes.has(type)
-                  ? NODE_COLORS[type] + "30"
-                  : undefined,
-                color: visibleTypes.has(type)
-                  ? NODE_COLORS[type]
-                  : undefined,
-              }}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1" />
+      {/* Row 2: Type filters + status */}
+      <div className="flex flex-wrap items-center gap-1 px-2 py-1 border-b border-v-border shrink-0">
+        <Filter size={10} className="text-v-dim shrink-0" />
+        {ALL_NODE_TYPES.map((type) => (
+          <button
+            key={type}
+            onClick={() => toggleType(type)}
+            className={`px-1.5 py-0.5 rounded text-[9px] font-mono transition-colors ${
+              visibleTypes.has(type)
+                ? "bg-opacity-20 text-opacity-100"
+                : "bg-v-surface text-v-dim/40"
+            }`}
+            style={{
+              backgroundColor: visibleTypes.has(type)
+                ? NODE_COLORS[type] + "30"
+                : undefined,
+              color: visibleTypes.has(type)
+                ? NODE_COLORS[type]
+                : undefined,
+            }}
+          >
+            {type}
+          </button>
+        ))}
         {indexResult && (
-          <span className={`text-[9px] font-mono ${indexResult.startsWith("Error") ? "text-v-red" : "text-v-green"}`}>
+          <span className={`text-[9px] font-mono ml-auto ${indexResult.startsWith("Error") ? "text-v-red" : "text-v-green"}`}>
             {indexResult}
           </span>
         )}
-        <span className="text-[9px] text-v-dim font-mono">
-          {nodeCount} nodes &middot; {edgeCount} edges
-        </span>
       </div>
 
       {/* Graph canvas */}

@@ -15,7 +15,7 @@ interface TabStripProps {
 
 export function TabStrip({ tabs, activeId, onChange }: TabStripProps) {
   return (
-    <div className="flex border-b border-v-border bg-v-bg shrink-0 overflow-hidden">
+    <div className="flex border-b border-v-border bg-v-bg shrink-0 overflow-x-auto scrollbar-none">
       {tabs.map((tab) => {
         const isActive = tab.id === activeId;
         return (

@@ -137,7 +137,7 @@ pub async fn populate_skill(
     session_id: &str,
 ) -> Result<(), String> {
     let safe_id = sanitize_id(name);
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
     let skill_json = serde_json::json!({
         "name": name,
@@ -171,7 +171,7 @@ pub async fn populate_session(
     system_prompt: &str,
 ) -> Result<(), String> {
     let safe_id = sanitize_id(session_id);
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
     let session_json = serde_json::json!({
         "started_at": now,
