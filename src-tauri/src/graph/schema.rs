@@ -73,26 +73,26 @@ DEFINE FIELD metadata       ON module TYPE option<object>;
 ";
 
 const FUNCTION_SCHEMA: &str = "
-DEFINE TABLE function SCHEMAFULL;
-DEFINE FIELD name           ON function TYPE string;
-DEFINE FIELD qualified_name ON function TYPE string;
-DEFINE FIELD module_id      ON function TYPE record<module>;
-DEFINE FIELD repo_id        ON function TYPE record<repo>;
-DEFINE FIELD file_path      ON function TYPE string;
-DEFINE FIELD line_start     ON function TYPE int;
-DEFINE FIELD line_end       ON function TYPE int;
-DEFINE FIELD signature      ON function TYPE string;
-DEFINE FIELD docstring      ON function TYPE option<string>;
-DEFINE FIELD params         ON function TYPE array<object>;
-DEFINE FIELD return_type    ON function TYPE option<string>;
-DEFINE FIELD is_async       ON function TYPE bool;
-DEFINE FIELD is_method      ON function TYPE bool;
-DEFINE FIELD class_name     ON function TYPE option<string>;
-DEFINE FIELD complexity     ON function TYPE option<int>;
-DEFINE FIELD created_at     ON function TYPE datetime;
-DEFINE FIELD updated_at     ON function TYPE datetime;
-DEFINE FIELD session_id     ON function TYPE string;
-DEFINE FIELD metadata       ON function TYPE option<object>;
+DEFINE TABLE fn_def SCHEMAFULL;
+DEFINE FIELD name           ON fn_def TYPE string;
+DEFINE FIELD qualified_name ON fn_def TYPE string;
+DEFINE FIELD module_id      ON fn_def TYPE record<module>;
+DEFINE FIELD repo_id        ON fn_def TYPE record<repo>;
+DEFINE FIELD file_path      ON fn_def TYPE string;
+DEFINE FIELD line_start     ON fn_def TYPE int;
+DEFINE FIELD line_end       ON fn_def TYPE int;
+DEFINE FIELD signature      ON fn_def TYPE string;
+DEFINE FIELD docstring      ON fn_def TYPE option<string>;
+DEFINE FIELD params         ON fn_def TYPE array<object>;
+DEFINE FIELD return_type    ON fn_def TYPE option<string>;
+DEFINE FIELD is_async       ON fn_def TYPE bool;
+DEFINE FIELD is_method      ON fn_def TYPE bool;
+DEFINE FIELD class_name     ON fn_def TYPE option<string>;
+DEFINE FIELD complexity     ON fn_def TYPE option<int>;
+DEFINE FIELD created_at     ON fn_def TYPE datetime;
+DEFINE FIELD updated_at     ON fn_def TYPE datetime;
+DEFINE FIELD session_id     ON fn_def TYPE string;
+DEFINE FIELD metadata       ON fn_def TYPE option<object>;
 ";
 
 const CLASS_SCHEMA: &str = "
@@ -282,8 +282,8 @@ DEFINE INDEX idx_prompt_session ON prompt FIELDS session_id;
 DEFINE INDEX idx_test_session ON test FIELDS session_id;
 
 DEFINE INDEX idx_module_repo ON module FIELDS repo_id;
-DEFINE INDEX idx_function_module ON function FIELDS module_id;
-DEFINE INDEX idx_function_repo ON function FIELDS repo_id;
+DEFINE INDEX idx_function_module ON fn_def FIELDS module_id;
+DEFINE INDEX idx_function_repo ON fn_def FIELDS repo_id;
 DEFINE INDEX idx_class_module ON class FIELDS module_id;
 
 DEFINE INDEX idx_ticket_status ON ticket FIELDS status;

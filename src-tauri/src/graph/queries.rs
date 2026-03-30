@@ -105,7 +105,7 @@ pub async fn get_full_graph(
     let nodes_query = format!(
         "SELECT id, 'repo' AS node_type, name AS label FROM repo {sf};
          SELECT id, 'module' AS node_type, name AS label FROM module {sf};
-         SELECT id, 'function' AS node_type, name AS label FROM function {sf};
+         SELECT id, 'function' AS node_type, name AS label FROM fn_def {sf};
          SELECT id, 'class' AS node_type, name AS label FROM class {sf};
          SELECT id, 'ticket' AS node_type, key AS label FROM ticket WHERE linked = true;
          SELECT id, 'skill' AS node_type, name AS label FROM skill WHERE active = true;
@@ -230,7 +230,7 @@ pub async fn get_session_report(
     let sid = session_id.to_string();
     let q = "SELECT * FROM action WHERE session_id = $sid ORDER BY created_at;
              SELECT * FROM decision WHERE session_id = $sid ORDER BY created_at;
-             SELECT * FROM function WHERE session_id = $sid ORDER BY updated_at;
+             SELECT * FROM fn_def WHERE session_id = $sid ORDER BY updated_at;
              SELECT * FROM test WHERE session_id = $sid ORDER BY created_at;
              SELECT math::sum(total_tokens) AS total FROM prompt WHERE session_id = $sid;";
 

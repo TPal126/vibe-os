@@ -65,7 +65,7 @@ pub async fn graph_search(
     let sql = format!(
         "SELECT id, 'repo' AS node_type, name AS label FROM repo WHERE name CONTAINS '{q}';
          SELECT id, 'module' AS node_type, name AS label FROM module WHERE name CONTAINS '{q}';
-         SELECT id, 'function' AS node_type, name AS label FROM function WHERE name CONTAINS '{q}';
+         SELECT id, 'function' AS node_type, name AS label FROM fn_def WHERE name CONTAINS '{q}';
          SELECT id, 'class' AS node_type, name AS label FROM class WHERE name CONTAINS '{q}';
          SELECT id, 'decision' AS node_type, summary AS label FROM decision WHERE summary CONTAINS '{q}';
          SELECT id, 'skill' AS node_type, name AS label FROM skill WHERE name CONTAINS '{q}';
