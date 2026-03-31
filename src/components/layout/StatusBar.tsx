@@ -4,20 +4,30 @@ import { useShallow } from "zustand/react/shallow";
 import { Dot } from "../shared/Dot";
 import { Folder } from "lucide-react";
 
+const formatTokens = (n: number) =>
+  n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
+
+const formatCost = (tokens: number) =>
+  `$${((tokens / 1000) * 0.003).toFixed(2)}`;
+
 export function StatusBar() {
   const {
     pythonRunning,
     activeSession,
     activeWorkspace,
     claudeSessions,
+    composedPrompt,
   } = useAppStore(
     useShallow((s) => ({
       pythonRunning: s.pythonRunning,
       activeSession: s.activeSession,
       activeWorkspace: s.activeWorkspace,
       claudeSessions: s.claudeSessions,
+      composedPrompt: s.composedPrompt,
     })),
   );
+
+  const totalTokens = composedPrompt?.totalTokens ?? 0;
 
   // Derive multi-session status
   const sessionStatus = useMemo(() => {
@@ -123,9 +133,12 @@ export function StatusBar() {
       {/* Separator */}
       <span className="text-v-border">|</span>
 
-      {/* Session time */}
+      {/* Session time + cost */}
       <span className="text-[10px] font-mono text-v-dim">
-        Session: {elapsed}
+        {elapsed}
+        {totalTokens > 0
+          ? ` · ${formatCost(totalTokens)} (${formatTokens(totalTokens)} tokens)`
+          : ""}
       </span>
 
       {/* Decisions */}
