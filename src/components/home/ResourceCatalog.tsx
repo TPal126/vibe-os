@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { ResourceSection } from "./ResourceSection";
+import { RepoDropZone } from "./RepoDropZone";
 import type { GlobalRepo, Skill, AgentDefinition } from "../../stores/types";
 
 interface ResourceCatalogProps {
@@ -83,10 +84,16 @@ export function ResourceCatalog({
           </div>
         }
       >
+        <RepoDropZone
+          onDrop={(repos) => {
+            useAppStore.getState().addGlobalRepos(repos);
+            repos.forEach((r) => onToggleRepo(r.id));
+          }}
+        />
         {globalRepos.length === 0 ? (
-          <div className="border border-dashed border-v-border rounded-lg p-4 text-center">
+          <div className="text-center">
             <p className="text-[11px] text-v-dim leading-relaxed">
-              Drop a folder here, browse locally,<br />or paste a GitHub URL
+              No repos yet — browse, paste a GitHub URL, or drop folders above
             </p>
           </div>
         ) : (

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { ResourceCatalog } from "./ResourceCatalog";
+import { RepoBrowseModal } from "./RepoBrowseModal";
+import { RepoGithubModal } from "./RepoGithubModal";
 
 export function ProjectSetupView() {
   const {
@@ -173,6 +175,25 @@ export function ProjectSetupView() {
           onAddReposGithub={() => setShowGithubModal(true)}
         />
       </div>
+
+      {showBrowseModal && (
+        <RepoBrowseModal
+          onAdd={(repos) => {
+            useAppStore.getState().addGlobalRepos(repos);
+            repos.forEach((r) => setCheckedRepoIds((prev) => toggleSet(prev, r.id)));
+          }}
+          onClose={() => setShowBrowseModal(false)}
+        />
+      )}
+      {showGithubModal && (
+        <RepoGithubModal
+          onAdd={(repos) => {
+            useAppStore.getState().addGlobalRepos(repos);
+            repos.forEach((r) => setCheckedRepoIds((prev) => toggleSet(prev, r.id)));
+          }}
+          onClose={() => setShowGithubModal(false)}
+        />
+      )}
     </div>
   );
 }
