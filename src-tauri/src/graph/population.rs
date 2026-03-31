@@ -262,3 +262,92 @@ fn sanitize_id(s: &str) -> String {
         .trim_matches('_')
         .to_string()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::connection::initialize_graph_db;
+    use crate::graph::schema::define_schema;
+    use crate::graph::nodes;
+
+    async fn test_db() -> Surreal<Db> {
+        let dir = std::env::temp_dir().join(format!("vibe_pop_test_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = initialize_graph_db(&dir).await.unwrap();
+        define_schema(&db).await.unwrap();
+        db
+    }
+
+    #[tokio::test]
+    async fn test_populate_decision() {
+        let db = test_db().await;
+        populate_session(&db, "sess-1", "test prompt").await.unwrap();
+        populate_decision(
+            &db, "dec_1", "sess-1", "Use REST", "Simpler", 0.85,
+            "architecture", true, &["src/routes.rs".to_string()], &["VIBE-42".to_string()],
+            "2026-03-30T00:00:00Z",
+        ).await.unwrap();
+
+        let node = nodes::get_node(&db, "decision", "dec_1").await.unwrap();
+        assert!(node.is_some());
+        assert_eq!(node.unwrap()["summary"], "Use REST");
+    }
+
+    #[tokio::test]
+    async fn test_populate_action() {
+        let db = test_db().await;
+        populate_session(&db, "sess-1", "test prompt").await.unwrap();
+        populate_action(
+            &db, "act_1", "sess-1", "FILE_CREATE", "Created main.rs",
+            "agent", "2026-03-30T00:00:00Z", None,
+        ).await.unwrap();
+
+        let node = nodes::get_node(&db, "action", "act_1").await.unwrap();
+        assert!(node.is_some());
+        assert_eq!(node.unwrap()["action_type"], "FILE_CREATE");
+    }
+
+    #[tokio::test]
+    async fn test_populate_skill() {
+        let db = test_db().await;
+        populate_skill(&db, "test_skill", "/path/skill.md", "core", 500, true, "sess-1").await.unwrap();
+
+        let node = nodes::get_node(&db, "skill", "test_skill").await.unwrap();
+        assert!(node.is_some());
+        assert_eq!(node.unwrap()["token_count"], 500);
+    }
+
+    #[tokio::test]
+    async fn test_populate_session() {
+        let db = test_db().await;
+        populate_session(&db, "sess_1", "You are a helpful assistant").await.unwrap();
+
+        let node = nodes::get_node(&db, "session", "sess_1").await.unwrap();
+        assert!(node.is_some());
+        assert_eq!(node.unwrap()["system_prompt"], "You are a helpful assistant");
+    }
+
+    #[tokio::test]
+    async fn test_sync_decisions_from_sqlite() {
+        let db = test_db().await;
+        populate_session(&db, "sess-1", "").await.unwrap();
+
+        let decisions = vec![serde_json::json!({
+            "id": "d1",
+            "session_id": "sess-1",
+            "decision": "Use Zustand",
+            "rationale": "Simple state management",
+            "confidence": 0.9,
+            "impact_category": "dx",
+            "reversible": true,
+            "timestamp": "2026-03-30T00:00:00Z",
+            "related_files": [],
+            "related_tickets": [],
+        })];
+
+        let count = sync_decisions_from_sqlite(&db, decisions).await.unwrap();
+        assert_eq!(count, 1);
+        let node = nodes::get_node(&db, "decision", "d1").await.unwrap();
+        assert!(node.is_some());
+    }
+}
