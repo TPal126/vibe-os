@@ -29,7 +29,7 @@ walkdir = "2"
 glob = "0.3"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2"
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1", features = ["sync", "rt-multi-thread", "macros"] }
 regex = "1"
 notify = "8"
 notify-debouncer-mini = "0.7"
