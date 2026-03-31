@@ -9,8 +9,35 @@ import { useAppStore } from "../stores";
 export function useKeyboardShortcuts() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Escape: restore maximized pane (takes priority over editor panel close)
+      if (e.key === "Escape") {
+        const { maximizedPane, setMaximizedPane } = useAppStore.getState();
+        if (maximizedPane) {
+          e.preventDefault();
+          setMaximizedPane(null);
+          return;
+        }
+      }
+
       const isMod = e.ctrlKey || e.metaKey;
       if (!isMod) return;
+
+      // Ctrl+1-4: maximize/restore quadrant panes
+      if (e.ctrlKey && !e.shiftKey && !e.altKey) {
+        const paneMap: Record<string, string> = {
+          "1": "top-left",
+          "2": "top-right",
+          "3": "bottom-left",
+          "4": "bottom-right",
+        };
+        const pane = paneMap[e.key];
+        if (pane) {
+          e.preventDefault();
+          const { maximizedPane, setMaximizedPane } = useAppStore.getState();
+          setMaximizedPane(maximizedPane === pane ? null : pane);
+          return;
+        }
+      }
 
       switch (e.key) {
         case "r":
