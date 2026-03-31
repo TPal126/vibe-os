@@ -25,3 +25,9 @@ Thumbs.db
 
 # Planning (tracked separately)
 .planning/
+
+# Worktrees
+.worktrees/
+
+# Superpowers brainstorm artifacts
+.superpowers/
