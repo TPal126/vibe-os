@@ -9,6 +9,9 @@ import { getAttentionItems } from "../../lib/attention";
 const formatTokens = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
 
+const formatCost = (tokens: number) =>
+  `$${((tokens / 1000) * 0.003).toFixed(2)}`;
+
 export function TitleBar() {
   const appWindow = getCurrentWindow();
 
@@ -119,7 +122,9 @@ export function TitleBar() {
             ·
           </span>
           <Badge color="text-v-dim" bg="bg-v-surface">
-            {formatTokens(totalTokens)} tokens
+            {totalTokens > 0
+              ? `${formatCost(totalTokens)} (${formatTokens(totalTokens)} tokens)`
+              : "—"}
           </Badge>
         </div>
       )}
