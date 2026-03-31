@@ -6,11 +6,8 @@ import { QuadrantLayout } from "./QuadrantLayout";
 vi.mock("../panels/ClaudeChat", () => ({
   ClaudeChat: () => <div data-testid="claude-chat">Chat</div>,
 }));
-vi.mock("../panels/SkillsPanel", () => ({
-  SkillsPanel: () => <div data-testid="skills-panel">Skills</div>,
-}));
-vi.mock("../panels/RepoManager", () => ({
-  RepoManager: () => <div data-testid="repo-manager">Repos</div>,
+vi.mock("../panels/ResourcesTab", () => ({
+  ResourcesTab: () => <div data-testid="resources-tab">Resources</div>,
 }));
 vi.mock("../panels/TokenControlPanel", () => ({
   TokenControlPanel: () => <div data-testid="token-control">Tokens</div>,
@@ -51,7 +48,7 @@ vi.mock("react-resizable-panels", () => ({
 // Mock the store
 const mockState = {
   topRightTab: "architecture",
-  bottomLeftTab: "skills",
+  bottomLeftTab: "resources",
   bottomRightTab: "audit",
   setTopRightTab: vi.fn(),
   setBottomLeftTab: vi.fn(),
@@ -80,9 +77,9 @@ describe("QuadrantLayout", () => {
     expect(screen.getByTestId("arch-diagram")).toBeDefined();
   });
 
-  it("renders skills panel when bottomLeftTab is skills", () => {
+  it("renders resources tab when bottomLeftTab is resources", () => {
     render(<QuadrantLayout />);
-    expect(screen.getByTestId("skills-panel")).toBeDefined();
+    expect(screen.getByTestId("resources-tab")).toBeDefined();
   });
 
   it("renders audit log when bottomRightTab is audit", () => {

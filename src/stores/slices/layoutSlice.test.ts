@@ -38,7 +38,7 @@ describe("layoutSlice", () => {
     it("defaults to correct active tabs per pane", () => {
       const state = store.getState();
       expect(state.topRightTab).toBe("architecture");
-      expect(state.bottomLeftTab).toBe("skills");
+      expect(state.bottomLeftTab).toBe("resources");
       expect(state.bottomRightTab).toBe("audit");
     });
 

@@ -6,8 +6,7 @@ import {
 } from "react-resizable-panels";
 import { useAppStore } from "../../stores";
 import { ClaudeChat } from "../panels/ClaudeChat";
-import { SkillsPanel } from "../panels/SkillsPanel";
-import { RepoManager } from "../panels/RepoManager";
+import { ResourcesTab } from "../panels/ResourcesTab";
 import { TokenControlPanel } from "../panels/TokenControlPanel";
 import { WorkspaceTree } from "../panels/WorkspaceTree";
 import { AuditLog } from "../panels/AuditLog";
@@ -44,10 +43,10 @@ function TopRightContent({ tab }: { tab: string }) {
 }
 
 function BottomLeftContent({ tab }: { tab: string }) {
-  if (tab === "repos") return <RepoManager />;
+  if (tab === "resources") return <ResourcesTab />;
   if (tab === "tokens") return <TokenControlPanel />;
   if (tab === "files") return <FilesTabWrapper />;
-  return <SkillsPanel />;
+  return <ResourcesTab />;
 }
 
 function BottomRightContent({ tab }: { tab: string }) {

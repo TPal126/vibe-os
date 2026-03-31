@@ -17,7 +17,7 @@ export const createLayoutSlice: SliceCreator<LayoutSlice> = (set) => ({
 
   // Quadrant pane tabs
   topRightTab: "architecture",
-  bottomLeftTab: "skills",
+  bottomLeftTab: "resources",
   bottomRightTab: "audit",
   setTopRightTab: (tab) => set({ topRightTab: tab }),
   setBottomLeftTab: (tab) => set({ bottomLeftTab: tab }),

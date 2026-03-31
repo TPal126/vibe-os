@@ -1,7 +1,5 @@
 import { type ReactNode } from "react";
 import {
-  FolderGit2,
-  BookOpen,
   Gauge,
   Folder,
   ScrollText,
@@ -13,6 +11,7 @@ import {
   Maximize2,
   Minimize2,
   Pin,
+  LayoutGrid,
 } from "lucide-react";
 import { TabStrip, type Tab } from "./TabStrip";
 import { IconButton } from "../shared/IconButton";
@@ -74,8 +73,7 @@ export const topRightTabs: Tab[] = [
 ];
 
 export const bottomLeftTabs: Tab[] = [
-  { id: "skills", label: "Skills", icon: <BookOpen size={10} /> },
-  { id: "repos", label: "Repos", icon: <FolderGit2 size={10} /> },
+  { id: "resources", label: "Resources", icon: <LayoutGrid size={10} /> },
   { id: "tokens", label: "Tokens", icon: <Gauge size={10} /> },
   { id: "files", label: "Files", icon: <Folder size={10} /> },
 ];
