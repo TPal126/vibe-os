@@ -1,8 +1,8 @@
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
-import { ProjectCard } from "./ProjectCard";
+import { EnhancedProjectCard } from "./EnhancedProjectCard";
 import { NewProjectCard } from "./NewProjectCard";
-import type { Project } from "../../stores/types";
+import type { Project, ClaudeSessionState } from "../../stores/types";
 
 export function HomeScreen() {
   const {
@@ -78,14 +78,34 @@ export function HomeScreen() {
         <p className="text-v-dim text-sm mb-4">Create your first project</p>
       )}
       <div className="grid grid-cols-3 gap-4 max-w-[720px] w-full">
-        {projects.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            session={claudeSessions.get(project.claudeSessionId)}
-            onClick={() => handleOpenProject(project)}
-          />
-        ))}
+        {projects.map((project) => {
+          // Build a Map of all sessions associated with this project.
+          // The primary session is always included; any additional sessions
+          // that share the same project (by convention name prefix, etc.)
+          // would be added here in future. For now we include the primary
+          // session and any orphaned sessions that reference this project.
+          const projectSessions = new Map<string, ClaudeSessionState>();
+          const primarySession = claudeSessions.get(project.claudeSessionId);
+          if (primarySession) {
+            projectSessions.set(primarySession.id, primarySession);
+          }
+          // Include additional sessions beyond the primary one
+          // Future: include additional sessions beyond the primary one
+          // when a project<->session FK is added
+
+          return (
+            <EnhancedProjectCard
+              key={project.id}
+              project={project}
+              sessions={projectSessions}
+              onOpen={() => handleOpenProject(project)}
+              onOpenSession={(sessionId) => {
+                setActiveClaudeSessionId(sessionId);
+                openProject(project.id);
+              }}
+            />
+          );
+        })}
         <NewProjectCard
           disabled={projects.length >= 5}
           onCreateProject={handleCreateProject}
