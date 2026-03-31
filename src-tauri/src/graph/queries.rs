@@ -319,3 +319,84 @@ pub async fn get_skill_effectiveness(
         })
         .collect())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::connection::initialize_graph_db;
+    use crate::graph::schema::define_schema;
+    use crate::graph::nodes;
+    use crate::graph::edges;
+    use crate::graph::population;
+
+    async fn test_db() -> Surreal<Db> {
+        let dir = std::env::temp_dir().join(format!("vibe_qtest_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = initialize_graph_db(&dir).await.unwrap();
+        define_schema(&db).await.unwrap();
+        db
+    }
+
+    #[tokio::test]
+    async fn test_get_full_graph_empty() {
+        let db = test_db().await;
+        let graph = get_full_graph(&db, None).await.unwrap();
+        assert!(graph.nodes.is_empty());
+        assert!(graph.edges.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_full_graph_with_data() {
+        let db = test_db().await;
+        nodes::create_node(&db, "repo", "r1", &serde_json::json!({"name": "my-repo", "node_type": "repo", "label": "my-repo"})).await.unwrap();
+        nodes::create_node(&db, "fn_def", "f1", &serde_json::json!({"name": "main", "node_type": "function", "label": "main"})).await.unwrap();
+        edges::relate(&db, "fn_def:f1", "belongs_to", "repo:r1", None).await.unwrap();
+
+        let graph = get_full_graph(&db, None).await.unwrap();
+        assert!(!graph.nodes.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_provenance_query() {
+        let db = test_db().await;
+        nodes::create_node(&db, "fn_def", "prov_fn", &serde_json::json!({"name": "handler", "node_type": "function"})).await.unwrap();
+        population::populate_session(&db, "sess-1", "").await.unwrap();
+        population::populate_decision(
+            &db, "prov_dec", "sess-1", "Refactor handler", "Clean up", 0.9,
+            "dx", true, &[], &[], "2026-03-30T00:00:00Z",
+        ).await.unwrap();
+        edges::relate(&db, "decision:prov_dec", "modified", "fn_def:prov_fn", None).await.unwrap();
+
+        let trace = get_provenance(&db, "fn_def:prov_fn").await.unwrap();
+        assert!(!trace.decisions.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_session_report() {
+        let db = test_db().await;
+        population::populate_session(&db, "report_sess", "test").await.unwrap();
+        population::populate_decision(
+            &db, "rep_dec", "report_sess", "Add tests", "Coverage", 0.7,
+            "dx", true, &[], &[], "2026-03-30T00:00:00Z",
+        ).await.unwrap();
+        population::populate_action(
+            &db, "rep_act", "report_sess", "FILE_CREATE", "Created test.rs",
+            "agent", "2026-03-30T00:00:00Z", None,
+        ).await.unwrap();
+
+        let report = get_session_report(&db, "report_sess").await.unwrap();
+        assert!(!report.decisions.is_empty());
+        assert!(!report.timeline.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_impact_query() {
+        let db = test_db().await;
+        nodes::create_node(&db, "fn_def", "imp_fn", &serde_json::json!({"name": "core_fn"})).await.unwrap();
+        nodes::create_node(&db, "fn_def", "imp_caller", &serde_json::json!({"name": "caller_fn"})).await.unwrap();
+        edges::relate(&db, "fn_def:imp_caller", "calls", "fn_def:imp_fn", None).await.unwrap();
+
+        let impact = get_impact(&db, "fn_def:imp_fn").await.unwrap();
+        assert!(!impact.direct_callers.is_empty());
+    }
+}
