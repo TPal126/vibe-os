@@ -13,6 +13,9 @@ const mockProject: Project = {
   claudeSessionId: "cs-1",
   summary: "A test project",
   createdAt: "2026-03-30T00:00:00Z",
+  linkedRepoIds: [],
+  linkedSkillIds: [],
+  linkedAgentNames: [],
 };
 
 const mockSessions: Map<string, ClaudeSessionState> = new Map([
