@@ -310,6 +310,30 @@ export function useClaudeStream() {
               }
             }
 
+            // Detect agent spawns for capture UI
+            if (
+              (
+                event.event_type === "raw" &&
+                typeof event.content === "string" &&
+                (event.content.includes("Agent spawned") || event.content.includes("Launching agent"))
+              ) ||
+              (event.metadata?.tool === "Agent" && event.event_type === "result")
+            ) {
+              const agentName = (event.metadata?.agent_name as string) || (event.metadata?.description as string) || "unnamed-agent";
+              const agentDesc = (event.metadata?.description as string) || event.content || "";
+              const agentTools = (event.metadata?.tools as string[]) || [];
+
+              if (sid) {
+                useAppStore.getState().insertRichCard(sid, "activity", "Agent spawned: " + agentName, {
+                  capturable: true,
+                  agentName,
+                  agentDescription: agentDesc,
+                  agentTools,
+                  agentSystemPrompt: (event.metadata?.system_prompt as string) || "",
+                });
+              }
+            }
+
             // Detect input-request events; set needsInput and attention on non-active sessions
             if (isInputRequest(payload) && sid) {
               if (sid !== store.activeClaudeSessionId) {
