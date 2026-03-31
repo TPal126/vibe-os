@@ -368,3 +368,48 @@ pub async fn stop_workspace_watcher(
     state.workspace_path = None;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_workspace_scaffolds_dirs() {
+        let name = format!("test_ws_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap());
+        let meta = create_workspace(name.clone()).unwrap();
+
+        assert!(Path::new(&meta.path).exists());
+        assert!(Path::new(&meta.path).join("docs").is_dir());
+        assert!(Path::new(&meta.path).join("repos").is_dir());
+        assert!(Path::new(&meta.path).join("skills").is_dir());
+        assert!(Path::new(&meta.path).join("data").is_dir());
+        assert!(Path::new(&meta.path).join("output").is_dir());
+        assert!(Path::new(&meta.path).join("CLAUDE.md").is_file());
+        assert!(meta.has_claude_md);
+
+        std::fs::remove_dir_all(&meta.path).ok();
+    }
+
+    #[test]
+    fn test_open_workspace_reads_metadata() {
+        let name = format!("test_ws_{}", uuid::Uuid::new_v4().to_string().split('-').next().unwrap());
+        let created = create_workspace(name).unwrap();
+        let opened = open_workspace(created.path.clone()).unwrap();
+
+        assert_eq!(opened.name, created.name);
+        assert!(opened.has_claude_md);
+        assert_eq!(opened.repo_count, 0);
+        assert_eq!(opened.skill_count, 0);
+
+        std::fs::remove_dir_all(&created.path).ok();
+    }
+
+    #[test]
+    fn test_create_workspace_rejects_invalid_name() {
+        let result = create_workspace("has spaces".to_string());
+        assert!(result.is_err());
+
+        let result = create_workspace("".to_string());
+        assert!(result.is_err());
+    }
+}
