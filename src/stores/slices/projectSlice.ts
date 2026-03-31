@@ -59,6 +59,10 @@ export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
     set({ currentView: "home" });
   },
 
+  goToSetup: () => {
+    set({ currentView: "project-setup" });
+  },
+
   loadProjects: async () => {
     try {
       const raw = await commands.getSetting(PROJECTS_SETTING_KEY);

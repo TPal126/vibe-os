@@ -440,6 +440,7 @@ export interface ProjectSlice {
   // Navigation
   openProject: (id: string) => void;
   goHome: () => void;
+  goToSetup: () => void;
 
   // Persistence
   loadProjects: () => Promise<void>;

@@ -53,6 +53,25 @@ export function EnhancedProjectCard({
         {project.summary || "No description"}
       </p>
 
+      {/* Resource summary chips */}
+      <div className="flex gap-1 flex-wrap mb-2">
+        {(project.linkedRepoIds?.length ?? 0) > 0 && (
+          <span className="text-[8px] px-1.5 py-0.5 rounded bg-v-accent/10 text-v-accent">
+            {project.linkedRepoIds.length} repo{project.linkedRepoIds.length !== 1 ? "s" : ""}
+          </span>
+        )}
+        {(project.linkedSkillIds?.length ?? 0) > 0 && (
+          <span className="text-[8px] px-1.5 py-0.5 rounded bg-v-cyan/10 text-v-cyan">
+            {project.linkedSkillIds.length} skill{project.linkedSkillIds.length !== 1 ? "s" : ""}
+          </span>
+        )}
+        {(project.linkedAgentNames?.length ?? 0) > 0 && (
+          <span className="text-[8px] px-1.5 py-0.5 rounded bg-v-orange/10 text-v-orange">
+            {project.linkedAgentNames.length} agent{project.linkedAgentNames.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
       {sessionList.length > 0 && (
         <div className="border-t border-v-border pt-2 flex flex-col gap-1">
           {sessionList.slice(0, 4).map((session) => (
