@@ -94,7 +94,9 @@ VIBE OS is a **conversation-first desktop IDE** for AI-assisted development. Eve
 
 ```
 +-----------------------------------------------------------------------+
-|  VIBE OS                                     [gear] [minimize] [close] |
+|  VIBE OS                  0 repos  1 skill  $0.00 (287 tokens)  - x   |
++-----------------------------------------------------------------------+
+|  . test  . test2  . vibe-os-2  . vibe2 x  +                          |
 +-----------------------------------------------------------------------+
 |                                                                       |
 |   PROJECT CARDS                                                       |
@@ -114,35 +116,50 @@ Each project card shows:
 - Attention flag (pulsing orange when input is needed)
 - Outcome badges: test results, build status, preview URLs, errors
 
-### Conversation View
+### Conversation View (Quadrant Layout)
+
+Click a project card to enter the workspace. The interface splits into four resizable quadrants:
 
 ```
 +-----------------------------------------------------------------------+
-|  VIBE OS  |  my-api  Session1  Session2  +       [gear] [min] [close] |
+|  VIBE OS  vibe2       0 repos  1 skill  $0.00 (287 tokens)     - x   |
 +-----------------------------------------------------------------------+
-|                                                                       |
-|  > scaffold the REST endpoints                                        |
-|                                                                       |
-|  [activity] Created src/routes/users.ts                               |
-|  [activity] Modified src/index.ts                                     |
-|                                                                       |
-|  Sure, I've created the REST endpoints...                             |
-|                                                                       |
-|  [python -- 24 lines]                            [> expand] [View Code]|
-|                                                                       |
-|  [decision] REST over GraphQL (confidence: 85%)                       |
-|                                                                       |
-|  [outcome] 12/12 tests passing | Build OK | Preview: localhost:3000   |
-|                                                                       |
-|  +--------------------------------------------------------------+    |
-|  | Type a message...                                    [Send]   |    |
-|  +--------------------------------------------------------------+    |
-+-----------------------------------------------------------------------+
+|  . test  . test2  . vibe-os-2  . vibe2 x  +                          |
++-----------------------------------+-----------------------------------+
+|                                   | Architecture  Graph  Preview      |
+|  Conversation                     |                                   |
+|                                   |  [Index Repo]  [Search...]        |
+|  Send a message to start a        |  repo module function class       |
+|  conversation with Claude         |  ticket skill decision test       |
+|                                   |                                   |
+|                                   |       *** graph viz ***           |
+|                                   |                                   |
+|  [Message Claude... Enter to send]|                                   |
++-----------------------------------+-----------------------------------+
+| Skills  Repos  Tokens  Files      | Audit  Decisions  Console  Events |
+|                                   |                                   |
+|  Token Budget    ~223 / 20.0k     | 22:35:56 SKILL_TOGGLE Deactivated|
+|  ================================ | 22:35:56 SKILL_TOGGLE Activated  |
+|  [x] Python Basics  core  ~223t   | 22:35:53 SKILL_TOGGLE Activated  |
+|  [ ] Debugging       core  ~295t  | 22:35:31 WORKSPACE_CREATE vibe2  |
+|                                   |                    [JSON] [CSV]   |
++-----------------------------------+-----------------------------------+
 ```
 
-**Overlays (no column disruption):**
-- **Settings Panel** (right slide-in, 400px): Repos, Skills, Tokens, Files, Audit, Events tabs
-- **Editor Panel** (bottom slide-in, 60vh): Full Monaco editor with `Ctrl+Shift+C` toggle
+**Four quadrants, each with tabbed panes:**
+
+| Quadrant | Tabs | What's There |
+|---|---|---|
+| **Top-left** | Conversation | Chat with Claude, session tabs, message input |
+| **Top-right** | Architecture, Graph, Preview | D3 knowledge graph visualizer, repo topology, live preview iframe |
+| **Bottom-left** | Skills, Repos, Tokens, Files | Context control -- toggle skills/repos, set token budgets, browse workspace files |
+| **Bottom-right** | Audit, Decisions, Console, Events | Visibility -- audit trail, decision log with export, raw agent event stream |
+
+**Title bar** shows project name, repo/skill counts, session cost, and token usage at a glance.
+
+<p align="center">
+  <img src="docs/screenshots/quadrant-layout.png" alt="VIBE OS quadrant layout" width="100%" />
+</p>
 
 ---
 
@@ -154,7 +171,7 @@ The home screen shows every project as a card with live status. Each card surfac
 
 ### 2. Conversation-First IDE
 
-Every interaction happens through a full-width chat. No column clutter -- just you and Claude. Agent activity streams into the conversation as typed inline cards: file creates and modifications, test results with pass/fail breakdowns, architectural decisions with confidence scores, errors with retry buttons, and live preview thumbnails when a dev server spins up. Code blocks collapse to a one-line summary with language and line count -- expand inline or open in the editor.
+Every interaction starts in the conversation quadrant. Agent activity streams in as typed inline cards: file creates and modifications, test results with pass/fail breakdowns, architectural decisions with confidence scores, errors with retry buttons, and live preview thumbnails when a dev server spins up. Code blocks collapse to a one-line summary with language and line count -- expand inline or open in the editor. The knowledge graph, audit trail, and context controls are always visible in the surrounding quadrants -- no hidden panels to dig through.
 
 ### 3. Multi-Session Agents
 
@@ -170,7 +187,7 @@ Every architectural decision is captured with rationale, confidence score, impac
 
 ### 6. Context Control
 
-Workspaces organize repos, skills, and docs into a single directory with a CLAUDE.md that serves as the live-reloading system prompt. Toggle repos and skills on/off to control what context Claude sees. Set token budgets per skill, per repo, or per session with color-coded warnings. When you need to touch code directly, `Ctrl+Shift+C` opens a bottom Monaco editor panel -- code blocks in chat have a "View Code" button that opens them there.
+Workspaces organize repos, skills, and docs into a single directory with a CLAUDE.md that serves as the live-reloading system prompt. The bottom-left quadrant puts all context controls at your fingertips: toggle repos and skills on/off, set token budgets per skill, per repo, or per session with color-coded warnings, and browse workspace files. When you need to touch code directly, `Ctrl+Shift+C` opens the Monaco editor -- code blocks in chat have a "View Code" button that opens them there.
 
 ---
 
