@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useAppStore } from "../stores";
+import type { PaneId } from "../stores/types";
 
 /**
  * Global keyboard shortcuts for VIBE OS.
@@ -24,7 +25,7 @@ export function useKeyboardShortcuts() {
 
       // Ctrl+1-4: maximize/restore quadrant panes
       if (e.ctrlKey && !e.shiftKey && !e.altKey) {
-        const paneMap: Record<string, string> = {
+        const paneMap: Record<string, PaneId> = {
           "1": "top-left",
           "2": "top-right",
           "3": "bottom-left",

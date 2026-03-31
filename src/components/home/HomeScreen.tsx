@@ -90,13 +90,8 @@ export function HomeScreen() {
             projectSessions.set(primarySession.id, primarySession);
           }
           // Include additional sessions beyond the primary one
-          claudeSessions.forEach((session, id) => {
-            if (id !== project.claudeSessionId && !projectSessions.has(id)) {
-              // Only include sessions that belong to this project
-              // (currently there is no explicit project<->session FK beyond claudeSessionId,
-              // so we only surface the primary session for now)
-            }
-          });
+          // Future: include additional sessions beyond the primary one
+          // when a project<->session FK is added
 
           return (
             <EnhancedProjectCard

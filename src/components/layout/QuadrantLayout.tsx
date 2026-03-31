@@ -1,8 +1,8 @@
 import { useRef, useEffect } from "react";
 import {
-  PanelGroup,
+  Group as PanelGroup,
   Panel,
-  PanelResizeHandle,
+  Separator as PanelResizeHandle,
 } from "react-resizable-panels";
 import { useAppStore } from "../../stores";
 import { ClaudeChat } from "../panels/ClaudeChat";
@@ -125,10 +125,10 @@ export function QuadrantLayout() {
   }
 
   return (
-    <PanelGroup direction="vertical">
+    <PanelGroup orientation="vertical">
       {/* Top row */}
       <Panel defaultSize={60} minSize={30}>
-        <PanelGroup direction="horizontal">
+        <PanelGroup orientation="horizontal">
           {/* Top-left: Chat */}
           <Panel defaultSize={55} minSize={25}>
             <ClaudeChat />
@@ -158,7 +158,7 @@ export function QuadrantLayout() {
 
       {/* Bottom row */}
       <Panel defaultSize={40} minSize={20}>
-        <PanelGroup direction="horizontal">
+        <PanelGroup orientation="horizontal">
           {/* Bottom-left: Context controls */}
           <Panel defaultSize={55} minSize={20}>
             <PaneContainer

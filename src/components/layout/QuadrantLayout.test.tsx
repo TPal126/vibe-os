@@ -39,13 +39,13 @@ vi.mock("./PaneContainer", () => ({
   bottomRightTabs: [],
 }));
 
-// Mock react-resizable-panels
+// Mock react-resizable-panels (v4.8 exports Group, Panel, Separator)
 vi.mock("react-resizable-panels", () => ({
-  PanelGroup: ({ children, ...props }: any) => (
-    <div data-testid={`panel-group-${props.direction}`}>{children}</div>
+  Group: ({ children, ...props }: any) => (
+    <div data-testid={`panel-group-${props.orientation}`}>{children}</div>
   ),
   Panel: ({ children }: any) => <div data-testid="panel">{children}</div>,
-  PanelResizeHandle: () => <div data-testid="resize-handle" />,
+  Separator: () => <div data-testid="resize-handle" />,
 }));
 
 // Mock the store
