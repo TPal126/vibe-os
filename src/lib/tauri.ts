@@ -151,6 +151,13 @@ export const commands = {
   analyzeArchitecture: (repoPaths: string[]) =>
     invoke<ArchGraph>("analyze_architecture", { repoPaths }),
 
+  graphGetTopology: () =>
+    invoke<{
+      repos: { id: string; label: string; node_type: string; framework: string; stats: string; active: boolean }[];
+      modules: { id: string; label: string; node_type: string; framework: string; stats: string; active: boolean }[];
+      edges: { source: string; target: string; edge_type: string }[];
+    }>("graph_get_topology"),
+
   // ── Phase 1 test commands ──
   testDbWrite: () => invoke<string>("test_db_write"),
   testDbRead: () => invoke<string>("test_db_read"),

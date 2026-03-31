@@ -167,6 +167,7 @@ pub fn run() {
             graph_commands::graph_populate_session,
             graph_commands::graph_sync_decisions,
             graph_commands::graph_sync_audit,
+            graph_commands::graph_get_topology,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

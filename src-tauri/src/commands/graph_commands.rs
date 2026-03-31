@@ -49,6 +49,13 @@ pub async fn graph_get_skill_effectiveness(
 }
 
 #[tauri::command]
+pub async fn graph_get_topology(
+    db: tauri::State<'_, Surreal<Db>>,
+) -> Result<queries::TopologyData, String> {
+    queries::get_topology(&db).await
+}
+
+#[tauri::command]
 pub async fn graph_search(
     db: tauri::State<'_, Surreal<Db>>,
     query: String,

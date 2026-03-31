@@ -139,9 +139,9 @@ mod tests {
             rusqlite::params!["b-1", "skill", "skill-abc", 5000, 4000],
         ).unwrap();
 
-        let mut stmt = conn.prepare("SELECT id, scope_type, scope_id, max_tokens, warning_threshold FROM token_budgets").unwrap();
-        let rows: Vec<(String, String, String, i64, i64)> = stmt
-            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?)))
+        let mut stmt = conn.prepare("SELECT id, scope_type, scope_id, max_tokens FROM token_budgets").unwrap();
+        let rows: Vec<(String, String, String, i64)> = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))
             .unwrap()
             .filter_map(|r| r.ok())
             .collect();
