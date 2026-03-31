@@ -16,6 +16,7 @@ import { createLayoutSlice } from "./slices/layoutSlice";
 import { createDashboardSlice } from "./slices/dashboardSlice";
 import { createTokenSlice } from "./slices/tokenSlice";
 import { createProjectSlice } from "./slices/projectSlice";
+import { createThemeSlice } from "./slices/themeSlice";
 import { tauriSqliteStorage } from "./storage";
 import type { AppState } from "./types";
 
@@ -38,6 +39,7 @@ export const useAppStore = create<AppState>()(
       ...createDashboardSlice(...a),
       ...createTokenSlice(...a),
       ...createProjectSlice(...a),
+      ...createThemeSlice(...a),
     }),
     {
       name: "vibe-os-store",
@@ -70,3 +72,4 @@ export type {
   ProjectSlice,
   ViewMode,
 } from "./types";
+export type { Theme, ThemeSlice } from "./types";

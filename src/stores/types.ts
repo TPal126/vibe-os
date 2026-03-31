@@ -443,6 +443,15 @@ export interface ProjectSlice {
   saveProjects: () => Promise<void>;
 }
 
+// ── Theme Types ──
+
+export type Theme = "light" | "dark";
+
+export interface ThemeSlice {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+}
+
 // ── Combined State ──
 
 export type AppState = SessionSlice &
@@ -460,7 +469,8 @@ export type AppState = SessionSlice &
   LayoutSlice &
   DashboardSlice &
   TokenSlice &
-  ProjectSlice;
+  ProjectSlice &
+  ThemeSlice;
 
 // ── Slice Creator Helper ──
 
