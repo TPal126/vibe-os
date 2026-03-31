@@ -1,3 +1,4 @@
+pub mod agent_commands;
 pub mod architecture_commands;
 pub mod audit_commands;
 pub mod claude_commands;

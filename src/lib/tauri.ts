@@ -99,6 +99,15 @@ export interface FileTreeEntry {
   extension: string | null;
 }
 
+export interface AgentDefinitionRaw {
+  name: string;
+  description: string;
+  system_prompt: string;
+  tools: string[];
+  created_at: string;
+  source_session_id: string;
+}
+
 // ── Raw types for new commands (snake_case from Rust) ──
 
 export interface DecisionRaw {
@@ -327,6 +336,26 @@ export const commands = {
     invoke<TokenBudgetRaw[]>("get_token_budgets"),
   deleteTokenBudget: (id: string) =>
     invoke<void>("delete_token_budget", { id }),
+
+  // ── Agent definition commands ──
+  saveAgentDefinition: (
+    name: string,
+    description: string,
+    systemPrompt: string,
+    tools: string[],
+    sourceSessionId: string,
+  ) =>
+    invoke<AgentDefinitionRaw>("save_agent_definition", {
+      name,
+      description,
+      systemPrompt,
+      tools,
+      sourceSessionId,
+    }),
+  loadAgentDefinitions: () =>
+    invoke<AgentDefinitionRaw[]>("load_agent_definitions"),
+  removeAgentDefinition: (name: string) =>
+    invoke<void>("remove_agent_definition", { name }),
 };
 
 // ── Dialog helpers ──
@@ -346,4 +375,15 @@ export async function showOpenWorkspaceDialog(): Promise<string | null> {
     title: "Open Workspace",
   });
   return path as string | null;
+}
+
+export async function showOpenDirectoriesDialog(): Promise<string[] | null> {
+  const paths = await open({
+    directory: true,
+    multiple: true,
+    title: "Select Repositories",
+  });
+  if (!paths) return null;
+  if (typeof paths === "string") return [paths];
+  return paths;
 }
