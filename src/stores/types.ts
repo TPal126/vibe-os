@@ -374,6 +374,8 @@ export interface WorkspaceSlice {
 
 // ── Layout Types ──
 
+export type PaneId = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+
 export interface LayoutSlice {
   drawerOpen: boolean;
   activeDrawerTab: string;
@@ -382,17 +384,24 @@ export interface LayoutSlice {
   setActiveDrawerTab: (tab: string) => void;
   openDrawerToTab: (tab: string) => void;
 
-  // Phase 17: Settings panel (right slide-in)
-  settingsPanelOpen: boolean;
-  settingsPanelTab: string;
-  toggleSettingsPanel: () => void;
-  setSettingsPanelOpen: (open: boolean) => void;
-  setSettingsPanelTab: (tab: string) => void;
-
-  // Phase 17: Editor panel (bottom slide-in)
+  // Editor panel (bottom slide-in)
   editorPanelOpen: boolean;
   toggleEditorPanel: () => void;
   setEditorPanelOpen: (open: boolean) => void;
+
+  // Quadrant pane tabs
+  topRightTab: string;
+  bottomLeftTab: string;
+  bottomRightTab: string;
+  setTopRightTab: (tab: string) => void;
+  setBottomLeftTab: (tab: string) => void;
+  setBottomRightTab: (tab: string) => void;
+
+  // Quadrant pane state
+  maximizedPane: PaneId | null;
+  setMaximizedPane: (pane: PaneId | null) => void;
+  pinnedPanes: Set<PaneId>;
+  togglePinnedPane: (pane: PaneId) => void;
 }
 
 // ── Dashboard Types ──

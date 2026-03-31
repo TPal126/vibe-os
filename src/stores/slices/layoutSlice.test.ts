@@ -34,22 +34,49 @@ describe("layoutSlice", () => {
     });
   });
 
-  describe("settings panel", () => {
-    it("defaults to closed with repos tab", () => {
-      expect(store.getState().settingsPanelOpen).toBe(false);
-      expect(store.getState().settingsPanelTab).toBe("repos");
+  describe("quadrant panes", () => {
+    it("defaults to correct active tabs per pane", () => {
+      const state = store.getState();
+      expect(state.topRightTab).toBe("architecture");
+      expect(state.bottomLeftTab).toBe("skills");
+      expect(state.bottomRightTab).toBe("audit");
     });
 
-    it("toggleSettingsPanel toggles", () => {
-      store.getState().toggleSettingsPanel();
-      expect(store.getState().settingsPanelOpen).toBe(true);
-      store.getState().toggleSettingsPanel();
-      expect(store.getState().settingsPanelOpen).toBe(false);
+    it("setTopRightTab changes tab", () => {
+      store.getState().setTopRightTab("graph");
+      expect(store.getState().topRightTab).toBe("graph");
     });
 
-    it("setSettingsPanelTab changes tab", () => {
-      store.getState().setSettingsPanelTab("graph");
-      expect(store.getState().settingsPanelTab).toBe("graph");
+    it("setBottomLeftTab changes tab", () => {
+      store.getState().setBottomLeftTab("repos");
+      expect(store.getState().bottomLeftTab).toBe("repos");
+    });
+
+    it("setBottomRightTab changes tab", () => {
+      store.getState().setBottomRightTab("decisions");
+      expect(store.getState().bottomRightTab).toBe("decisions");
+    });
+
+    it("maximized pane defaults to null", () => {
+      expect(store.getState().maximizedPane).toBeNull();
+    });
+
+    it("setMaximizedPane sets and clears", () => {
+      store.getState().setMaximizedPane("top-right");
+      expect(store.getState().maximizedPane).toBe("top-right");
+      store.getState().setMaximizedPane(null);
+      expect(store.getState().maximizedPane).toBeNull();
+    });
+
+    it("pinnedPanes defaults to empty set", () => {
+      expect(store.getState().pinnedPanes.size).toBe(0);
+    });
+
+    it("togglePinnedPane adds and removes", () => {
+      store.getState().togglePinnedPane("bottom-left");
+      expect(store.getState().pinnedPanes.has("bottom-left")).toBe(true);
+      store.getState().togglePinnedPane("bottom-left");
+      expect(store.getState().pinnedPanes.has("bottom-left")).toBe(false);
     });
   });
 });

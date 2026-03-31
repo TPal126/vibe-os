@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import {
   FolderGit2,
   BookOpen,
@@ -44,8 +44,9 @@ function FilesTabWrapper() {
 }
 
 export function SettingsPanel() {
-  const activeTab = useAppStore((s) => s.settingsPanelTab);
-  const setTab = useAppStore((s) => s.setSettingsPanelTab);
+  // TODO(Task 6): SettingsPanel will be removed in the quadrant layout refactor.
+  // settingsPanelTab/setSettingsPanelTab removed from store; using local state temporarily.
+  const [activeTab, setTab] = useState("repos");
 
   return (
     <div className="w-full h-full bg-v-bg flex flex-col overflow-hidden">
