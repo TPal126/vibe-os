@@ -6,6 +6,8 @@ import {
   isInputRequest,
   getSessionId,
   extractCodeBlocks,
+  extractDevServerUrl,
+  parseTestResults,
 } from "./eventParser";
 import type { AgentEvent } from "../stores/types";
 
@@ -238,5 +240,53 @@ describe("extractCodeBlocks", () => {
 
   it("returns empty for no code blocks", () => {
     expect(extractCodeBlocks("just text")).toEqual([]);
+  });
+});
+
+// ── extractDevServerUrl ──
+
+describe("extractDevServerUrl", () => {
+  it("extracts localhost URL from text", () => {
+    const url = extractDevServerUrl("Server running at http://localhost:3000");
+    expect(url).toBe("http://localhost:3000");
+  });
+
+  it("extracts 127.0.0.1 URL", () => {
+    const url = extractDevServerUrl("Listening on http://127.0.0.1:5173/");
+    expect(url).toBe("http://127.0.0.1:5173");
+  });
+
+  it("returns null for no URL", () => {
+    expect(extractDevServerUrl("no url here")).toBeNull();
+  });
+});
+
+// ── parseTestResults ──
+
+describe("parseTestResults", () => {
+  it("parses Jest/Vitest output", () => {
+    const result = parseTestResults("Tests:  3 passed, 1 failed, 4 total");
+    expect(result).not.toBeNull();
+    expect(result!.passed).toBe(3);
+    expect(result!.failed).toBe(1);
+    expect(result!.total).toBe(4);
+  });
+
+  it("parses pytest output", () => {
+    const result = parseTestResults("5 passed, 2 failed in 3.2s");
+    expect(result).not.toBeNull();
+    expect(result!.passed).toBe(5);
+    expect(result!.failed).toBe(2);
+  });
+
+  it("parses Rust test output", () => {
+    const result = parseTestResults("test result: ok. 8 passed; 0 failed; 0 ignored");
+    expect(result).not.toBeNull();
+    expect(result!.passed).toBe(8);
+    expect(result!.failed).toBe(0);
+  });
+
+  it("returns null for non-test output", () => {
+    expect(parseTestResults("hello world")).toBeNull();
   });
 });
