@@ -126,6 +126,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
     let inv_id = invocation_id.clone();
     let claude_sid_stdout = claude_sid.clone();
     let processes_clone = processes.clone();
+    let working_dir_for_index = args.working_dir.clone();
 
     std::thread::spawn(move || {
         let reader = BufReader::new(stdout);
@@ -149,7 +150,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                 .with_session_id(&claude_sid_stdout);
             line_buffer.clear();
 
-            // Persist conversation_id from Result events
+            // Persist conversation_id from Result events and trigger auto-indexing
             if agent_event.event_type == AgentEventType::Result {
                 if let Some(ref meta) = agent_event.metadata {
                     if let Some(conv_id) = meta.get("session_id").and_then(|v| v.as_str()) {
@@ -159,6 +160,31 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                             conv_id,
                         );
                     }
+                }
+
+                // Auto-index repo into knowledge graph (fire-and-forget)
+                if let Some(graph_db) = app_handle.try_state::<surrealdb::Surreal<surrealdb::engine::local::Db>>() {
+                    let gdb = graph_db.inner().clone();
+                    let repo_path = working_dir_for_index.clone();
+                    let session_id = claude_sid_stdout.clone();
+                    tauri::async_runtime::spawn(async move {
+                        match crate::graph::indexer::index_repo(&gdb, &repo_path, &session_id).await {
+                            Ok(result) => {
+                                log::info!(
+                                    "Auto-indexed repo '{}' after session completion: {} files, {} modules, {} functions, {} classes, {} edges",
+                                    repo_path, result.total_files, result.modules_created,
+                                    result.functions_created, result.classes_created,
+                                    result.edges_created
+                                );
+                            }
+                            Err(e) => {
+                                log::warn!(
+                                    "Auto-index failed for '{}': {}",
+                                    repo_path, e
+                                );
+                            }
+                        }
+                    });
                 }
             }
 
