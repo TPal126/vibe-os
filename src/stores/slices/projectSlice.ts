@@ -20,6 +20,9 @@ export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
       claudeSessionId,
       summary: "",
       createdAt: new Date().toISOString(),
+      linkedRepoIds: [],
+      linkedSkillIds: [],
+      linkedAgentNames: [],
     };
 
     const next = [...projects, project];

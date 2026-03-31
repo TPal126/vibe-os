@@ -420,9 +420,12 @@ export interface Project {
   claudeSessionId: string;
   summary: string;
   createdAt: string;
+  linkedRepoIds: string[];
+  linkedSkillIds: string[];
+  linkedAgentNames: string[];
 }
 
-export type ViewMode = "home" | "conversation";
+export type ViewMode = "home" | "conversation" | "project-setup";
 
 export interface ProjectSlice {
   projects: Project[];
@@ -441,6 +444,53 @@ export interface ProjectSlice {
   // Persistence
   loadProjects: () => Promise<void>;
   saveProjects: () => Promise<void>;
+}
+
+// ── Agent Definition Types ──
+
+export interface AgentDefinition {
+  name: string;
+  description: string;
+  systemPrompt: string;
+  tools: string[];
+  createdAt: string;
+  sourceSessionId: string;
+  active: boolean;
+}
+
+export interface AgentDefinitionSlice {
+  agentDefinitions: AgentDefinition[];
+  agentDefinitionsLoading: boolean;
+  loadAgentDefinitions: () => Promise<void>;
+  saveAgentDefinition: (
+    name: string,
+    description: string,
+    systemPrompt: string,
+    tools: string[],
+    sourceSessionId: string,
+  ) => Promise<void>;
+  removeAgentDefinition: (name: string) => Promise<void>;
+  toggleAgentDefinition: (name: string) => void;
+}
+
+// ── Global Repo Types ──
+
+export interface GlobalRepo {
+  id: string;
+  name: string;
+  source: "local" | "github";
+  path: string;
+  gitUrl: string | null;
+  branch: string;
+  language: string;
+}
+
+export interface GlobalRepoSlice {
+  globalRepos: GlobalRepo[];
+  globalReposLoading: boolean;
+  loadGlobalRepos: () => Promise<void>;
+  addGlobalRepos: (repos: GlobalRepo[]) => Promise<void>;
+  removeGlobalRepo: (id: string) => Promise<void>;
 }
 
 // ── Theme Types ──
@@ -470,7 +520,9 @@ export type AppState = SessionSlice &
   DashboardSlice &
   TokenSlice &
   ProjectSlice &
-  ThemeSlice;
+  ThemeSlice &
+  AgentDefinitionSlice &
+  GlobalRepoSlice;
 
 // ── Slice Creator Helper ──
 
