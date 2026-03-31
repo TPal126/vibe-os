@@ -210,4 +210,158 @@ describe("agentSlice", () => {
       expect(store.getState().claudeCliError).toBeNull();
     });
   });
+
+  // ── Multi-session event routing (Feature 3) ──
+
+  describe("multi-session event routing", () => {
+    beforeEach(() => {
+      store.getState().createClaudeSessionLocal("s1", "Session 1");
+      store.getState().createClaudeSessionLocal("s2", "Session 2");
+    });
+
+    it("routes events to correct session by id", () => {
+      store.getState().addSessionChatMessage("s2", makeMessage("user", "hello s2"));
+      expect(store.getState().claudeSessions.get("s1")!.chatMessages).toHaveLength(0);
+      expect(store.getState().claudeSessions.get("s2")!.chatMessages).toHaveLength(1);
+    });
+
+    it("session status is independent", () => {
+      store.getState().setSessionError("s1", "broken");
+      store.getState().setSessionWorking("s2", true);
+      expect(store.getState().claudeSessions.get("s1")!.status).toBe("error");
+      expect(store.getState().claudeSessions.get("s2")!.status).toBe("working");
+    });
+  });
+
+  // ── Attention tracking (Feature 1) ──
+
+  describe("attention tracking", () => {
+    beforeEach(() => {
+      store.getState().createClaudeSessionLocal("s1", "Session 1");
+    });
+
+    it("sets attention on input-needed", () => {
+      store.getState().setSessionNeedsInput("s1", true);
+      store.getState().setSessionAttention("s1", "What should I do?", "msg-1");
+      const session = store.getState().claudeSessions.get("s1")!;
+      expect(session.needsInput).toBe(true);
+      expect(session.status).toBe("needs-input");
+      expect(session.attentionPreview).toBe("What should I do?");
+      expect(session.attentionMessageId).toBe("msg-1");
+    });
+
+    it("clears attention", () => {
+      store.getState().setSessionNeedsInput("s1", true);
+      store.getState().setSessionAttention("s1", "Help!", "msg-1");
+      store.getState().clearSessionAttention("s1");
+      const session = store.getState().claudeSessions.get("s1")!;
+      expect(session.needsInput).toBe(false);
+      expect(session.attentionPreview).toBeNull();
+      expect(session.attentionMessageId).toBeNull();
+    });
+
+    it("switching to a session clears its attention", () => {
+      store.getState().createClaudeSessionLocal("s2", "Session 2");
+      store.getState().setSessionNeedsInput("s2", true);
+      store.getState().setSessionAttention("s2", "Help!", "msg-1");
+      store.getState().setActiveClaudeSessionId("s2");
+      const session = store.getState().claudeSessions.get("s2")!;
+      expect(session.needsInput).toBe(false);
+    });
+
+    it("attention count across sessions", () => {
+      store.getState().createClaudeSessionLocal("s2", "Session 2");
+      store.getState().createClaudeSessionLocal("s3", "Session 3");
+      store.getState().setSessionNeedsInput("s1", true);
+      store.getState().setSessionNeedsInput("s3", true);
+      const sessions = store.getState().claudeSessions;
+      const attentionCount = Array.from(sessions.values()).filter(s => s.needsInput).length;
+      expect(attentionCount).toBe(2);
+    });
+  });
+
+  // ── Rich card insertion (Feature 2) ──
+
+  describe("rich cards", () => {
+    beforeEach(() => {
+      store.getState().createClaudeSessionLocal("s1", "Session 1");
+    });
+
+    it("insertRichCard adds card message to session", () => {
+      store.getState().insertRichCard("s1", "outcome", "All tests pass", {
+        testSummary: { passed: 5, failed: 0, total: 5 },
+      });
+      const session = store.getState().claudeSessions.get("s1")!;
+      expect(session.chatMessages).toHaveLength(1);
+      expect(session.chatMessages[0].cardType).toBe("outcome");
+      expect(session.chatMessages[0].content).toBe("All tests pass");
+      expect(session.chatMessages[0].role).toBe("system");
+    });
+
+    it("upsertActivityLine creates and updates activity", () => {
+      const event: AgentEvent = {
+        timestamp: new Date().toISOString(),
+        event_type: "file_create",
+        content: "Creating src/foo.ts",
+        metadata: { tool: "Write", path: "src/foo.ts" },
+      };
+      store.getState().upsertActivityLine("s1", event);
+      let session = store.getState().claudeSessions.get("s1")!;
+      expect(session.chatMessages).toHaveLength(1);
+      expect(session.chatMessages[0].cardType).toBe("activity");
+      expect(session.currentActivityMessageId).not.toBeNull();
+
+      const event2: AgentEvent = {
+        timestamp: new Date().toISOString(),
+        event_type: "file_modify",
+        content: "Editing src/bar.ts",
+        metadata: { tool: "Edit", path: "src/bar.ts" },
+      };
+      store.getState().upsertActivityLine("s1", event2);
+      session = store.getState().claudeSessions.get("s1")!;
+      expect(session.chatMessages).toHaveLength(1);
+      const events = session.chatMessages[0].cardData?.events as unknown[];
+      expect(events).toHaveLength(2);
+    });
+
+    it("insertRichCard finalizes open activity line", () => {
+      const event: AgentEvent = {
+        timestamp: new Date().toISOString(),
+        event_type: "file_create",
+        content: "Creating src/foo.ts",
+        metadata: { tool: "Write", path: "src/foo.ts" },
+      };
+      store.getState().upsertActivityLine("s1", event);
+      store.getState().insertRichCard("s1", "outcome", "Done", {});
+      const session = store.getState().claudeSessions.get("s1")!;
+      expect(session.currentActivityMessageId).toBeNull();
+      expect(session.chatMessages).toHaveLength(2);
+    });
+  });
+
+  // ── Outcome state (Features 1-2) ──
+
+  describe("outcome state", () => {
+    beforeEach(() => {
+      store.getState().createClaudeSessionLocal("s1", "Session 1");
+    });
+
+    it("sets preview URL", () => {
+      store.getState().setSessionPreviewUrl("s1", "http://localhost:3000");
+      expect(store.getState().claudeSessions.get("s1")!.previewUrl).toBe("http://localhost:3000");
+    });
+
+    it("sets test summary", () => {
+      store.getState().setSessionTestSummary("s1", { passed: 10, failed: 2, total: 12 });
+      const summary = store.getState().claudeSessions.get("s1")!.testSummary;
+      expect(summary).toEqual({ passed: 10, failed: 2, total: 12 });
+    });
+
+    it("sets build status", () => {
+      store.getState().setSessionBuildStatus("s1", "running", "npm run dev");
+      const session = store.getState().claudeSessions.get("s1")!;
+      expect(session.buildStatus).toBe("running");
+      expect(session.buildStatusText).toBe("npm run dev");
+    });
+  });
 });
