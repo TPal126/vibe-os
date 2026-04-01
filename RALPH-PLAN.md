@@ -220,7 +220,7 @@ Add detection for TaskCreate, TaskUpdate, TaskGet, TaskList tool uses in the str
 
 Store these as `AgentEvent`s with the new types. This enables the conversation UI to show task progress cards.
 
-- [ ] **3d: Parse API metrics**
+- [x] **3d: Parse API metrics**
 
 Look for stream events containing token usage, cost, and timing data (TTFT - time to first token). When found, emit an `api_metrics` event:
 ```typescript

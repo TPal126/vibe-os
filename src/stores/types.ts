@@ -218,6 +218,16 @@ export interface TestSummary {
   total: number;
 }
 
+export interface ApiMetrics {
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+  cost: number;
+  durationMs: number;
+  durationApiMs: number;
+}
+
 export type BuildStatus = "idle" | "building" | "running" | "failed";
 
 export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail";
@@ -259,6 +269,7 @@ export interface ClaudeSessionState {
   testSummary: TestSummary | null;
   buildStatus: BuildStatus;
   buildStatusText: string | null;
+  apiMetrics: ApiMetrics | null;
 }
 
 export interface AgentSlice {
@@ -301,6 +312,7 @@ export interface AgentSlice {
   setSessionPreviewUrl: (sessionId: string, url: string | null) => void;
   setSessionTestSummary: (sessionId: string, summary: TestSummary | null) => void;
   setSessionBuildStatus: (sessionId: string, status: BuildStatus, text: string | null) => void;
+  setSessionApiMetrics: (sessionId: string, metrics: ApiMetrics) => void;
 
   // Legacy compat (delegate to active session)
   chatMessages: ChatMessage[];

@@ -212,6 +212,43 @@ export function useClaudeStream() {
                   }
                 }
 
+                // Emit api_metrics event from result usage data
+                const resultMeta = event.metadata || {};
+                const inputTokens = (resultMeta.input_tokens as number) ?? 0;
+                const outputTokens = (resultMeta.output_tokens as number) ?? 0;
+                const cost = (resultMeta.cost_usd as number) ?? 0;
+                const durationMs = (resultMeta.duration_ms as number) ?? 0;
+                const durationApiMs = (resultMeta.duration_api_ms as number) ?? 0;
+                const cacheCreationInputTokens = (resultMeta.cache_creation_input_tokens as number) ?? 0;
+                const cacheReadInputTokens = (resultMeta.cache_read_input_tokens as number) ?? 0;
+
+                if (inputTokens > 0 || outputTokens > 0 || cost > 0) {
+                  const metricsEvent: AgentEvent = {
+                    timestamp: event.timestamp,
+                    event_type: "api_metrics",
+                    content: "API metrics",
+                    metadata: {
+                      inputTokens,
+                      outputTokens,
+                      cacheCreationInputTokens,
+                      cacheReadInputTokens,
+                      cost,
+                      durationMs,
+                      durationApiMs,
+                    },
+                  };
+                  store.addSessionAgentEvent(sid, metricsEvent);
+                  useAppStore.getState().setSessionApiMetrics(sid, {
+                    inputTokens,
+                    outputTokens,
+                    cacheCreationInputTokens,
+                    cacheReadInputTokens,
+                    cost,
+                    durationMs,
+                    durationApiMs,
+                  });
+                }
+
                 // Finalize build status on result
                 const currentForBuild = useAppStore.getState().claudeSessions.get(sid);
                 if (currentForBuild?.buildStatus === "building") {

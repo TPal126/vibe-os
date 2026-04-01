@@ -8,6 +8,7 @@ import type {
   CardType,
   TestSummary,
   BuildStatus,
+  ApiMetrics,
 } from "../types";
 import { commands } from "../../lib/tauri";
 
@@ -33,6 +34,7 @@ function createDefaultSession(id: string, name: string): ClaudeSessionState {
     testSummary: null,
     buildStatus: "idle" as const,
     buildStatusText: null,
+    apiMetrics: null,
   };
 }
 
@@ -342,6 +344,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           testSummary: null,
           buildStatus: "idle" as const,
           buildStatusText: null,
+          apiMetrics: null,
         }),
       );
       const isActive = sessionId === state.activeClaudeSessionId;
@@ -522,6 +525,26 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
         buildStatus: status,
         buildStatusText: text,
       })),
+    })),
+
+  setSessionApiMetrics: (sessionId: string, metrics: ApiMetrics) =>
+    set((state) => ({
+      claudeSessions: updateSession(state.claudeSessions, sessionId, (s) => {
+        // Accumulate metrics across turns within the same session
+        const prev = s.apiMetrics;
+        if (!prev) return { apiMetrics: metrics };
+        return {
+          apiMetrics: {
+            inputTokens: prev.inputTokens + metrics.inputTokens,
+            outputTokens: prev.outputTokens + metrics.outputTokens,
+            cacheCreationInputTokens: prev.cacheCreationInputTokens + metrics.cacheCreationInputTokens,
+            cacheReadInputTokens: prev.cacheReadInputTokens + metrics.cacheReadInputTokens,
+            cost: prev.cost + metrics.cost,
+            durationMs: prev.durationMs + metrics.durationMs,
+            durationApiMs: prev.durationApiMs + metrics.durationApiMs,
+          },
+        };
+      }),
     })),
 
   // ── Legacy compat methods (delegate to active session) ──
