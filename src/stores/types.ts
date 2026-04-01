@@ -457,6 +457,16 @@ export interface AgentDefinition {
   createdAt: string;
   sourceSessionId: string;
   active: boolean;
+  // Claude Code-compatible fields:
+  model: string | null;
+  permissionMode: string | null;
+  disallowedTools: string[];
+  maxTurns: number | null;
+  background: boolean;
+  isolation: string | null;
+  memory: string | null;
+  skills: string[];
+  color: string | null;
 }
 
 export interface AgentDefinitionSlice {
@@ -469,6 +479,17 @@ export interface AgentDefinitionSlice {
     systemPrompt: string,
     tools: string[],
     sourceSessionId: string,
+    opts?: {
+      model?: string | null;
+      permissionMode?: string | null;
+      disallowedTools?: string[];
+      maxTurns?: number | null;
+      background?: boolean;
+      isolation?: string | null;
+      memory?: string | null;
+      skills?: string[];
+      color?: string | null;
+    },
   ) => Promise<void>;
   removeAgentDefinition: (name: string) => Promise<void>;
   toggleAgentDefinition: (name: string) => void;

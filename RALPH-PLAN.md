@@ -82,7 +82,7 @@ export interface AgentDefinitionRaw {
 
 Update the `saveAgentDefinition` command wrapper to accept and pass the new fields.
 
-- [ ] **1c: Update AgentDefinition in store types**
+- [x] **1c: Update AgentDefinition in store types**
 
 In `src/stores/types.ts`, update `AgentDefinition` interface to include:
 
