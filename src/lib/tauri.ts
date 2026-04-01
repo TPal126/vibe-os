@@ -106,6 +106,15 @@ export interface AgentDefinitionRaw {
   tools: string[];
   created_at: string;
   source_session_id: string;
+  model: string | null;
+  permission_mode: string | null;
+  disallowed_tools: string[];
+  max_turns: number | null;
+  background: boolean;
+  isolation: string | null;
+  memory: string | null;
+  skills: string[];
+  color: string | null;
 }
 
 // ── Raw types for new commands (snake_case from Rust) ──
@@ -344,6 +353,17 @@ export const commands = {
     systemPrompt: string,
     tools: string[],
     sourceSessionId: string,
+    opts?: {
+      model?: string | null;
+      permissionMode?: string | null;
+      disallowedTools?: string[];
+      maxTurns?: number | null;
+      background?: boolean;
+      isolation?: string | null;
+      memory?: string | null;
+      skills?: string[];
+      color?: string | null;
+    },
   ) =>
     invoke<AgentDefinitionRaw>("save_agent_definition", {
       name,
@@ -351,6 +371,15 @@ export const commands = {
       systemPrompt,
       tools,
       sourceSessionId,
+      model: opts?.model ?? null,
+      permissionMode: opts?.permissionMode ?? null,
+      disallowedTools: opts?.disallowedTools ?? null,
+      maxTurns: opts?.maxTurns ?? null,
+      background: opts?.background ?? null,
+      isolation: opts?.isolation ?? null,
+      memory: opts?.memory ?? null,
+      skills: opts?.skills ?? null,
+      color: opts?.color ?? null,
     }),
   loadAgentDefinitions: () =>
     invoke<AgentDefinitionRaw[]>("load_agent_definitions"),

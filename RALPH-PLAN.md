@@ -56,7 +56,7 @@ Update `parse_agent_md` to parse these from frontmatter (e.g., `model:`, `permis
 
 Update `save_agent_definition` to write these fields to the frontmatter when present.
 
-- [ ] **1b: Update TypeScript types and wrappers**
+- [x] **1b: Update TypeScript types and wrappers**
 
 In `src/lib/tauri.ts`, update `AgentDefinitionRaw` to include the new optional fields:
 
