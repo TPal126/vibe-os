@@ -6,7 +6,7 @@
 # Each invocation picks up the next unchecked task, implements it, commits, and exits.
 # The loop continues until all tasks are done or max iterations are reached.
 
-set -euo pipefail
+set -uo pipefail
 
 PLAN_FILE="RALPH-PLAN.md"
 MAX_ITERATIONS=40
@@ -42,22 +42,12 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   fi
 
   # Run Claude Code with the plan prompt
-  claude --dangerously-skip-permissions \
-    --print \
-    --verbose \
-    -m "Read RALPH-PLAN.md. Find the FIRST unchecked task (marked '- [ ]'). Implement ONLY that one task following the instructions exactly. After implementing:
-1. Run 'npm run test' to verify no regressions
-2. Mark the task as done by changing '- [ ]' to '- [x]' in RALPH-PLAN.md
-3. Commit all changes (including the updated RALPH-PLAN.md) with a descriptive message
-4. If ALL tasks are now checked, output RALPH_DONE
-5. Exit — do not proceed to the next task
+  PROMPT="Read RALPH-PLAN.md. Find the FIRST unchecked task (marked '- [ ]'). Implement ONLY that one task following the instructions exactly. After implementing: 1) Run 'npm run test' to verify no regressions. 2) Mark the task as done by changing '- [ ]' to '- [x]' in RALPH-PLAN.md. 3) Commit all changes (including the updated RALPH-PLAN.md) with a descriptive message. 4) If ALL tasks are now checked, output RALPH_DONE. 5) Exit — do not proceed to the next task. Follow existing patterns in CLAUDE.md. Do not ask questions — make reasonable decisions and document any assumptions in commit messages."
 
-Work from: $(pwd)
-Follow existing patterns in CLAUDE.md.
-Do not ask questions — make reasonable decisions and document any assumptions in commit messages." \
+  claude -p --dangerously-skip-permissions --verbose "$PROMPT" \
     2>&1 | tee -a "$LOG_FILE"
 
-  EXIT_CODE=$?
+  EXIT_CODE=${PIPESTATUS[0]}
 
   # Check if Claude signaled completion
   if grep -q "RALPH_DONE" "$LOG_FILE"; then
