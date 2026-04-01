@@ -4,7 +4,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 
 use chrono::Utc;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Mutex as TokioMutex;
 
@@ -299,6 +299,239 @@ pub async fn cancel_claude(app: AppHandle, claude_session_id: String) -> Result<
             claude_session_id
         ))
     }
+}
+
+// ── Session discovery types ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClaudeCodeSession {
+    pub id: String,
+    pub status: String,
+    pub created_at: String,
+    pub working_dir: String,
+}
+
+/// List running/backgrounded Claude Code sessions.
+/// Runs `claude sessions list --json` and parses the output.
+#[tauri::command]
+pub async fn list_claude_code_sessions() -> Result<Vec<ClaudeCodeSession>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let output = Command::new("claude")
+            .args(["sessions", "list", "--json"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .map_err(|e| format_spawn_error(&e))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            return Err(format!("Failed to list sessions: {}", stderr));
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let trimmed = stdout.trim();
+
+        if trimmed.is_empty() || trimmed == "[]" {
+            return Ok(Vec::new());
+        }
+
+        // Parse the JSON output — Claude CLI may return an array of session objects
+        let raw: serde_json::Value =
+            serde_json::from_str(trimmed).map_err(|e| format!("Failed to parse session list JSON: {}", e))?;
+
+        let sessions = match raw {
+            serde_json::Value::Array(arr) => arr
+                .into_iter()
+                .filter_map(|v| {
+                    let id = v.get("id").or_else(|| v.get("sessionId"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string();
+
+                    if id.is_empty() {
+                        return None;
+                    }
+
+                    let status = v.get("status")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+
+                    let created_at = v.get("created_at")
+                        .or_else(|| v.get("createdAt"))
+                        .or_else(|| v.get("startedAt"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string();
+
+                    let working_dir = v.get("working_dir")
+                        .or_else(|| v.get("workingDir"))
+                        .or_else(|| v.get("cwd"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                        .to_string();
+
+                    Some(ClaudeCodeSession {
+                        id,
+                        status,
+                        created_at,
+                        working_dir,
+                    })
+                })
+                .collect(),
+            _ => Vec::new(),
+        };
+
+        Ok(sessions)
+    })
+    .await
+    .map_err(|e| format!("Session list task failed: {}", e))?
+}
+
+/// Attach to a backgrounded Claude Code session.
+/// Runs `claude sessions resume <id>` piping output through the same event stream as `start_claude`.
+#[tauri::command]
+pub async fn attach_claude_code_session(
+    app: AppHandle,
+    session_id: String,
+    claude_session_id: String,
+) -> Result<String, String> {
+    let invocation_id = uuid::Uuid::new_v4().to_string();
+
+    let cli_args = vec![
+        "sessions".to_string(),
+        "resume".to_string(),
+        session_id.clone(),
+        "--output-format".to_string(),
+        "stream-json".to_string(),
+        "--verbose".to_string(),
+    ];
+
+    let mut child = Command::new("claude")
+        .args(&cli_args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format_spawn_error(&e))?;
+
+    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
+
+    // Store the child handle keyed by claude_session_id
+    let processes = get_or_init_processes(&app);
+    let claude_sid = claude_session_id.clone();
+    {
+        let mut procs = processes.lock().await;
+        procs.insert(claude_sid.clone(), child);
+    }
+
+    update_session_status_in_db(&app, &claude_sid, "active");
+
+    let _ = app.emit(
+        "claude-stream",
+        serde_json::json!({
+            "type": "status",
+            "status": "working",
+            "invocation_id": &invocation_id,
+            "claude_session_id": &claude_sid,
+        }),
+    );
+
+    // Spawn stdout reader thread (same pattern as start_claude)
+    let app_handle = app.clone();
+    let inv_id = invocation_id.clone();
+    let claude_sid_stdout = claude_sid.clone();
+    let processes_clone = processes.clone();
+
+    std::thread::spawn(move || {
+        let reader = BufReader::new(stdout);
+        let mut line_buffer = String::new();
+
+        for line_result in reader.lines() {
+            let line = match line_result {
+                Ok(l) => l,
+                Err(_) => break,
+            };
+
+            if line.trim().is_empty() {
+                continue;
+            }
+
+            line_buffer.push_str(&line);
+
+            let agent_event = event_stream::parse_event(&line_buffer)
+                .with_session_id(&claude_sid_stdout);
+            line_buffer.clear();
+
+            if agent_event.event_type == AgentEventType::Result {
+                if let Some(ref meta) = agent_event.metadata {
+                    if let Some(conv_id) = meta.get("session_id").and_then(|v| v.as_str()) {
+                        update_session_conversation_id(
+                            &app_handle,
+                            &claude_sid_stdout,
+                            conv_id,
+                        );
+                    }
+                }
+            }
+
+            log_to_audit(&app_handle, &agent_event);
+            let _ = app_handle.emit("claude-stream", &agent_event);
+        }
+
+        let exit_code = {
+            let rt = tauri::async_runtime::handle();
+            rt.block_on(async {
+                let mut procs = processes_clone.lock().await;
+                if let Some(mut child) = procs.remove(&claude_sid_stdout) {
+                    child.wait().ok().and_then(|s| s.code())
+                } else {
+                    None
+                }
+            })
+        };
+
+        let _ = app_handle.emit(
+            "claude-stream",
+            serde_json::json!({
+                "type": "status",
+                "status": "done",
+                "invocation_id": &inv_id,
+                "claude_session_id": &claude_sid_stdout,
+                "exit_code": exit_code,
+            }),
+        );
+
+        update_session_status_in_db(&app_handle, &claude_sid_stdout, "idle");
+    });
+
+    // Spawn stderr reader thread
+    let app_handle_err = app.clone();
+    let claude_sid_stderr = claude_sid.clone();
+
+    std::thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line_result in reader.lines() {
+            let text = match line_result {
+                Ok(l) => l.trim().to_string(),
+                Err(_) => break,
+            };
+            if text.is_empty() {
+                continue;
+            }
+
+            let error_event = AgentEvent {
+                timestamp: Utc::now().to_rfc3339(),
+                event_type: AgentEventType::Error,
+                content: text,
+                metadata: None,
+                claude_session_id: Some(claude_sid_stderr.clone()),
+            };
+            let _ = app_handle_err.emit("claude-stream", &error_event);
+        }
+    });
+
+    Ok(invocation_id)
 }
 
 // ── Helpers ──

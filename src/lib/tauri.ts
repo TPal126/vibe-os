@@ -81,6 +81,15 @@ export interface ClaudeSessionInfo {
   conversation_id: string | null;
 }
 
+// ── Claude Code session discovery types ──
+
+export interface ClaudeCodeSessionInfo {
+  id: string;
+  status: string;
+  created_at: string;
+  working_dir: string;
+}
+
 // ── Workspace types (matching Rust structs) ──
 
 export interface WorkspaceMeta {
@@ -267,6 +276,12 @@ export const commands = {
 
   cancelClaude: (claudeSessionId: string) =>
     invoke<void>("cancel_claude", { claudeSessionId }),
+
+  listClaudeCodeSessions: () =>
+    invoke<ClaudeCodeSessionInfo[]>("list_claude_code_sessions"),
+
+  attachClaudeCodeSession: (sessionId: string, claudeSessionId: string) =>
+    invoke<string>("attach_claude_code_session", { sessionId, claudeSessionId }),
 
   // ── Claude Session CRUD ──
   createClaudeSession: (sessionId: string, name: string) =>

@@ -242,7 +242,7 @@ Update `setSessionTestSummary` or add a new `setSessionApiMetrics` method to tra
 
 ## Task 4: Session Attach Support
 
-- [ ] **4a: Add list-sessions and attach-session commands**
+- [x] **4a: Add list-sessions and attach-session commands**
 
 In `src-tauri/src/commands/claude_commands.rs`, add two new commands:
 

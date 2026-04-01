@@ -132,6 +132,8 @@ pub fn run() {
             claude_commands::start_claude,
             claude_commands::send_message,
             claude_commands::cancel_claude,
+            claude_commands::list_claude_code_sessions,
+            claude_commands::attach_claude_code_session,
             decision_commands::record_decision,
             decision_commands::get_session_decisions,
             decision_commands::export_decisions,
