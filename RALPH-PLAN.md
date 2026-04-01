@@ -27,7 +27,7 @@ If ALL tasks are checked, output "RALPH_DONE" and exit.
 
 ## Task 1: Align Agent Definition Format with Claude Code
 
-- [ ] **1a: Update Rust agent_commands.rs frontmatter parser**
+- [x] **1a: Update Rust agent_commands.rs frontmatter parser**
 
 In `src-tauri/src/commands/agent_commands.rs`, extend `AgentDefinition` struct and `parse_agent_md` to support these additional Claude Code frontmatter fields:
 
