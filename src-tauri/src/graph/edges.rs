@@ -150,3 +150,47 @@ fn build_set_clause(data: &EdgeData) -> String {
         parts.join(", ")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::connection::initialize_graph_db;
+    use crate::graph::schema::define_schema;
+    use crate::graph::nodes;
+
+    async fn test_db() -> Surreal<Db> {
+        let dir = std::env::temp_dir().join(format!("vibe_edge_test_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let db = initialize_graph_db(&dir).await.unwrap();
+        define_schema(&db).await.unwrap();
+        db
+    }
+
+    #[tokio::test]
+    async fn test_relate_and_query_edges() {
+        let db = test_db().await;
+        nodes::create_node(&db, "module", "mod_a", &serde_json::json!({"name": "mod_a"})).await.unwrap();
+        nodes::create_node(&db, "repo", "repo_x", &serde_json::json!({"name": "repo_x"})).await.unwrap();
+
+        relate(&db, "module:mod_a", "belongs_to", "repo:repo_x", None).await.unwrap();
+
+        let edges = outgoing_edges(&db, "module:mod_a", "belongs_to").await.unwrap();
+        assert!(!edges.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_relate_with_data() {
+        let db = test_db().await;
+        nodes::create_node(&db, "fn_def", "fn_a", &serde_json::json!({"name": "fn_a"})).await.unwrap();
+        nodes::create_node(&db, "fn_def", "fn_b", &serde_json::json!({"name": "fn_b"})).await.unwrap();
+
+        let data = EdgeData {
+            call_count: Some(5),
+            ..Default::default()
+        };
+        relate(&db, "fn_def:fn_a", "calls", "fn_def:fn_b", Some(&data)).await.unwrap();
+
+        let edges = outgoing_edges(&db, "fn_def:fn_a", "calls").await.unwrap();
+        assert!(!edges.is_empty());
+    }
+}

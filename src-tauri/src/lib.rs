@@ -7,6 +7,7 @@ mod db;
 mod graph;
 mod services;
 
+use commands::agent_commands;
 use commands::architecture_commands;
 use commands::audit_commands;
 use commands::claude_commands;
@@ -145,6 +146,9 @@ pub fn run() {
             token_commands::set_token_budget,
             token_commands::get_token_budgets,
             token_commands::delete_token_budget,
+            agent_commands::save_agent_definition,
+            agent_commands::load_agent_definitions,
+            agent_commands::remove_agent_definition,
             // Graph commands
             graph_commands::graph_get_full,
             graph_commands::graph_get_provenance,
@@ -167,6 +171,7 @@ pub fn run() {
             graph_commands::graph_populate_session,
             graph_commands::graph_sync_decisions,
             graph_commands::graph_sync_audit,
+            graph_commands::graph_get_topology,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

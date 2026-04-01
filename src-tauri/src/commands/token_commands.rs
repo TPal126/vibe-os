@@ -118,3 +118,52 @@ pub fn delete_token_budget(state: State<'_, DbState>, id: String) -> Result<(), 
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::db::initialize_db;
+
+    fn test_db() -> rusqlite::Connection {
+        let dir = std::env::temp_dir().join(format!("vibe_test_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        initialize_db(&dir.join("test.db")).unwrap()
+    }
+
+    #[test]
+    fn test_set_and_get_token_budgets() {
+        let conn = test_db();
+
+        conn.execute(
+            "INSERT INTO token_budgets (id, scope_type, scope_id, max_tokens, warning_threshold, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, datetime('now'), datetime('now'))",
+            rusqlite::params!["b-1", "skill", "skill-abc", 5000, 4000],
+        ).unwrap();
+
+        let mut stmt = conn.prepare("SELECT id, scope_type, scope_id, max_tokens FROM token_budgets").unwrap();
+        let rows: Vec<(String, String, String, i64)> = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)))
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect();
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].1, "skill");
+        assert_eq!(rows[0].3, 5000);
+    }
+
+    #[test]
+    fn test_delete_token_budget() {
+        let conn = test_db();
+
+        conn.execute(
+            "INSERT INTO token_budgets (id, scope_type, scope_id, max_tokens, warning_threshold, created_at, updated_at)
+             VALUES ('b-del', 'repo', 'repo-1', 10000, 8000, datetime('now'), datetime('now'))",
+            [],
+        ).unwrap();
+
+        conn.execute("DELETE FROM token_budgets WHERE id = 'b-del'", []).unwrap();
+
+        let count: i64 = conn.query_row("SELECT COUNT(*) FROM token_budgets", [], |row| row.get(0)).unwrap();
+        assert_eq!(count, 0);
+    }
+}

@@ -374,6 +374,8 @@ export interface WorkspaceSlice {
 
 // ── Layout Types ──
 
+export type PaneId = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+
 export interface LayoutSlice {
   drawerOpen: boolean;
   activeDrawerTab: string;
@@ -382,17 +384,24 @@ export interface LayoutSlice {
   setActiveDrawerTab: (tab: string) => void;
   openDrawerToTab: (tab: string) => void;
 
-  // Phase 17: Settings panel (right slide-in)
-  settingsPanelOpen: boolean;
-  settingsPanelTab: string;
-  toggleSettingsPanel: () => void;
-  setSettingsPanelOpen: (open: boolean) => void;
-  setSettingsPanelTab: (tab: string) => void;
-
-  // Phase 17: Editor panel (bottom slide-in)
+  // Editor panel (bottom slide-in)
   editorPanelOpen: boolean;
   toggleEditorPanel: () => void;
   setEditorPanelOpen: (open: boolean) => void;
+
+  // Quadrant pane tabs
+  topRightTab: string;
+  bottomLeftTab: string;
+  bottomRightTab: string;
+  setTopRightTab: (tab: string) => void;
+  setBottomLeftTab: (tab: string) => void;
+  setBottomRightTab: (tab: string) => void;
+
+  // Quadrant pane state
+  maximizedPane: PaneId | null;
+  setMaximizedPane: (pane: PaneId | null) => void;
+  pinnedPanes: Set<PaneId>;
+  togglePinnedPane: (pane: PaneId) => void;
 }
 
 // ── Dashboard Types ──
@@ -411,9 +420,12 @@ export interface Project {
   claudeSessionId: string;
   summary: string;
   createdAt: string;
+  linkedRepoIds: string[];
+  linkedSkillIds: string[];
+  linkedAgentNames: string[];
 }
 
-export type ViewMode = "home" | "conversation";
+export type ViewMode = "home" | "conversation" | "project-setup";
 
 export interface ProjectSlice {
   projects: Project[];
@@ -428,10 +440,67 @@ export interface ProjectSlice {
   // Navigation
   openProject: (id: string) => void;
   goHome: () => void;
+  goToSetup: () => void;
 
   // Persistence
   loadProjects: () => Promise<void>;
   saveProjects: () => Promise<void>;
+}
+
+// ── Agent Definition Types ──
+
+export interface AgentDefinition {
+  name: string;
+  description: string;
+  systemPrompt: string;
+  tools: string[];
+  createdAt: string;
+  sourceSessionId: string;
+  active: boolean;
+}
+
+export interface AgentDefinitionSlice {
+  agentDefinitions: AgentDefinition[];
+  agentDefinitionsLoading: boolean;
+  loadAgentDefinitions: () => Promise<void>;
+  saveAgentDefinition: (
+    name: string,
+    description: string,
+    systemPrompt: string,
+    tools: string[],
+    sourceSessionId: string,
+  ) => Promise<void>;
+  removeAgentDefinition: (name: string) => Promise<void>;
+  toggleAgentDefinition: (name: string) => void;
+}
+
+// ── Global Repo Types ──
+
+export interface GlobalRepo {
+  id: string;
+  name: string;
+  source: "local" | "github";
+  path: string;
+  gitUrl: string | null;
+  branch: string;
+  language: string;
+}
+
+export interface GlobalRepoSlice {
+  globalRepos: GlobalRepo[];
+  globalReposLoading: boolean;
+  loadGlobalRepos: () => Promise<void>;
+  addGlobalRepos: (repos: GlobalRepo[]) => Promise<void>;
+  removeGlobalRepo: (id: string) => Promise<void>;
+}
+
+// ── Theme Types ──
+
+export type Theme = "light" | "dark";
+
+export interface ThemeSlice {
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
 // ── Combined State ──
@@ -451,7 +520,10 @@ export type AppState = SessionSlice &
   LayoutSlice &
   DashboardSlice &
   TokenSlice &
-  ProjectSlice;
+  ProjectSlice &
+  ThemeSlice &
+  AgentDefinitionSlice &
+  GlobalRepoSlice;
 
 // ── Slice Creator Helper ──
 

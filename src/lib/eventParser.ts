@@ -91,3 +91,101 @@ export function getSessionId(payload: unknown): string | undefined {
   if (typeof p.claude_session_id === "string") return p.claude_session_id;
   return undefined;
 }
+
+// ── Dev-server URL detection ──
+
+const DEV_SERVER_URL_RE = /https?:\/\/(?:localhost|127\.0\.0\.1):\d{4,5}\b/;
+
+/**
+ * Extract the first dev-server URL (localhost / 127.0.0.1 with port) from text.
+ * Returns null when no URL is found.
+ */
+export function extractDevServerUrl(text: string): string | null {
+  const match = text.match(DEV_SERVER_URL_RE);
+  return match ? match[0] : null;
+}
+
+// ── Test-result parsing ──
+
+export interface ParsedTestResult {
+  passed: number;
+  failed: number;
+  total: number;
+  testNames: string[];
+}
+
+function parseTestNames(text: string): string[] {
+  const names: string[] = [];
+  const lines = text.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Jest/Vitest: "✓ test name" or "✕ test name" or "● test name"
+    const checkMatch = trimmed.match(/^[✓✕●✗×√]\s+(.+)/);
+    if (checkMatch) {
+      names.push(checkMatch[1].replace(/\s+\(\d+\s*m?s\)$/, "").trim());
+      continue;
+    }
+
+    // pytest: "PASSED test_file.py::test_name" or "FAILED test_file.py::test_name"
+    const pytestMatch = trimmed.match(/^(?:PASSED|FAILED)\s+(.+)/);
+    if (pytestMatch) {
+      names.push(pytestMatch[1].trim());
+      continue;
+    }
+
+    // Rust: "test module::test_name ... ok" or "test module::test_name ... FAILED"
+    const rustMatch = trimmed.match(/^test\s+(.+?)\s+\.\.\.\s+(?:ok|FAILED)/);
+    if (rustMatch) {
+      names.push(rustMatch[1].trim());
+      continue;
+    }
+  }
+
+  return names;
+}
+
+/**
+ * Parse test result summary lines from Jest/Vitest, pytest, or Rust test output.
+ * Returns null when no recognisable summary line is found.
+ */
+export function parseTestResults(text: string): ParsedTestResult | null {
+  // Jest/Vitest: "Tests:  3 passed, 1 failed, 4 total" or "Tests:  8 passed, 8 total"
+  const jestMatch = text.match(/Tests:\s+(\d+)\s+passed(?:,\s+(\d+)\s+failed)?,\s+(\d+)\s+total/);
+  if (jestMatch) {
+    return {
+      passed: parseInt(jestMatch[1]),
+      failed: jestMatch[2] ? parseInt(jestMatch[2]) : 0,
+      total: parseInt(jestMatch[3]),
+      testNames: parseTestNames(text),
+    };
+  }
+
+  // Vitest compact: "N tests passed" or "N tests failed"
+  const vitestPass = text.match(/(\d+)\s+tests?\s+passed/);
+  const vitestFail = text.match(/(\d+)\s+tests?\s+failed/);
+  if (vitestPass || vitestFail) {
+    const passed = vitestPass ? parseInt(vitestPass[1]) : 0;
+    const failed = vitestFail ? parseInt(vitestFail[1]) : 0;
+    return { passed, failed, total: passed + failed, testNames: parseTestNames(text) };
+  }
+
+  // pytest: "8 passed, 2 failed" or "8 passed"
+  const pytestMatch = text.match(/(\d+)\s+passed(?:,\s+(\d+)\s+failed)?/);
+  if (pytestMatch) {
+    const passed = parseInt(pytestMatch[1]);
+    const failed = pytestMatch[2] ? parseInt(pytestMatch[2]) : 0;
+    return { passed, failed, total: passed + failed, testNames: parseTestNames(text) };
+  }
+
+  // Rust: "test result: ok. 8 passed; 0 failed"
+  const rustMatch = text.match(/test result:.*?(\d+)\s+passed;\s+(\d+)\s+failed/);
+  if (rustMatch) {
+    const passed = parseInt(rustMatch[1]);
+    const failed = parseInt(rustMatch[2]);
+    return { passed, failed, total: passed + failed, testNames: parseTestNames(text) };
+  }
+
+  return null;
+}

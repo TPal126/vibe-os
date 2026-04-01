@@ -187,3 +187,106 @@ pub fn export_decisions(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::initialize_db;
+
+    fn test_db() -> Connection {
+        let dir = std::env::temp_dir().join(format!("vibe_test_{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        initialize_db(&dir.join("test.db")).unwrap()
+    }
+
+    fn make_decision(conn: &Connection, session_id: &str) -> Decision {
+        conn.execute(
+            "INSERT OR IGNORE INTO sessions (id, started_at, active) VALUES (?1, datetime('now'), 1)",
+            rusqlite::params![session_id],
+        ).unwrap();
+
+        let dec = Decision {
+            id: uuid::Uuid::new_v4().to_string(),
+            session_id: session_id.to_string(),
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            decision: "Use REST over GraphQL".to_string(),
+            rationale: "Simpler for CRUD".to_string(),
+            confidence: 0.85,
+            impact_category: "architecture".to_string(),
+            reversible: true,
+            related_files: vec!["src/routes.rs".to_string()],
+            related_tickets: vec!["VIBE-42".to_string()],
+        };
+        insert_decision(conn, &dec).unwrap();
+        dec
+    }
+
+    #[test]
+    fn test_insert_and_query_decision() {
+        let conn = test_db();
+        let dec = make_decision(&conn, "sess-1");
+
+        let mut stmt = conn
+            .prepare("SELECT id, decision, confidence, reversible, related_files FROM decisions WHERE session_id = ?1")
+            .unwrap();
+        let rows: Vec<(String, String, f64, i32, String)> = stmt
+            .query_map(["sess-1"], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?))
+            })
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect();
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].0, dec.id);
+        assert_eq!(rows[0].1, "Use REST over GraphQL");
+        assert!((rows[0].2 - 0.85).abs() < 0.001);
+        assert_eq!(rows[0].3, 1);
+        let files: Vec<String> = serde_json::from_str(&rows[0].4).unwrap();
+        assert_eq!(files, vec!["src/routes.rs"]);
+    }
+
+    #[test]
+    fn test_decisions_scoped_to_session() {
+        let conn = test_db();
+        make_decision(&conn, "sess-1");
+        make_decision(&conn, "sess-2");
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM decisions WHERE session_id = ?1", ["sess-1"], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_export_decisions_json() {
+        let conn = test_db();
+        make_decision(&conn, "sess-1");
+
+        let mut stmt = conn
+            .prepare("SELECT id, session_id, timestamp, decision, rationale, confidence, impact_category, reversible, related_files, related_tickets FROM decisions WHERE session_id = ?1")
+            .unwrap();
+        let decisions: Vec<Decision> = stmt
+            .query_map(["sess-1"], |row| {
+                Ok(Decision {
+                    id: row.get(0)?,
+                    session_id: row.get(1)?,
+                    timestamp: row.get(2)?,
+                    decision: row.get(3)?,
+                    rationale: row.get(4)?,
+                    confidence: row.get(5)?,
+                    impact_category: row.get(6)?,
+                    reversible: row.get::<_, i32>(7)? != 0,
+                    related_files: serde_json::from_str(&row.get::<_, String>(8).unwrap_or_default()).unwrap_or_default(),
+                    related_tickets: serde_json::from_str(&row.get::<_, String>(9).unwrap_or_default()).unwrap_or_default(),
+                })
+            })
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .collect();
+
+        let json = serde_json::to_string_pretty(&decisions).unwrap();
+        assert!(json.contains("Use REST over GraphQL"));
+        assert!(json.contains("src/routes.rs"));
+    }
+}

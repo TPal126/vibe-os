@@ -61,7 +61,7 @@ cd vibe-os
 # Install frontend dependencies
 npm install
 
-# Run tests (43 tests across Rust + TypeScript)
+# Run tests (142 tests across Rust + TypeScript)
 npm run test:all
 
 # Launch in development mode (starts Vite + Tauri together)
@@ -79,22 +79,12 @@ First launch creates your database at `~/.vibe-os/vibe-os.db` and copies starter
 
 VIBE OS is a **conversation-first desktop IDE** for AI-assisted development. Every interaction happens through a full-width Claude chat, with project management, attention routing, and power tools surfaced through overlays and inline cards.
 
-| Capability | What You Get |
-|---|---|
-| **Project Cards** | Home screen shows all projects as cards with live status, outcome badges, and attention indicators |
-| **Full-Width Chat** | Single-project conversation view with Claude -- no column clutter, just the conversation |
-| **Inline Activity Cards** | File creates, modifications, test runs, decisions, and errors render as typed cards inside the chat stream |
-| **Outcome Detection** | Auto-detects session results: test pass/fail counts, build status, preview URLs, errors |
-| **Attention Routing** | Pulsing indicators on project cards and title bar badge when sessions need your input; OS-level notifications |
-| **Knowledge Graph** | Embedded SurrealDB graph database tracks every entity (code, decisions, tasks, skills) and relationship. Interactive D3 force-directed visualizer with filtering, search, and node inspection |
-| **Settings Panel** | Always-visible right sidebar with 7 tabs: Repos, Skills, Tokens, Files, Audit, Events, Graph |
-| **Editor Escape Hatch** | `Ctrl+Shift+C` opens a bottom Monaco editor panel; code blocks in chat have "View Code" buttons |
-| **Code Block Summaries** | Agent code output collapses to `"python -- 42 lines"` with expand/collapse and one-click editor opening |
-| **Token Control** | Per-skill, per-repo, and session-level token budgets with color-coded warnings |
-| **Decision Logging** | Every architectural decision captured with rationale, confidence, impact category, and reversibility |
-| **Audit Trail** | Append-only log of every action. Never deleted. Export to JSON/CSV. |
-| **Workspace System** | Project workspaces with scaffolded directories, CLAUDE.md as system prompt, workspace-scoped repos/skills |
-| **Multi-Session Chat** | Run multiple Claude Code sessions simultaneously with tab-based switching and input-needed alerts |
+- **Multi-Project Dashboard** -- live project cards with status, outcome badges, and attention routing
+- **Conversation-First IDE** -- full-width chat with inline activity cards, code summaries, and rich agent output
+- **Multi-Session Agents** -- run multiple Claude Code sessions simultaneously with tab switching and attention indicators
+- **Knowledge Graph** -- embedded SurrealDB graph connecting code, decisions, actions, and tests; interactive D3 visualizer
+- **Visibility & Audit** -- every decision and action captured, append-only, exportable to JSON/CSV
+- **Context Control** -- workspaces, CLAUDE.md system prompt, repo/skill toggles, and per-scope token budgets
 
 ---
 
@@ -104,7 +94,9 @@ VIBE OS is a **conversation-first desktop IDE** for AI-assisted development. Eve
 
 ```
 +-----------------------------------------------------------------------+
-|  VIBE OS                                     [gear] [minimize] [close] |
+|  VIBE OS                  0 repos  1 skill  $0.00 (287 tokens)  - x   |
++-----------------------------------------------------------------------+
+|  . test  . test2  . vibe-os-2  . vibe2 x  +                          |
 +-----------------------------------------------------------------------+
 |                                                                       |
 |   PROJECT CARDS                                                       |
@@ -124,139 +116,84 @@ Each project card shows:
 - Attention flag (pulsing orange when input is needed)
 - Outcome badges: test results, build status, preview URLs, errors
 
-### Conversation View
+### Conversation View (Quadrant Layout)
+
+Click a project card to enter the workspace. The interface splits into four resizable quadrants:
 
 ```
 +-----------------------------------------------------------------------+
-|  VIBE OS  |  my-api  Session1  Session2  +       [gear] [min] [close] |
+|  VIBE OS  vibe2       0 repos  1 skill  $0.00 (287 tokens)     - x   |
 +-----------------------------------------------------------------------+
-|                                                                       |
-|  > scaffold the REST endpoints                                        |
-|                                                                       |
-|  [activity] Created src/routes/users.ts                               |
-|  [activity] Modified src/index.ts                                     |
-|                                                                       |
-|  Sure, I've created the REST endpoints...                             |
-|                                                                       |
-|  [python -- 24 lines]                            [> expand] [View Code]|
-|                                                                       |
-|  [decision] REST over GraphQL (confidence: 85%)                       |
-|                                                                       |
-|  [outcome] 12/12 tests passing | Build OK | Preview: localhost:3000   |
-|                                                                       |
-|  +--------------------------------------------------------------+    |
-|  | Type a message...                                    [Send]   |    |
-|  +--------------------------------------------------------------+    |
-+-----------------------------------------------------------------------+
+|  . test  . test2  . vibe-os-2  . vibe2 x  +                          |
++-----------------------------------+-----------------------------------+
+|                                   | Architecture  Graph  Preview      |
+|  Conversation                     |                                   |
+|                                   |  [Index Repo]  [Search...]        |
+|  Send a message to start a        |  repo module function class       |
+|  conversation with Claude         |  ticket skill decision test       |
+|                                   |                                   |
+|                                   |       *** graph viz ***           |
+|                                   |                                   |
+|  [Message Claude... Enter to send]|                                   |
++-----------------------------------+-----------------------------------+
+| Skills  Repos  Tokens  Files      | Audit  Decisions  Console  Events |
+|                                   |                                   |
+|  Token Budget    ~223 / 20.0k     | 22:35:56 SKILL_TOGGLE Deactivated|
+|  ================================ | 22:35:56 SKILL_TOGGLE Activated  |
+|  [x] Python Basics  core  ~223t   | 22:35:53 SKILL_TOGGLE Activated  |
+|  [ ] Debugging       core  ~295t  | 22:35:31 WORKSPACE_CREATE vibe2  |
+|                                   |                    [JSON] [CSV]   |
++-----------------------------------+-----------------------------------+
 ```
 
-**Overlays (no column disruption):**
-- **Settings Panel** (right slide-in, 400px): Repos, Skills, Tokens, Files, Audit, Events tabs
-- **Editor Panel** (bottom slide-in, 60vh): Full Monaco editor with `Ctrl+Shift+C` toggle
+**Four quadrants, each with tabbed panes:**
+
+| Quadrant | Tabs | What's There |
+|---|---|---|
+| **Top-left** | Conversation | Chat with Claude, session tabs, message input |
+| **Top-right** | Architecture, Graph, Preview | D3 knowledge graph visualizer, repo topology, live preview iframe |
+| **Bottom-left** | Skills, Repos, Tokens, Files | Context control -- toggle skills/repos, set token budgets, browse workspace files |
+| **Bottom-right** | Audit, Decisions, Console, Events | Visibility -- audit trail, decision log with export, raw agent event stream |
+
+**Title bar** shows project name, repo/skill counts, session cost, and token usage at a glance.
+
+<p align="center">
+  <img src="docs/screenshots/quadrant-layout.png" alt="VIBE OS quadrant layout" width="100%" />
+</p>
 
 ---
 
 ## Features in Depth
 
-### Project Cards & Home Screen (v3)
+### 1. Multi-Project Dashboard
 
-The home screen replaces the old multi-column layout with a card-based project overview:
+The home screen shows every project as a card with live status. Each card surfaces what matters: is Claude working, idle, or waiting for you? How did the last run end -- tests passing, build errors, preview running? Projects that need your attention pulse orange with a count badge in the title bar. Click a card to enter its conversation. OS-level desktop notifications fire when a background session needs input.
 
-- **Create** projects from the home screen -- named, timestamped, ready to chat
-- **Project cards** show live status with outcome badges (test counts, build status, preview URLs)
-- **Attention routing** flags projects that need your input with pulsing indicators
-- **Click a card** to enter the full-width conversation view
-- **OS notifications** via Tauri notification plugin when background sessions need attention
+### 2. Conversation-First IDE
 
-### Conversation Cards (v3)
+Every interaction starts in the conversation quadrant. Agent activity streams in as typed inline cards: file creates and modifications, test results with pass/fail breakdowns, architectural decisions with confidence scores, errors with retry buttons, and live preview thumbnails when a dev server spins up. Code blocks collapse to a one-line summary with language and line count -- expand inline or open in the editor. The knowledge graph, audit trail, and context controls are always visible in the surrounding quadrants -- no hidden panels to dig through.
 
-Claude's responses include structured inline cards instead of raw text:
+### 3. Multi-Session Agents
 
-| Card Type | What It Shows |
-|---|---|
-| **ActivityLine** | File creates, modifications, test runs -- typed and color-coded |
-| **OutcomeCard** | Session results: test pass/fail, build status, preview URLs |
-| **ErrorCard** | Errors with retry button |
-| **InlineDecisionCard** | Architectural decisions with confidence and impact |
-| **InlinePreviewCard** | Preview URL thumbnails |
-| **TestDetailCard** | Test suite results with pass/fail breakdown |
-| **CodeBlockSummary** | Collapsed code with line count, expand toggle, and "View Code" button |
+Run multiple Claude Code sessions simultaneously, each in its own subprocess with independent conversation history. Switch between sessions via tabs. Background sessions that need input surface through attention routing -- pulsing tab indicators, project card badges, and OS notifications so nothing blocks silently.
 
-### Knowledge Graph (v3)
+### 4. Knowledge Graph
 
-An embedded SurrealDB graph database that connects every entity in the development process:
+An embedded SurrealDB graph database auto-indexes your code (repos, modules, functions, classes) and connects them to every decision, action, test, and skill from your sessions. Ask questions like "what decisions touched this function?" or "what breaks if I change this module?" through provenance and impact queries. An interactive D3 force-directed visualizer lets you filter by node type, search, and click-to-inspect.
 
-- **11 node types**: repo, module, function, class, ticket, skill, decision, action, test, session, prompt
-- **16 edge types**: structural (imports, calls, inherits), reasoning (informed_by, modified, addresses), work (implemented_by, depends_on), context (included_in, produced), temporal (occurred_in, followed)
-- **D3 force-directed visualizer** with colored nodes by type, directed edges, drag/zoom/pan
-- **Type filter toggles** to show/hide node categories
-- **Search** across all node labels
-- **Click-to-inspect** panel showing full node properties
-- **Hover** highlights connected edges, dims unrelated nodes
-- **Composite queries**: provenance trace, impact radius, session report, skill effectiveness
+### 5. Visibility & Audit
 
-The graph answers questions like: "Show me every decision that touched this function." "Which skills drive the highest-confidence decisions?" "What's the blast radius if I change this module?"
+Every architectural decision is captured with rationale, confidence score, impact category, and reversibility. Every agent action -- file creates, test runs, prompts sent -- lands in an append-only audit log that is never deleted. Both are exportable to JSON or CSV.
 
-### Settings Sidebar (v3)
+### 6. Context Control
 
-Always-visible right sidebar in conversation view with 7 tabs:
-
-| Tab | Content |
-|---|---|
-| **Repos** | Add/remove git repositories, toggle active context |
-| **Skills** | Browse and toggle skill files |
-| **Tokens** | Per-skill and per-repo token budgets with color-coded bars |
-| **Files** | Workspace file tree (click opens editor panel) |
-| **Audit** | Append-only action log with JSON/CSV export |
-| **Events** | Real-time agent event stream (think, decision, file ops, tests) |
-| **Graph** | Interactive knowledge graph visualizer |
-
-### Editor Escape Hatch (v3)
-
-- **`Ctrl+Shift+C`** toggles a bottom Monaco editor panel (60vh)
-- **Code block summaries** in chat show `"language -- N lines"` with expand/collapse
-- **"View Code" button** on each code block opens it in the editor panel
-- **Files tab** in settings: clicking a file auto-opens the editor
-- Monaco instance stays mounted (CSS display toggle) so editor state persists
-
-### Workspace System
-
-Workspaces organize all project context into a single directory:
-
-```
-~/vibe-workspaces/my-project/
-+-- CLAUDE.md        # System prompt (editable, live-updating)
-+-- docs/            # Project documentation
-+-- repos/           # Cloned repositories
-+-- skills/          # Workspace-local skill files
-+-- data/            # Data files
-+-- output/          # Generated output
-```
-
-### Multi-Session Claude Chat
-
-- Run **multiple concurrent Claude sessions**, each with its own subprocess, conversation history, and working state
-- **Session tabs** in the chat area for switching between active sessions
-- **Input-needed alerts** -- pulsing orange dot when a background session needs your attention
-
-### Token Control
-
-- **Per-skill limits** -- cap how many tokens each skill can consume
-- **Per-repo limits** -- cap context from each repository
-- **Session budget** -- overall token ceiling with color-coded warnings (green/orange/red)
-- Budget enforcement during prompt composition with soft truncation
-
-### Decision Log & Audit Trail
-
-- **Decisions** -- impact category, confidence score, reversibility, expandable rationale
-- **Audit** -- append-only, never deleted, exportable to JSON/CSV
-- Both are the compliance and transparency layer
+Workspaces organize repos, skills, and docs into a single directory with a CLAUDE.md that serves as the live-reloading system prompt. The bottom-left quadrant puts all context controls at your fingertips: toggle repos and skills on/off, set token budgets per skill, per repo, or per session with color-coded warnings, and browse workspace files. When you need to touch code directly, `Ctrl+Shift+C` opens the Monaco editor -- code blocks in chat have a "View Code" button that opens them there.
 
 ---
 
 ## Testing
 
-VIBE OS has **43 tests** across the stack:
+VIBE OS has **142 tests** across the stack:
 
 ```bash
 # Run all tests (TypeScript + Rust)
@@ -276,8 +213,14 @@ npm run test:watch
 
 | Area | Tests | What's Tested |
 |---|---|---|
-| **Frontend eventParser** | 23 | Type guards (`isStatusEvent`, `isAgentEvent`, `isAssistantText`), code block extraction, session ID extraction, input request detection |
-| **Frontend agentSlice** | 20 | Session lifecycle, chat message accumulation, duplication prevention, status derivation, legacy compatibility |
+| **eventParser** | 30 | Type guards, code block extraction, session ID, input requests, dev server URL extraction, test result parsing |
+| **agentSlice** | 32 | Session lifecycle, chat messages, duplication prevention, status derivation, multi-session routing, attention tracking, rich cards, outcomes |
+| **projectSlice** | 7 | Project CRUD, max 5 enforcement, navigation |
+| **layoutSlice** | 6 | Editor/settings panel toggles |
+| **tokenSlice** | 5 | Budget CRUD, scope lookups |
+| **Rust event_stream** | 22 | CLI output parsing, event classification, serialization |
+| **Rust SQLite** | 11 | Decision persistence/scoping/export, audit CRUD/limit/export, workspace scaffolding, token budgets |
+| **Rust SurrealDB** | 29 | Node CRUD, edge creation, population pipeline, graph queries, provenance, impact, session reports |
 
 Tests use **real captured Claude CLI output** as fixtures, not assumed formats.
 

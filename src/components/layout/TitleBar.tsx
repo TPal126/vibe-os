@@ -5,9 +5,13 @@ import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { Badge } from "../shared/Badge";
 import { getAttentionItems } from "../../lib/attention";
+import { ThemeToggle } from "../shared/ThemeToggle";
 
 const formatTokens = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
+
+const formatCost = (tokens: number) =>
+  `$${((tokens / 1000) * 0.003).toFixed(2)}`;
 
 export function TitleBar() {
   const appWindow = getCurrentWindow();
@@ -119,13 +123,16 @@ export function TitleBar() {
             ·
           </span>
           <Badge color="text-v-dim" bg="bg-v-surface">
-            {formatTokens(totalTokens)} tokens
+            {totalTokens > 0
+              ? `${formatCost(totalTokens)} (${formatTokens(totalTokens)} tokens)`
+              : "—"}
           </Badge>
         </div>
       )}
 
       {/* Right: Attention Badge + Settings Gear + Window Controls */}
       <div className="flex items-center gap-1">
+        <ThemeToggle />
         {attentionCount > 0 && (
           <button
             onClick={handleAttentionClick}

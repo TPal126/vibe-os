@@ -48,6 +48,37 @@
   }
 }
 
+/* ── Light Theme Overrides ── */
+[data-theme="light"] {
+  --color-v-bg: #f8f9fc;
+  --color-v-bgAlt: #f0f1f6;
+  --color-v-surface: #ffffff;
+  --color-v-surfaceHi: #f5f6fa;
+  --color-v-border: #e2e5f0;
+  --color-v-borderHi: #d0d4e4;
+  --color-v-text: #3a3f56;
+  --color-v-textHi: #1e2236;
+  --color-v-dim: #a0a6c0;
+  --color-v-accent: #4a66d9;
+  --color-v-accentHi: #3a54c4;
+  --color-v-green: #16a34a;
+  --color-v-greenDim: #dcfce7;
+  --color-v-red: #dc2626;
+  --color-v-redDim: #fee2e2;
+  --color-v-orange: #d97706;
+  --color-v-orangeDim: #fef3c7;
+  --color-v-cyan: #0ea5ba;
+  --color-v-cyanDim: #cffafe;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: var(--color-v-borderHi);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-v-dim);
+}
+
 /* ── Base Styles ── */
 html, body, #root {
   height: 100%;
