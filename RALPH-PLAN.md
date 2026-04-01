@@ -166,7 +166,7 @@ Claude Code expects skills in directory format: `skills/skill-name/SKILL.md`. Up
 
 ## Task 3: Parse Richer Stream Events
 
-- [ ] **3a: Add new event types**
+- [x] **3a: Add new event types**
 
 In `src/stores/types.ts`, extend `AgentEventType` to include new event types:
 

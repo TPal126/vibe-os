@@ -198,7 +198,12 @@ export type AgentEventType =
   | "preview_update"
   | "error"
   | "result"
-  | "raw";
+  | "raw"
+  | "agent_spawn"
+  | "agent_complete"
+  | "task_create"
+  | "task_update"
+  | "api_metrics";
 
 export interface AgentEvent {
   timestamp: string;
