@@ -110,7 +110,7 @@ export interface AgentDefinition {
 
 Update `agentDefinitionSlice.ts` to map the new fields when loading/saving.
 
-- [ ] **1d: Update AgentSaveDialog with new fields**
+- [x] **1d: Update AgentSaveDialog with new fields**
 
 In `src/components/conversation/AgentSaveDialog.tsx`, add UI controls for the new fields:
 - Model dropdown/input (text input with "inherit" as placeholder)

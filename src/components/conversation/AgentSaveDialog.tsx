@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, ChevronDown, ChevronRight } from "lucide-react";
 import { useAppStore } from "../../stores";
 
 interface AgentSaveDialogProps {
@@ -13,6 +13,10 @@ interface AgentSaveDialogProps {
 }
 
 const ALL_TOOLS = ["bash", "read", "write", "edit", "grep", "glob", "agent", "web_search", "web_fetch"];
+
+const PERMISSION_MODES = ["default", "plan", "auto", "bypassPermissions"];
+const ISOLATION_OPTIONS = ["none", "worktree", "remote"];
+const MEMORY_OPTIONS = ["none", "user", "project", "local"];
 
 export function AgentSaveDialog({
   initialName,
@@ -29,6 +33,15 @@ export function AgentSaveDialog({
   const [tools, setTools] = useState<Set<string>>(new Set(initialTools));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  // Advanced Claude Code fields
+  const [model, setModel] = useState("");
+  const [permissionMode, setPermissionMode] = useState("default");
+  const [maxTurns, setMaxTurns] = useState("");
+  const [background, setBackground] = useState(false);
+  const [isolation, setIsolation] = useState("none");
+  const [memory, setMemory] = useState("none");
 
   const saveAgentDefinition = useAppStore((s) => s.saveAgentDefinition);
 
@@ -40,12 +53,29 @@ export function AgentSaveDialog({
     setSaving(true);
     setError(null);
     try {
+      const opts: {
+        model?: string | null;
+        permissionMode?: string | null;
+        maxTurns?: number | null;
+        background?: boolean;
+        isolation?: string | null;
+        memory?: string | null;
+      } = {};
+      if (model.trim()) opts.model = model.trim();
+      if (permissionMode !== "default") opts.permissionMode = permissionMode;
+      const parsedMaxTurns = parseInt(maxTurns, 10);
+      if (!isNaN(parsedMaxTurns) && parsedMaxTurns > 0) opts.maxTurns = parsedMaxTurns;
+      if (background) opts.background = true;
+      if (isolation !== "none") opts.isolation = isolation;
+      if (memory !== "none") opts.memory = memory;
+
       await saveAgentDefinition(
         name.trim(),
         description.trim(),
         systemPrompt.trim(),
         Array.from(tools),
         sessionId,
+        Object.keys(opts).length > 0 ? opts : undefined,
       );
       onSaved();
     } catch (err) {
@@ -123,6 +153,89 @@ export function AgentSaveDialog({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Advanced Claude Code Settings */}
+        <div className="mb-3 border border-v-border rounded-lg overflow-hidden">
+          <button
+            onClick={() => setAdvancedOpen(!advancedOpen)}
+            className="w-full flex items-center gap-1.5 px-2.5 py-2 text-[11px] text-v-dim hover:text-v-text transition-colors"
+          >
+            {advancedOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+            Advanced
+          </button>
+          {advancedOpen && (
+            <div className="px-2.5 pb-3 space-y-2.5 border-t border-v-border pt-2.5">
+              <div>
+                <label className="text-[10px] text-v-dim block mb-1">Model</label>
+                <input
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="inherit"
+                  className="w-full bg-v-surface border border-v-border rounded-md px-2 py-1.5 text-[12px] text-v-textHi outline-none focus:border-v-accent placeholder:text-v-dim/50"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-v-dim block mb-1">Permission mode</label>
+                <select
+                  value={permissionMode}
+                  onChange={(e) => setPermissionMode(e.target.value)}
+                  className="w-full bg-v-surface border border-v-border rounded-md px-2 py-1.5 text-[12px] text-v-textHi outline-none focus:border-v-accent"
+                >
+                  {PERMISSION_MODES.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-v-dim block mb-1">Max turns</label>
+                <input
+                  type="number"
+                  value={maxTurns}
+                  onChange={(e) => setMaxTurns(e.target.value)}
+                  min={1}
+                  placeholder="unlimited"
+                  className="w-full bg-v-surface border border-v-border rounded-md px-2 py-1.5 text-[12px] text-v-textHi outline-none focus:border-v-accent placeholder:text-v-dim/50"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="agent-background"
+                  checked={background}
+                  onChange={(e) => setBackground(e.target.checked)}
+                  className="accent-v-accent"
+                />
+                <label htmlFor="agent-background" className="text-[11px] text-v-text">
+                  Run in background
+                </label>
+              </div>
+              <div>
+                <label className="text-[10px] text-v-dim block mb-1">Isolation</label>
+                <select
+                  value={isolation}
+                  onChange={(e) => setIsolation(e.target.value)}
+                  className="w-full bg-v-surface border border-v-border rounded-md px-2 py-1.5 text-[12px] text-v-textHi outline-none focus:border-v-accent"
+                >
+                  {ISOLATION_OPTIONS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-v-dim block mb-1">Memory</label>
+                <select
+                  value={memory}
+                  onChange={(e) => setMemory(e.target.value)}
+                  className="w-full bg-v-surface border border-v-border rounded-md px-2 py-1.5 text-[12px] text-v-textHi outline-none focus:border-v-accent"
+                >
+                  {MEMORY_OPTIONS.map((o) => (
+                    <option key={o} value={o}>{o}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="text-[10px] text-v-dim font-mono bg-v-surface rounded-md px-2.5 py-2 mb-4">
