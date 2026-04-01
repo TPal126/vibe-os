@@ -134,7 +134,7 @@ The `save_agent_definition` command should accept an optional `workspace_path` p
 
 ## Task 2: Symlink/Copy Skills to ~/.claude/skills/
 
-- [ ] **2a: Add skill sync command**
+- [x] **2a: Add skill sync command**
 
 In `src-tauri/src/commands/context_commands.rs`, add a new command:
 

@@ -123,6 +123,7 @@ pub fn run() {
             context_commands::get_repos,
             context_commands::index_repo,
             context_commands::compose_prompt,
+            context_commands::sync_skills_to_claude,
             file_commands::read_file,
             file_commands::write_file,
             audit_commands::log_action,

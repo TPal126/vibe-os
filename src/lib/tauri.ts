@@ -228,6 +228,9 @@ export const commands = {
       sessionBudget: sessionBudget ?? null,
     }),
 
+  syncSkillsToClaude: (workspacePath?: string) =>
+    invoke<string[]>("sync_skills_to_claude", { workspacePath: workspacePath ?? null }),
+
   // ── File I/O ──
   readFile: (path: string) => invoke<string>("read_file", { path }),
   writeFile: (path: string, content: string) =>
