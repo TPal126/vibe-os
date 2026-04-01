@@ -155,7 +155,7 @@ Register this in `lib.rs` and add a TypeScript wrapper in `tauri.ts`.
 
 In `src/stores/slices/skillSlice.ts`, after skills are discovered or toggled, call `commands.syncSkillsToClaude()` to keep `~/.claude/skills/` in sync. This should be fire-and-forget (don't block the UI).
 
-- [ ] **2c: Restructure skills to use SKILL.md format**
+- [x] **2c: Restructure skills to use SKILL.md format**
 
 Claude Code expects skills in directory format: `skills/skill-name/SKILL.md`. Update `sync_skills_to_claude` to:
 1. For each `.md` file in `~/.vibe-os/skills/`, create a directory `~/.claude/skills/{stem}/`
