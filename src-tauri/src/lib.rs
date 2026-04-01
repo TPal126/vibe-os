@@ -149,6 +149,7 @@ pub fn run() {
             agent_commands::save_agent_definition,
             agent_commands::load_agent_definitions,
             agent_commands::remove_agent_definition,
+            agent_commands::get_workspace_agent_dir,
             // Graph commands
             graph_commands::graph_get_full,
             graph_commands::graph_get_provenance,

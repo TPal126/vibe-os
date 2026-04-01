@@ -122,7 +122,7 @@ In `src/components/conversation/AgentSaveDialog.tsx`, add UI controls for the ne
 
 Group these in a collapsible "Advanced" section so they don't overwhelm the basic save flow.
 
-- [ ] **1e: Dual-write agents to ~/.vibe-os/agents/ AND .claude/agents/**
+- [x] **1e: Dual-write agents to ~/.vibe-os/agents/ AND .claude/agents/**
 
 In `src-tauri/src/commands/agent_commands.rs`, modify `save_agent_definition` to also write a copy to `.claude/agents/` in the active workspace directory (if a workspace is active). This makes saved agents immediately usable by Claude Code natively.
 

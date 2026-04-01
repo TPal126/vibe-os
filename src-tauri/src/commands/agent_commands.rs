@@ -42,6 +42,7 @@ pub fn save_agent_definition(
     memory: Option<String>,
     skills: Option<Vec<String>>,
     color: Option<String>,
+    workspace_path: Option<String>,
 ) -> Result<AgentDefinition, String> {
     let dir = agents_dir();
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
@@ -95,7 +96,16 @@ pub fn save_agent_definition(
 
     let content = format!("{}\n\n{}", frontmatter, system_prompt);
 
+    // Write to ~/.vibe-os/agents/ (global)
     std::fs::write(&file_path, &content).map_err(|e| e.to_string())?;
+
+    // Dual-write to {workspace_path}/.claude/agents/ if workspace is provided
+    if let Some(ref ws_path) = workspace_path {
+        let ws_agent_dir = PathBuf::from(ws_path).join(".claude").join("agents");
+        std::fs::create_dir_all(&ws_agent_dir).map_err(|e| e.to_string())?;
+        let ws_file_path = ws_agent_dir.join(format!("{}.md", safe_name));
+        std::fs::write(&ws_file_path, &content).map_err(|e| e.to_string())?;
+    }
 
     Ok(AgentDefinition {
         name,
@@ -114,6 +124,12 @@ pub fn save_agent_definition(
         skills,
         color,
     })
+}
+
+#[tauri::command]
+pub fn get_workspace_agent_dir(workspace_path: String) -> Result<String, String> {
+    let agent_dir = PathBuf::from(&workspace_path).join(".claude").join("agents");
+    Ok(agent_dir.to_string_lossy().to_string())
 }
 
 #[tauri::command]

@@ -363,6 +363,7 @@ export const commands = {
       memory?: string | null;
       skills?: string[];
       color?: string | null;
+      workspacePath?: string | null;
     },
   ) =>
     invoke<AgentDefinitionRaw>("save_agent_definition", {
@@ -380,11 +381,14 @@ export const commands = {
       memory: opts?.memory ?? null,
       skills: opts?.skills ?? null,
       color: opts?.color ?? null,
+      workspacePath: opts?.workspacePath ?? null,
     }),
   loadAgentDefinitions: () =>
     invoke<AgentDefinitionRaw[]>("load_agent_definitions"),
   removeAgentDefinition: (name: string) =>
     invoke<void>("remove_agent_definition", { name }),
+  getWorkspaceAgentDir: (workspacePath: string) =>
+    invoke<string>("get_workspace_agent_dir", { workspacePath }),
 };
 
 // ── Dialog helpers ──
