@@ -310,28 +310,97 @@ export function useClaudeStream() {
               }
             }
 
-            // Detect agent spawns for capture UI
+            // Detect subagent spawns (Agent or SendMessage tool use, not results)
             if (
-              (
-                event.event_type === "raw" &&
-                typeof event.content === "string" &&
-                (event.content.includes("Agent spawned") || event.content.includes("Launching agent"))
-              ) ||
-              (event.metadata?.tool === "Agent" && event.event_type === "result")
+              sid &&
+              event.metadata?.tool &&
+              (event.metadata.tool === "Agent" || event.metadata.tool === "SendMessage") &&
+              event.event_type !== "result"
+            ) {
+              const meta = event.metadata;
+              const agentType = (meta.subagent_type as string) || (meta.agent_name as string) || "general-purpose";
+              const description = (meta.description as string) || event.content || "";
+              const worktreePath = (meta.worktree_path as string) || (meta.worktreePath as string) || null;
+              const model = (meta.model as string) || null;
+              const isolation = (meta.isolation as string) || null;
+
+              const spawnEvent: AgentEvent = {
+                timestamp: event.timestamp,
+                event_type: "agent_spawn",
+                content: `Spawned: ${agentType}`,
+                metadata: {
+                  agentType,
+                  description,
+                  worktreePath,
+                  model,
+                  isolation,
+                },
+              };
+              store.addSessionAgentEvent(sid, spawnEvent);
+
+              useAppStore.getState().insertRichCard(sid, "activity", `Agent spawned: ${agentType}`, {
+                capturable: true,
+                agentName: agentType,
+                agentDescription: description,
+                agentTools: (meta.tools as string[]) || [],
+                agentSystemPrompt: (meta.system_prompt as string) || "",
+              });
+            }
+
+            // Detect subagent completion (Agent tool result)
+            if (
+              sid &&
+              event.metadata?.tool === "Agent" &&
+              event.event_type === "result"
+            ) {
+              const meta = event.metadata;
+              const agentName = (meta.agent_name as string) || (meta.description as string) || "unnamed-agent";
+
+              const completeEvent: AgentEvent = {
+                timestamp: event.timestamp,
+                event_type: "agent_complete",
+                content: `Completed: ${agentName}`,
+                metadata: {
+                  agentName,
+                  result: event.content,
+                },
+              };
+              store.addSessionAgentEvent(sid, completeEvent);
+
+              useAppStore.getState().insertRichCard(sid, "activity", `Agent completed: ${agentName}`, {
+                agentName,
+                completed: true,
+              });
+            }
+
+            // Fallback: detect agent spawns from raw text events
+            if (
+              sid &&
+              event.event_type === "raw" &&
+              typeof event.content === "string" &&
+              (event.content.includes("Agent spawned") || event.content.includes("Launching agent"))
             ) {
               const agentName = (event.metadata?.agent_name as string) || (event.metadata?.description as string) || "unnamed-agent";
               const agentDesc = (event.metadata?.description as string) || event.content || "";
-              const agentTools = (event.metadata?.tools as string[]) || [];
 
-              if (sid) {
-                useAppStore.getState().insertRichCard(sid, "activity", "Agent spawned: " + agentName, {
-                  capturable: true,
-                  agentName,
-                  agentDescription: agentDesc,
-                  agentTools,
-                  agentSystemPrompt: (event.metadata?.system_prompt as string) || "",
-                });
-              }
+              const spawnEvent: AgentEvent = {
+                timestamp: event.timestamp,
+                event_type: "agent_spawn",
+                content: `Spawned: ${agentName}`,
+                metadata: {
+                  agentType: agentName,
+                  description: agentDesc,
+                },
+              };
+              store.addSessionAgentEvent(sid, spawnEvent);
+
+              useAppStore.getState().insertRichCard(sid, "activity", "Agent spawned: " + agentName, {
+                capturable: true,
+                agentName,
+                agentDescription: agentDesc,
+                agentTools: (event.metadata?.tools as string[]) || [],
+                agentSystemPrompt: (event.metadata?.system_prompt as string) || "",
+              });
             }
 
             // Detect input-request events; set needsInput and attention on non-active sessions

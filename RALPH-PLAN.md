@@ -189,7 +189,7 @@ export type AgentEventType =
   | "api_metrics";
 ```
 
-- [ ] **3b: Parse subagent fork events in useClaudeStream**
+- [x] **3b: Parse subagent fork events in useClaudeStream**
 
 In `src/hooks/useClaudeStream.ts`, add detection for subagent spawn events from Claude Code's stream. Look for events where:
 - `tool_name` is "Agent" or "SendMessage"
