@@ -272,7 +272,7 @@ pub struct ClaudeCodeSession {
 
 Register both in `lib.rs` and add TypeScript wrappers.
 
-- [ ] **4b: Add session browser UI**
+- [x] **4b: Add session browser UI**
 
 Create `src/components/panels/SessionBrowser.tsx`:
 - Lists running Claude Code sessions from `list_claude_code_sessions()`
