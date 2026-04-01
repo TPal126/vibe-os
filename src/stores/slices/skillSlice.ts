@@ -48,6 +48,9 @@ export const createSkillSlice: SliceCreator<SkillSlice> = (set, get) => ({
           .catch(() => {});
       }
 
+      // Sync skills to ~/.claude/skills/ (fire-and-forget)
+      commands.syncSkillsToClaude().catch(() => {});
+
       // Recompose prompt with updated skill context
       await get().recompose();
     } catch (err) {
@@ -76,6 +79,9 @@ export const createSkillSlice: SliceCreator<SkillSlice> = (set, get) => ({
         return skill;
       });
       set({ skills });
+
+      // Sync skills to ~/.claude/skills/ (fire-and-forget)
+      commands.syncSkillsToClaude().catch(() => {});
     } catch (err) {
       console.error("Failed to discover skills:", err);
     }

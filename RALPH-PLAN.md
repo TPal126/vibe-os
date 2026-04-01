@@ -151,7 +151,7 @@ This command:
 
 Register this in `lib.rs` and add a TypeScript wrapper in `tauri.ts`.
 
-- [ ] **2b: Auto-sync on skill toggle**
+- [x] **2b: Auto-sync on skill toggle**
 
 In `src/stores/slices/skillSlice.ts`, after skills are discovered or toggled, call `commands.syncSkillsToClaude()` to keep `~/.claude/skills/` in sync. This should be fire-and-forget (don't block the UI).
 
