@@ -373,6 +373,126 @@ export function useClaudeStream() {
               });
             }
 
+            // Detect task events (TodoWrite, TaskCreate, TaskUpdate tool uses)
+            if (
+              sid &&
+              event.metadata?.tool &&
+              event.event_type !== "result"
+            ) {
+              const toolName = event.metadata.tool as string;
+
+              // TodoWrite creates or updates tasks
+              if (toolName === "TodoWrite") {
+                const meta = event.metadata;
+                const todos = meta.todos as Array<Record<string, unknown>> | undefined;
+
+                if (Array.isArray(todos)) {
+                  for (const todo of todos) {
+                    const id = (todo.id as string) || `todo-${Date.now()}`;
+                    const content = (todo.content as string) || (todo.subject as string) || event.content || "";
+                    const status = (todo.status as string) || "pending";
+
+                    // Determine if this is a new task or an update based on status
+                    const isNew = status === "pending" || status === "in_progress";
+                    const eventType = isNew ? "task_create" as const : "task_update" as const;
+
+                    const taskEvent: AgentEvent = {
+                      timestamp: event.timestamp,
+                      event_type: eventType,
+                      content: content,
+                      metadata: {
+                        taskId: id,
+                        subject: content,
+                        description: (todo.description as string) || "",
+                        status,
+                      },
+                    };
+                    store.addSessionAgentEvent(sid, taskEvent);
+                  }
+                }
+              }
+
+              // TaskCreate tool
+              if (toolName === "TaskCreate") {
+                const meta = event.metadata;
+                const subject = (meta.subject as string) || event.content || "";
+                const description = (meta.description as string) || "";
+                const status = (meta.status as string) || "pending";
+                const taskId = (meta.task_id as string) || (meta.taskId as string) || `task-${Date.now()}`;
+
+                const taskEvent: AgentEvent = {
+                  timestamp: event.timestamp,
+                  event_type: "task_create",
+                  content: subject,
+                  metadata: {
+                    taskId,
+                    subject,
+                    description,
+                    status,
+                  },
+                };
+                store.addSessionAgentEvent(sid, taskEvent);
+              }
+
+              // TaskUpdate tool
+              if (toolName === "TaskUpdate") {
+                const meta = event.metadata;
+                const taskId = (meta.task_id as string) || (meta.taskId as string) || "";
+                const status = (meta.status as string) || "";
+                const subject = (meta.subject as string) || event.content || "";
+
+                const taskEvent: AgentEvent = {
+                  timestamp: event.timestamp,
+                  event_type: "task_update",
+                  content: subject,
+                  metadata: {
+                    taskId,
+                    subject,
+                    status,
+                    completionInfo: (meta.completion_info as string) || (meta.completionInfo as string) || null,
+                  },
+                };
+                store.addSessionAgentEvent(sid, taskEvent);
+              }
+            }
+
+            // Detect task events from tool results (TaskGet, TaskList responses)
+            if (
+              sid &&
+              event.metadata?.tool &&
+              event.event_type === "result"
+            ) {
+              const toolName = event.metadata.tool as string;
+
+              // TodoWrite results confirm task state
+              if (toolName === "TodoWrite") {
+                const meta = event.metadata;
+                const todos = meta.todos as Array<Record<string, unknown>> | undefined;
+
+                if (Array.isArray(todos)) {
+                  for (const todo of todos) {
+                    const id = (todo.id as string) || `todo-${Date.now()}`;
+                    const content = (todo.content as string) || (todo.subject as string) || "";
+                    const status = (todo.status as string) || "completed";
+
+                    if (status === "completed" || status === "deleted") {
+                      const taskEvent: AgentEvent = {
+                        timestamp: event.timestamp,
+                        event_type: "task_update",
+                        content: content,
+                        metadata: {
+                          taskId: id,
+                          subject: content,
+                          status,
+                        },
+                      };
+                      store.addSessionAgentEvent(sid, taskEvent);
+                    }
+                  }
+                }
+              }
+            }
+
             // Fallback: detect agent spawns from raw text events
             if (
               sid &&

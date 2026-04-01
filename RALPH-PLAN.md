@@ -212,7 +212,7 @@ When detected, create an `agent_spawn` event with metadata:
 
 Also detect agent completion — when a tool result comes back from an Agent tool use, emit `agent_complete`.
 
-- [ ] **3c: Parse task events**
+- [x] **3c: Parse task events**
 
 Add detection for TaskCreate, TaskUpdate, TaskGet, TaskList tool uses in the stream. When detected:
 - `task_create`: Extract task subject, description, status
