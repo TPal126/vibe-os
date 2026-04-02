@@ -239,7 +239,7 @@ export interface ClaudeTask {
 
 export type BuildStatus = "idle" | "building" | "running" | "failed";
 
-export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail";
+export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail" | "task-progress";
 
 export interface ActivityEvent {
   type: AgentEventType;

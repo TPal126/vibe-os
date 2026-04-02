@@ -308,7 +308,7 @@ In `src/stores/slices/agentSlice.ts`, add:
 - `upsertSessionTask(sessionId: string, task: ClaudeTask): void`
 - `updateSessionTaskStatus(sessionId: string, taskId: string, status: string): void`
 
-- [ ] **5b: Create TaskProgressCard component**
+- [x] **5b: Create TaskProgressCard component**
 
 Create `src/components/conversation/TaskProgressCard.tsx`:
 - Renders a compact card showing task progress for the active session
