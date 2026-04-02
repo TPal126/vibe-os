@@ -287,7 +287,7 @@ This component should be accessible from the project setup view or the settings 
 
 ## Task 5: Surface Claude's Task System
 
-- [ ] **5a: Add task tracking to session state**
+- [x] **5a: Add task tracking to session state**
 
 In `src/stores/types.ts`, add to `ClaudeSessionState`:
 

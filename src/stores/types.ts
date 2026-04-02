@@ -228,6 +228,15 @@ export interface ApiMetrics {
   durationApiMs: number;
 }
 
+export interface ClaudeTask {
+  id: string;
+  subject: string;
+  description: string;
+  status: "pending" | "in_progress" | "completed" | "deleted";
+  owner: string | null;
+  createdAt: string;
+}
+
 export type BuildStatus = "idle" | "building" | "running" | "failed";
 
 export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail";
@@ -270,6 +279,7 @@ export interface ClaudeSessionState {
   buildStatus: BuildStatus;
   buildStatusText: string | null;
   apiMetrics: ApiMetrics | null;
+  tasks: ClaudeTask[];
 }
 
 export interface AgentSlice {
@@ -313,6 +323,10 @@ export interface AgentSlice {
   setSessionTestSummary: (sessionId: string, summary: TestSummary | null) => void;
   setSessionBuildStatus: (sessionId: string, status: BuildStatus, text: string | null) => void;
   setSessionApiMetrics: (sessionId: string, metrics: ApiMetrics) => void;
+
+  // Task tracking
+  upsertSessionTask: (sessionId: string, task: ClaudeTask) => void;
+  updateSessionTaskStatus: (sessionId: string, taskId: string, status: ClaudeTask["status"]) => void;
 
   // Legacy compat (delegate to active session)
   chatMessages: ChatMessage[];

@@ -4,6 +4,7 @@ import type {
   ChatMessage,
   AgentEvent,
   ClaudeSessionState,
+  ClaudeTask,
   ActivityEvent,
   CardType,
   TestSummary,
@@ -35,6 +36,7 @@ function createDefaultSession(id: string, name: string): ClaudeSessionState {
     buildStatus: "idle" as const,
     buildStatusText: null,
     apiMetrics: null,
+    tasks: [],
   };
 }
 
@@ -345,6 +347,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           buildStatus: "idle" as const,
           buildStatusText: null,
           apiMetrics: null,
+          tasks: [],
         }),
       );
       const isActive = sessionId === state.activeClaudeSessionId;
@@ -545,6 +548,30 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           },
         };
       }),
+    })),
+
+  // ── Task tracking ──
+
+  upsertSessionTask: (sessionId: string, task: ClaudeTask) =>
+    set((state) => ({
+      claudeSessions: updateSession(state.claudeSessions, sessionId, (s) => {
+        const idx = s.tasks.findIndex((t) => t.id === task.id);
+        if (idx >= 0) {
+          const tasks = [...s.tasks];
+          tasks[idx] = task;
+          return { tasks };
+        }
+        return { tasks: [...s.tasks, task] };
+      }),
+    })),
+
+  updateSessionTaskStatus: (sessionId: string, taskId: string, status: ClaudeTask["status"]) =>
+    set((state) => ({
+      claudeSessions: updateSession(state.claudeSessions, sessionId, (s) => ({
+        tasks: s.tasks.map((t) =>
+          t.id === taskId ? { ...t, status } : t,
+        ),
+      })),
     })),
 
   // ── Legacy compat methods (delegate to active session) ──
