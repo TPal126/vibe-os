@@ -327,7 +327,7 @@ Insert the `TaskProgressCard` into the conversation view — either as a sticky 
 
 ## Task 6: Bridge API Exploration (Research Only)
 
-- [ ] **6a: Document bridge protocol**
+- [x] **6a: Document bridge protocol**
 
 Create `docs/bridge-api-research.md` documenting what you find about the Claude Code bridge protocol by examining:
 - The CLI flags: `--daemon-worker`, `daemon`, `bridge`, `remote-control`
