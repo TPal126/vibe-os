@@ -317,7 +317,7 @@ Create `src/components/conversation/TaskProgressCard.tsx`:
 - Collapsible — shows summary by default, expand for full list
 - Updates reactively as task events are parsed from the stream
 
-- [ ] **5c: Wire task events to the card**
+- [x] **5c: Wire task events to the card**
 
 In `src/hooks/useClaudeStream.ts`, when `task_create` or `task_update` events are parsed (from Task 3c), call `upsertSessionTask` or `updateSessionTaskStatus` to update the store. The `TaskProgressCard` will reactively render.
 

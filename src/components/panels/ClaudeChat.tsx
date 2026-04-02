@@ -299,7 +299,7 @@ export function ClaudeChat() {
                 return (
                   <TaskProgressCard
                     key={msg.id}
-                    tasks={(msg.cardData as { tasks?: import("../../stores/types").ClaudeTask[] })?.tasks ?? []}
+                    tasks={activeSession?.tasks ?? []}
                   />
                 );
               default:

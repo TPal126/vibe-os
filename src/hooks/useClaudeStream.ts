@@ -11,7 +11,7 @@ import {
   extractDevServerUrl,
   parseTestResults,
 } from "../lib/eventParser";
-import type { AgentEvent } from "../stores/types";
+import type { AgentEvent, ClaudeTask } from "../stores/types";
 
 const BUILD_COMMANDS = ["npm run build", "cargo build", "vite build", "tsc", "make", "npx tsc"];
 const SERVE_COMMANDS = ["npm run dev", "npm start", "vite", "python -m http.server", "cargo run", "npx vite"];
@@ -21,6 +21,13 @@ function classifyBashCommand(cmd: string): "build" | "serve" | null {
   if (BUILD_COMMANDS.some(bc => normalized.startsWith(bc))) return "build";
   if (SERVE_COMMANDS.some(sc => normalized.startsWith(sc))) return "serve";
   return null;
+}
+
+function toTaskStatus(s: string): ClaudeTask["status"] {
+  if (s === "completed") return "completed";
+  if (s === "deleted") return "deleted";
+  if (s === "in_progress") return "in_progress";
+  return "pending";
 }
 
 /**
@@ -445,6 +452,22 @@ export function useClaudeStream() {
                       },
                     };
                     store.addSessionAgentEvent(sid, taskEvent);
+
+                    // Wire to session task tracking
+                    useAppStore.getState().upsertSessionTask(sid, {
+                      id,
+                      subject: content,
+                      description: (todo.description as string) || "",
+                      status: toTaskStatus(status),
+                      owner: null,
+                      createdAt: event.timestamp,
+                    });
+                  }
+
+                  // Insert task-progress card if not already present
+                  const sessionForTaskCard = useAppStore.getState().claudeSessions.get(sid);
+                  if (sessionForTaskCard && !sessionForTaskCard.chatMessages.some(m => m.cardType === "task-progress")) {
+                    useAppStore.getState().insertRichCard(sid, "task-progress", "Task progress", {});
                   }
                 }
               }
@@ -469,6 +492,22 @@ export function useClaudeStream() {
                   },
                 };
                 store.addSessionAgentEvent(sid, taskEvent);
+
+                // Wire to session task tracking
+                useAppStore.getState().upsertSessionTask(sid, {
+                  id: taskId,
+                  subject,
+                  description,
+                  status: toTaskStatus(status),
+                  owner: null,
+                  createdAt: event.timestamp,
+                });
+
+                // Insert task-progress card if not already present
+                const sessionForTaskCard = useAppStore.getState().claudeSessions.get(sid);
+                if (sessionForTaskCard && !sessionForTaskCard.chatMessages.some(m => m.cardType === "task-progress")) {
+                  useAppStore.getState().insertRichCard(sid, "task-progress", "Task progress", {});
+                }
               }
 
               // TaskUpdate tool
@@ -490,6 +529,11 @@ export function useClaudeStream() {
                   },
                 };
                 store.addSessionAgentEvent(sid, taskEvent);
+
+                // Wire to session task tracking
+                if (taskId) {
+                  useAppStore.getState().updateSessionTaskStatus(sid, taskId, toTaskStatus(status));
+                }
               }
             }
 
@@ -524,6 +568,9 @@ export function useClaudeStream() {
                         },
                       };
                       store.addSessionAgentEvent(sid, taskEvent);
+
+                      // Wire to session task tracking
+                      useAppStore.getState().updateSessionTaskStatus(sid, id, toTaskStatus(status));
                     }
                   }
                 }
