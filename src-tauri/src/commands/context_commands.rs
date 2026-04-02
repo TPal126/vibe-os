@@ -573,6 +573,87 @@ fn read_git_remote_org(repo_path: &PathBuf) -> Option<String> {
     None
 }
 
+// ── Skill Sync to Claude Code ──
+
+/// Sync skill .md files from ~/.vibe-os/skills/ to ~/.claude/skills/{stem}/SKILL.md
+/// so they are discoverable by Claude Code's loadSkillsDir which looks for SKILL.md
+/// files in subdirectories.
+/// Copies files that are missing or newer than the destination.
+/// Returns the list of synced skill names.
+#[tauri::command]
+pub fn sync_skills_to_claude(workspace_path: Option<String>) -> Result<Vec<String>, String> {
+    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+    let source_dir = home.join(".vibe-os").join("skills");
+    let dest_dir = home.join(".claude").join("skills");
+
+    if !source_dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let synced = sync_skills_to_dir(&source_dir, &dest_dir)?;
+
+    // Also sync to workspace-local .claude/skills/ if workspace_path provided
+    if let Some(ref ws) = workspace_path {
+        let ws_dest_dir = PathBuf::from(ws).join(".claude").join("skills");
+        sync_skills_to_dir(&source_dir, &ws_dest_dir)?;
+    }
+
+    Ok(synced)
+}
+
+/// Sync skills from source_dir to dest_dir using SKILL.md directory format.
+/// For each {source_dir}/{name}.md, creates {dest_dir}/{name}/SKILL.md.
+fn sync_skills_to_dir(source_dir: &PathBuf, dest_dir: &PathBuf) -> Result<Vec<String>, String> {
+    fs::create_dir_all(dest_dir)
+        .map_err(|e| format!("Failed to create {}: {}", dest_dir.display(), e))?;
+
+    let mut synced = Vec::new();
+
+    let entries = fs::read_dir(source_dir)
+        .map_err(|e| format!("Failed to read {}: {}", source_dir.display(), e))?;
+
+    for entry in entries.flatten() {
+        let src_path = entry.path();
+        if !src_path.extension().map_or(false, |ext| ext == "md") {
+            continue;
+        }
+
+        let stem = match src_path.file_stem() {
+            Some(s) => s.to_string_lossy().to_string(),
+            None => continue,
+        };
+
+        let skill_dir = dest_dir.join(&stem);
+        let dest_path = skill_dir.join("SKILL.md");
+
+        let should_copy = if dest_path.exists() {
+            // Copy if source is newer
+            let src_modified = fs::metadata(&src_path)
+                .and_then(|m| m.modified())
+                .ok();
+            let dest_modified = fs::metadata(&dest_path)
+                .and_then(|m| m.modified())
+                .ok();
+            match (src_modified, dest_modified) {
+                (Some(s), Some(d)) => s > d,
+                _ => true, // if we can't determine, copy anyway
+            }
+        } else {
+            true
+        };
+
+        if should_copy {
+            fs::create_dir_all(&skill_dir)
+                .map_err(|e| format!("Failed to create skill dir {}: {}", skill_dir.display(), e))?;
+            fs::copy(&src_path, &dest_path)
+                .map_err(|e| format!("Failed to copy {}: {}", stem, e))?;
+            synced.push(stem);
+        }
+    }
+
+    Ok(synced)
+}
+
 fn read_git_branch(repo_path: &PathBuf) -> Option<String> {
     let head_path = repo_path.join(".git").join("HEAD");
     let content = fs::read_to_string(head_path).ok()?;

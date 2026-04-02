@@ -17,6 +17,15 @@ export const createAgentDefinitionSlice: SliceCreator<AgentDefinitionSlice> = (s
         createdAt: r.created_at,
         sourceSessionId: r.source_session_id,
         active: false,
+        model: r.model ?? null,
+        permissionMode: r.permission_mode ?? null,
+        disallowedTools: r.disallowed_tools ?? [],
+        maxTurns: r.max_turns ?? null,
+        background: r.background ?? false,
+        isolation: r.isolation ?? null,
+        memory: r.memory ?? null,
+        skills: r.skills ?? [],
+        color: r.color ?? null,
       }));
       set({ agentDefinitions: defs });
     } catch (err) {
@@ -26,8 +35,8 @@ export const createAgentDefinitionSlice: SliceCreator<AgentDefinitionSlice> = (s
     }
   },
 
-  saveAgentDefinition: async (name, description, systemPrompt, tools, sourceSessionId) => {
-    await commands.saveAgentDefinition(name, description, systemPrompt, tools, sourceSessionId);
+  saveAgentDefinition: async (name, description, systemPrompt, tools, sourceSessionId, opts) => {
+    await commands.saveAgentDefinition(name, description, systemPrompt, tools, sourceSessionId, opts);
     const def = {
       name,
       description,
@@ -36,6 +45,15 @@ export const createAgentDefinitionSlice: SliceCreator<AgentDefinitionSlice> = (s
       createdAt: new Date().toISOString().slice(0, 10),
       sourceSessionId,
       active: false,
+      model: opts?.model ?? null,
+      permissionMode: opts?.permissionMode ?? null,
+      disallowedTools: opts?.disallowedTools ?? [],
+      maxTurns: opts?.maxTurns ?? null,
+      background: opts?.background ?? false,
+      isolation: opts?.isolation ?? null,
+      memory: opts?.memory ?? null,
+      skills: opts?.skills ?? [],
+      color: opts?.color ?? null,
     };
     set({ agentDefinitions: [...get().agentDefinitions, def] });
   },

@@ -198,7 +198,12 @@ export type AgentEventType =
   | "preview_update"
   | "error"
   | "result"
-  | "raw";
+  | "raw"
+  | "agent_spawn"
+  | "agent_complete"
+  | "task_create"
+  | "task_update"
+  | "api_metrics";
 
 export interface AgentEvent {
   timestamp: string;
@@ -213,9 +218,28 @@ export interface TestSummary {
   total: number;
 }
 
+export interface ApiMetrics {
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+  cost: number;
+  durationMs: number;
+  durationApiMs: number;
+}
+
+export interface ClaudeTask {
+  id: string;
+  subject: string;
+  description: string;
+  status: "pending" | "in_progress" | "completed" | "deleted";
+  owner: string | null;
+  createdAt: string;
+}
+
 export type BuildStatus = "idle" | "building" | "running" | "failed";
 
-export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail";
+export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail" | "task-progress";
 
 export interface ActivityEvent {
   type: AgentEventType;
@@ -254,6 +278,8 @@ export interface ClaudeSessionState {
   testSummary: TestSummary | null;
   buildStatus: BuildStatus;
   buildStatusText: string | null;
+  apiMetrics: ApiMetrics | null;
+  tasks: ClaudeTask[];
 }
 
 export interface AgentSlice {
@@ -296,6 +322,11 @@ export interface AgentSlice {
   setSessionPreviewUrl: (sessionId: string, url: string | null) => void;
   setSessionTestSummary: (sessionId: string, summary: TestSummary | null) => void;
   setSessionBuildStatus: (sessionId: string, status: BuildStatus, text: string | null) => void;
+  setSessionApiMetrics: (sessionId: string, metrics: ApiMetrics) => void;
+
+  // Task tracking
+  upsertSessionTask: (sessionId: string, task: ClaudeTask) => void;
+  updateSessionTaskStatus: (sessionId: string, taskId: string, status: ClaudeTask["status"]) => void;
 
   // Legacy compat (delegate to active session)
   chatMessages: ChatMessage[];
@@ -457,6 +488,16 @@ export interface AgentDefinition {
   createdAt: string;
   sourceSessionId: string;
   active: boolean;
+  // Claude Code-compatible fields:
+  model: string | null;
+  permissionMode: string | null;
+  disallowedTools: string[];
+  maxTurns: number | null;
+  background: boolean;
+  isolation: string | null;
+  memory: string | null;
+  skills: string[];
+  color: string | null;
 }
 
 export interface AgentDefinitionSlice {
@@ -469,6 +510,17 @@ export interface AgentDefinitionSlice {
     systemPrompt: string,
     tools: string[],
     sourceSessionId: string,
+    opts?: {
+      model?: string | null;
+      permissionMode?: string | null;
+      disallowedTools?: string[];
+      maxTurns?: number | null;
+      background?: boolean;
+      isolation?: string | null;
+      memory?: string | null;
+      skills?: string[];
+      color?: string | null;
+    },
   ) => Promise<void>;
   removeAgentDefinition: (name: string) => Promise<void>;
   toggleAgentDefinition: (name: string) => void;

@@ -12,6 +12,7 @@ import { ErrorCard } from "../conversation/ErrorCard";
 import { InlineDecisionCard } from "../conversation/InlineDecisionCard";
 import { InlinePreviewCard } from "../conversation/InlinePreviewCard";
 import { TestDetailCard } from "../conversation/TestDetailCard";
+import { TaskProgressCard } from "../conversation/TaskProgressCard";
 import { CodeBlockSummary } from "../conversation/CodeBlockSummary";
 import type { ChatMessage } from "../../stores/types";
 
@@ -294,6 +295,13 @@ export function ClaudeChat() {
                 return <InlinePreviewCard key={msg.id} message={msg} />;
               case "test-detail":
                 return <TestDetailCard key={msg.id} message={msg} />;
+              case "task-progress":
+                return (
+                  <TaskProgressCard
+                    key={msg.id}
+                    tasks={activeSession?.tasks ?? []}
+                  />
+                );
               default:
                 return <MessageBubble key={msg.id} message={msg} />;
             }

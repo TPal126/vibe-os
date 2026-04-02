@@ -11,7 +11,7 @@ import {
   extractDevServerUrl,
   parseTestResults,
 } from "../lib/eventParser";
-import type { AgentEvent } from "../stores/types";
+import type { AgentEvent, ClaudeTask } from "../stores/types";
 
 const BUILD_COMMANDS = ["npm run build", "cargo build", "vite build", "tsc", "make", "npx tsc"];
 const SERVE_COMMANDS = ["npm run dev", "npm start", "vite", "python -m http.server", "cargo run", "npx vite"];
@@ -21,6 +21,13 @@ function classifyBashCommand(cmd: string): "build" | "serve" | null {
   if (BUILD_COMMANDS.some(bc => normalized.startsWith(bc))) return "build";
   if (SERVE_COMMANDS.some(sc => normalized.startsWith(sc))) return "serve";
   return null;
+}
+
+function toTaskStatus(s: string): ClaudeTask["status"] {
+  if (s === "completed") return "completed";
+  if (s === "deleted") return "deleted";
+  if (s === "in_progress") return "in_progress";
+  return "pending";
 }
 
 /**
@@ -212,6 +219,43 @@ export function useClaudeStream() {
                   }
                 }
 
+                // Emit api_metrics event from result usage data
+                const resultMeta = event.metadata || {};
+                const inputTokens = (resultMeta.input_tokens as number) ?? 0;
+                const outputTokens = (resultMeta.output_tokens as number) ?? 0;
+                const cost = (resultMeta.cost_usd as number) ?? 0;
+                const durationMs = (resultMeta.duration_ms as number) ?? 0;
+                const durationApiMs = (resultMeta.duration_api_ms as number) ?? 0;
+                const cacheCreationInputTokens = (resultMeta.cache_creation_input_tokens as number) ?? 0;
+                const cacheReadInputTokens = (resultMeta.cache_read_input_tokens as number) ?? 0;
+
+                if (inputTokens > 0 || outputTokens > 0 || cost > 0) {
+                  const metricsEvent: AgentEvent = {
+                    timestamp: event.timestamp,
+                    event_type: "api_metrics",
+                    content: "API metrics",
+                    metadata: {
+                      inputTokens,
+                      outputTokens,
+                      cacheCreationInputTokens,
+                      cacheReadInputTokens,
+                      cost,
+                      durationMs,
+                      durationApiMs,
+                    },
+                  };
+                  store.addSessionAgentEvent(sid, metricsEvent);
+                  useAppStore.getState().setSessionApiMetrics(sid, {
+                    inputTokens,
+                    outputTokens,
+                    cacheCreationInputTokens,
+                    cacheReadInputTokens,
+                    cost,
+                    durationMs,
+                    durationApiMs,
+                  });
+                }
+
                 // Finalize build status on result
                 const currentForBuild = useAppStore.getState().claudeSessions.get(sid);
                 if (currentForBuild?.buildStatus === "building") {
@@ -310,28 +354,257 @@ export function useClaudeStream() {
               }
             }
 
-            // Detect agent spawns for capture UI
+            // Detect subagent spawns (Agent or SendMessage tool use, not results)
             if (
-              (
-                event.event_type === "raw" &&
-                typeof event.content === "string" &&
-                (event.content.includes("Agent spawned") || event.content.includes("Launching agent"))
-              ) ||
-              (event.metadata?.tool === "Agent" && event.event_type === "result")
+              sid &&
+              event.metadata?.tool &&
+              (event.metadata.tool === "Agent" || event.metadata.tool === "SendMessage") &&
+              event.event_type !== "result"
+            ) {
+              const meta = event.metadata;
+              const agentType = (meta.subagent_type as string) || (meta.agent_name as string) || "general-purpose";
+              const description = (meta.description as string) || event.content || "";
+              const worktreePath = (meta.worktree_path as string) || (meta.worktreePath as string) || null;
+              const model = (meta.model as string) || null;
+              const isolation = (meta.isolation as string) || null;
+
+              const spawnEvent: AgentEvent = {
+                timestamp: event.timestamp,
+                event_type: "agent_spawn",
+                content: `Spawned: ${agentType}`,
+                metadata: {
+                  agentType,
+                  description,
+                  worktreePath,
+                  model,
+                  isolation,
+                },
+              };
+              store.addSessionAgentEvent(sid, spawnEvent);
+
+              useAppStore.getState().insertRichCard(sid, "activity", `Agent spawned: ${agentType}`, {
+                capturable: true,
+                agentName: agentType,
+                agentDescription: description,
+                agentTools: (meta.tools as string[]) || [],
+                agentSystemPrompt: (meta.system_prompt as string) || "",
+              });
+            }
+
+            // Detect subagent completion (Agent tool result)
+            if (
+              sid &&
+              event.metadata?.tool === "Agent" &&
+              event.event_type === "result"
+            ) {
+              const meta = event.metadata;
+              const agentName = (meta.agent_name as string) || (meta.description as string) || "unnamed-agent";
+
+              const completeEvent: AgentEvent = {
+                timestamp: event.timestamp,
+                event_type: "agent_complete",
+                content: `Completed: ${agentName}`,
+                metadata: {
+                  agentName,
+                  result: event.content,
+                },
+              };
+              store.addSessionAgentEvent(sid, completeEvent);
+
+              useAppStore.getState().insertRichCard(sid, "activity", `Agent completed: ${agentName}`, {
+                agentName,
+                completed: true,
+              });
+            }
+
+            // Detect task events (TodoWrite, TaskCreate, TaskUpdate tool uses)
+            if (
+              sid &&
+              event.metadata?.tool &&
+              event.event_type !== "result"
+            ) {
+              const toolName = event.metadata.tool as string;
+
+              // TodoWrite creates or updates tasks
+              if (toolName === "TodoWrite") {
+                const meta = event.metadata;
+                const todos = meta.todos as Array<Record<string, unknown>> | undefined;
+
+                if (Array.isArray(todos)) {
+                  for (const todo of todos) {
+                    const id = (todo.id as string) || `todo-${Date.now()}`;
+                    const content = (todo.content as string) || (todo.subject as string) || event.content || "";
+                    const status = (todo.status as string) || "pending";
+
+                    // Determine if this is a new task or an update based on status
+                    const isNew = status === "pending" || status === "in_progress";
+                    const eventType = isNew ? "task_create" as const : "task_update" as const;
+
+                    const taskEvent: AgentEvent = {
+                      timestamp: event.timestamp,
+                      event_type: eventType,
+                      content: content,
+                      metadata: {
+                        taskId: id,
+                        subject: content,
+                        description: (todo.description as string) || "",
+                        status,
+                      },
+                    };
+                    store.addSessionAgentEvent(sid, taskEvent);
+
+                    // Wire to session task tracking
+                    useAppStore.getState().upsertSessionTask(sid, {
+                      id,
+                      subject: content,
+                      description: (todo.description as string) || "",
+                      status: toTaskStatus(status),
+                      owner: null,
+                      createdAt: event.timestamp,
+                    });
+                  }
+
+                  // Insert task-progress card if not already present
+                  const sessionForTaskCard = useAppStore.getState().claudeSessions.get(sid);
+                  if (sessionForTaskCard && !sessionForTaskCard.chatMessages.some(m => m.cardType === "task-progress")) {
+                    useAppStore.getState().insertRichCard(sid, "task-progress", "Task progress", {});
+                  }
+                }
+              }
+
+              // TaskCreate tool
+              if (toolName === "TaskCreate") {
+                const meta = event.metadata;
+                const subject = (meta.subject as string) || event.content || "";
+                const description = (meta.description as string) || "";
+                const status = (meta.status as string) || "pending";
+                const taskId = (meta.task_id as string) || (meta.taskId as string) || `task-${Date.now()}`;
+
+                const taskEvent: AgentEvent = {
+                  timestamp: event.timestamp,
+                  event_type: "task_create",
+                  content: subject,
+                  metadata: {
+                    taskId,
+                    subject,
+                    description,
+                    status,
+                  },
+                };
+                store.addSessionAgentEvent(sid, taskEvent);
+
+                // Wire to session task tracking
+                useAppStore.getState().upsertSessionTask(sid, {
+                  id: taskId,
+                  subject,
+                  description,
+                  status: toTaskStatus(status),
+                  owner: null,
+                  createdAt: event.timestamp,
+                });
+
+                // Insert task-progress card if not already present
+                const sessionForTaskCard = useAppStore.getState().claudeSessions.get(sid);
+                if (sessionForTaskCard && !sessionForTaskCard.chatMessages.some(m => m.cardType === "task-progress")) {
+                  useAppStore.getState().insertRichCard(sid, "task-progress", "Task progress", {});
+                }
+              }
+
+              // TaskUpdate tool
+              if (toolName === "TaskUpdate") {
+                const meta = event.metadata;
+                const taskId = (meta.task_id as string) || (meta.taskId as string) || "";
+                const status = (meta.status as string) || "";
+                const subject = (meta.subject as string) || event.content || "";
+
+                const taskEvent: AgentEvent = {
+                  timestamp: event.timestamp,
+                  event_type: "task_update",
+                  content: subject,
+                  metadata: {
+                    taskId,
+                    subject,
+                    status,
+                    completionInfo: (meta.completion_info as string) || (meta.completionInfo as string) || null,
+                  },
+                };
+                store.addSessionAgentEvent(sid, taskEvent);
+
+                // Wire to session task tracking
+                if (taskId) {
+                  useAppStore.getState().updateSessionTaskStatus(sid, taskId, toTaskStatus(status));
+                }
+              }
+            }
+
+            // Detect task events from tool results (TaskGet, TaskList responses)
+            if (
+              sid &&
+              event.metadata?.tool &&
+              event.event_type === "result"
+            ) {
+              const toolName = event.metadata.tool as string;
+
+              // TodoWrite results confirm task state
+              if (toolName === "TodoWrite") {
+                const meta = event.metadata;
+                const todos = meta.todos as Array<Record<string, unknown>> | undefined;
+
+                if (Array.isArray(todos)) {
+                  for (const todo of todos) {
+                    const id = (todo.id as string) || `todo-${Date.now()}`;
+                    const content = (todo.content as string) || (todo.subject as string) || "";
+                    const status = (todo.status as string) || "completed";
+
+                    if (status === "completed" || status === "deleted") {
+                      const taskEvent: AgentEvent = {
+                        timestamp: event.timestamp,
+                        event_type: "task_update",
+                        content: content,
+                        metadata: {
+                          taskId: id,
+                          subject: content,
+                          status,
+                        },
+                      };
+                      store.addSessionAgentEvent(sid, taskEvent);
+
+                      // Wire to session task tracking
+                      useAppStore.getState().updateSessionTaskStatus(sid, id, toTaskStatus(status));
+                    }
+                  }
+                }
+              }
+            }
+
+            // Fallback: detect agent spawns from raw text events
+            if (
+              sid &&
+              event.event_type === "raw" &&
+              typeof event.content === "string" &&
+              (event.content.includes("Agent spawned") || event.content.includes("Launching agent"))
             ) {
               const agentName = (event.metadata?.agent_name as string) || (event.metadata?.description as string) || "unnamed-agent";
               const agentDesc = (event.metadata?.description as string) || event.content || "";
-              const agentTools = (event.metadata?.tools as string[]) || [];
 
-              if (sid) {
-                useAppStore.getState().insertRichCard(sid, "activity", "Agent spawned: " + agentName, {
-                  capturable: true,
-                  agentName,
-                  agentDescription: agentDesc,
-                  agentTools,
-                  agentSystemPrompt: (event.metadata?.system_prompt as string) || "",
-                });
-              }
+              const spawnEvent: AgentEvent = {
+                timestamp: event.timestamp,
+                event_type: "agent_spawn",
+                content: `Spawned: ${agentName}`,
+                metadata: {
+                  agentType: agentName,
+                  description: agentDesc,
+                },
+              };
+              store.addSessionAgentEvent(sid, spawnEvent);
+
+              useAppStore.getState().insertRichCard(sid, "activity", "Agent spawned: " + agentName, {
+                capturable: true,
+                agentName,
+                agentDescription: agentDesc,
+                agentTools: (event.metadata?.tools as string[]) || [],
+                agentSystemPrompt: (event.metadata?.system_prompt as string) || "",
+              });
             }
 
             // Detect input-request events; set needsInput and attention on non-active sessions

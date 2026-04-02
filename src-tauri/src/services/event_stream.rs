@@ -53,7 +53,18 @@ struct StreamEvent {
     cost_usd: Option<f64>,
     total_cost_usd: Option<f64>,
     duration_ms: Option<u64>,
+    duration_api_ms: Option<u64>,
     is_error: Option<bool>,
+    // Token usage from result events
+    usage: Option<UsageData>,
+}
+
+#[derive(Debug, Deserialize)]
+struct UsageData {
+    input_tokens: Option<u64>,
+    output_tokens: Option<u64>,
+    cache_creation_input_tokens: Option<u64>,
+    cache_read_input_tokens: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -109,6 +120,11 @@ fn classify_event(evt: StreamEvent) -> AgentEvent {
                 "session_id": evt.session_id,
                 "cost_usd": evt.total_cost_usd.or(evt.cost_usd),
                 "duration_ms": evt.duration_ms,
+                "duration_api_ms": evt.duration_api_ms,
+                "input_tokens": evt.usage.as_ref().and_then(|u| u.input_tokens),
+                "output_tokens": evt.usage.as_ref().and_then(|u| u.output_tokens),
+                "cache_creation_input_tokens": evt.usage.as_ref().and_then(|u| u.cache_creation_input_tokens),
+                "cache_read_input_tokens": evt.usage.as_ref().and_then(|u| u.cache_read_input_tokens),
             });
             if is_err {
                 make_event(AgentEventType::Error, content, Some(metadata))
@@ -417,6 +433,19 @@ mod tests {
         assert_eq!(event.content, "\n\n4");
         let meta = event.metadata.unwrap();
         assert_eq!(meta["session_id"], "2aad29f2-b826-4ebb-bae4-51c1cdbbd275");
+    }
+
+    #[test]
+    fn parse_real_result_includes_usage_data() {
+        let event = parse_event(REAL_RESULT_SUCCESS);
+        let meta = event.metadata.unwrap();
+        assert_eq!(meta["input_tokens"], 2);
+        assert_eq!(meta["output_tokens"], 5);
+        assert_eq!(meta["cache_creation_input_tokens"], 5175);
+        assert_eq!(meta["cache_read_input_tokens"], 12144);
+        assert_eq!(meta["duration_api_ms"], 4574);
+        // total_cost_usd is mapped to cost_usd
+        assert!(meta["cost_usd"].as_f64().unwrap() > 0.038);
     }
 
     #[test]

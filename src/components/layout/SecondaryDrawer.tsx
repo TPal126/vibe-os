@@ -6,6 +6,7 @@ import {
   FileDiff,
   FileCode,
   Layers,
+  Monitor,
 } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { TabStrip, type Tab } from "./TabStrip";
@@ -15,6 +16,7 @@ import { LivePreview } from "../panels/LivePreview";
 import { DiffView } from "../panels/DiffView";
 import { ScriptsTracker } from "../panels/ScriptsTracker";
 import { PromptLayer } from "../panels/PromptLayer";
+import { SessionBrowser } from "../panels/SessionBrowser";
 import { useAppStore } from "../../stores";
 
 const drawerTabs: Tab[] = [
@@ -24,6 +26,7 @@ const drawerTabs: Tab[] = [
   { id: "diff", label: "Diff", icon: <FileDiff size={10} /> },
   { id: "scripts", label: "Scripts", icon: <FileCode size={10} /> },
   { id: "prompt", label: "Prompt", icon: <Layers size={10} /> },
+  { id: "sessions", label: "Sessions", icon: <Monitor size={10} /> },
 ];
 
 export function SecondaryDrawer() {
@@ -95,6 +98,7 @@ export function SecondaryDrawer() {
             {activeTab === "diff" && <DiffView />}
             {activeTab === "scripts" && <ScriptsTracker />}
             {activeTab === "prompt" && <PromptLayer />}
+            {activeTab === "sessions" && <SessionBrowser />}
           </div>
         )}
       </div>
