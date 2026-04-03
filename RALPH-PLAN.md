@@ -47,7 +47,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **Task 10: Tauri Configuration + Build Pipeline** — Add agent-sidecar to tauri.conf.json resources. Add build:sidecar and prebuild scripts to package.json.
 
-- [ ] **Task 11: Integration Test** — Build everything, run tests, verify sidecar starts, verify graph context injection works. Fix any issues.
+- [x] **Task 11: Integration Test** — Build everything, run tests, verify sidecar starts, verify graph context injection works. Fix any issues.
 
 ---
 
