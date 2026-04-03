@@ -37,8 +37,10 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "externalBin": [],
     "resources": {
-      "skills/*.md": "skills/"
+      "skills/*.md": "skills/",
+      "../agent-sidecar/dist/*": "agent-sidecar/"
     }
   }
 }
