@@ -39,7 +39,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **Task 6: Rust Tool Handler** — Create `src-tauri/src/services/tool_handler.rs` with handle_tool_request() dispatching to graph queries (provenance, impact, search, session report, topology, populate_decision).
 
-- [ ] **Task 7: New Agent Commands (Rust)** — Create `src-tauri/src/commands/agent_commands_v2.rs` with ensure_sidecar, start_agent (with graph context assembly), send_agent_message, cancel_agent, get_sidecar_status. Register in mod.rs and lib.rs.
+- [x] **Task 7: New Agent Commands (Rust)** — Create `src-tauri/src/commands/agent_commands_v2.rs` with ensure_sidecar, start_agent (with graph context assembly), send_agent_message, cancel_agent, get_sidecar_status. Register in mod.rs and lib.rs.
 
 - [ ] **Task 8: Frontend Agent Stream Hook** — Create `src/hooks/useAgentStream.ts` listening to "agent-event" Tauri events, mapping typed SDKMessage to store updates. Create `src/lib/agentCommands.ts` with typed wrappers.
 

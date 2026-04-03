@@ -8,6 +8,7 @@ mod graph;
 mod services;
 
 use commands::agent_commands;
+use commands::agent_commands_v2;
 use commands::architecture_commands;
 use commands::audit_commands;
 use commands::claude_commands;
@@ -63,6 +64,9 @@ pub fn run() {
                     workspace_path: None,
                 },
             )));
+
+            // Register sidecar state
+            app.manage(Arc::new(TokioMutex::new(None::<services::sidecar::SidecarProcess>)));
 
             // Copy bundled skill files to ~/.vibe-os/skills/ on first launch
             let home = dirs::home_dir().expect("Cannot determine home directory");
@@ -176,6 +180,12 @@ pub fn run() {
             graph_commands::graph_sync_decisions,
             graph_commands::graph_sync_audit,
             graph_commands::graph_get_topology,
+            // Agent v2 commands (SDK sidecar)
+            agent_commands_v2::ensure_sidecar,
+            agent_commands_v2::start_agent,
+            agent_commands_v2::send_agent_message,
+            agent_commands_v2::cancel_agent,
+            agent_commands_v2::get_sidecar_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
