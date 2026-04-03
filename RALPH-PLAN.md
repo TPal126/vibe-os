@@ -27,7 +27,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 ## Tasks
 
-- [ ] **Task 1: Scaffold the Node Sidecar Project** — Create `agent-sidecar/` with package.json, tsconfig.json, src/types.ts, build.mjs. Install deps and verify build.
+- [x] **Task 1: Scaffold the Node Sidecar Project** — Create `agent-sidecar/` with package.json, tsconfig.json, src/types.ts, build.mjs. Install deps and verify build.
 
 - [ ] **Task 2: Implement Sidecar Main Entry Point** — Create `agent-sidecar/src/main.ts` with stdin/stdout JSON line protocol dispatcher. Create session.ts stub.
 
