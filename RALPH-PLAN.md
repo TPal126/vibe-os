@@ -31,7 +31,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **Task 2: Implement Sidecar Main Entry Point** — Create `agent-sidecar/src/main.ts` with stdin/stdout JSON line protocol dispatcher. Create session.ts stub.
 
-- [ ] **Task 3: Implement Session Manager** — Replace session.ts stub with full SessionManager using SDK `query()`, multi-turn via `streamInput()`, cancel via `query.close()`.
+- [x] **Task 3: Implement Session Manager** — Replace session.ts stub with full SessionManager using SDK `query()`, multi-turn via `streamInput()`, cancel via `query.close()`.
 
 - [ ] **Task 4: Implement MCP Tools** — Create `agent-sidecar/src/tools.ts` with 6 VIBE OS tools: vibe_graph_provenance, vibe_graph_impact, vibe_record_decision, vibe_search_graph, vibe_session_context, vibe_architecture. Uses request/response callback to Rust.
 
