@@ -43,7 +43,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **Task 8: Frontend Agent Stream Hook** — Create `src/hooks/useAgentStream.ts` listening to "agent-event" Tauri events, mapping typed SDKMessage to store updates. Create `src/lib/agentCommands.ts` with typed wrappers.
 
-- [ ] **Task 9: Wire Frontend to New Agent Commands** — Mount useAgentStream alongside useClaudeStream. Update ClaudeChat.tsx handleSend/handleCancel to use SDK path with CLI fallback. Auto-start sidecar on app load.
+- [x] **Task 9: Wire Frontend to New Agent Commands** — Mount useAgentStream alongside useClaudeStream. Update ClaudeChat.tsx handleSend/handleCancel to use SDK path with CLI fallback. Auto-start sidecar on app load.
 
 - [ ] **Task 10: Tauri Configuration + Build Pipeline** — Add agent-sidecar to tauri.conf.json resources. Add build:sidecar and prebuild scripts to package.json.
 

@@ -5,18 +5,26 @@ import { useAppStore } from "./stores";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useWorkspaceWatcher } from "./hooks/useWorkspaceWatcher";
 import { useClaudeStream } from "./hooks/useClaudeStream";
+import { useAgentStream } from "./hooks/useAgentStream";
 import { useNotifications } from "./hooks/useNotifications";
+import { agentCommands } from "./lib/agentCommands";
 
 function App() {
   useKeyboardShortcuts();
   useWorkspaceWatcher();
-  useClaudeStream();
+  useClaudeStream(); // existing — keep for CLI fallback
+  useAgentStream();  // new — for SDK sidecar
   useNotifications();
 
   const loadActiveSession = useAppStore((s) => s.loadActiveSession);
   const createSession = useAppStore((s) => s.createSession);
   const validateClaudeCli = useAppStore((s) => s.validateClaudeCli);
   const loadProjects = useAppStore((s) => s.loadProjects);
+
+  useEffect(() => {
+    // Auto-start sidecar (non-blocking)
+    agentCommands.ensureSidecar().catch(console.warn);
+  }, []);
 
   useEffect(() => {
     async function init() {

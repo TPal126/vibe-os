@@ -3,6 +3,7 @@ import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { extractCodeBlocks } from "../../lib/eventParser";
 import { commands } from "../../lib/tauri";
+import { agentCommands } from "../../lib/agentCommands";
 import { IconButton } from "../shared/IconButton";
 import { SessionTabs } from "./SessionTabs";
 import { Send, Square, AlertTriangle, RefreshCw } from "lucide-react";
@@ -163,6 +164,19 @@ export function ClaudeChat() {
     setInput("");
 
     try {
+      // Use SDK sidecar if available
+      const sidecarStatus = await agentCommands.getSidecarStatus().catch(() => "stopped" as const);
+      if (sidecarStatus === "ready" || sidecarStatus === "starting") {
+        const workspace = useAppStore.getState().activeWorkspace;
+        if (conversationId) {
+          await agentCommands.sendAgentMessage(sessionId, text);
+        } else {
+          await agentCommands.startAgent(sessionId, text, workspace?.path ?? ".");
+        }
+        return;
+      }
+
+      // Fall back to CLI
       const workingDir = ".";
 
       if (conversationId) {
@@ -204,6 +218,12 @@ export function ClaudeChat() {
   const handleCancel = useCallback(async () => {
     if (activeClaudeSessionId) {
       try {
+        const sidecarStatus = await agentCommands.getSidecarStatus().catch(() => "stopped" as const);
+        if (sidecarStatus === "ready") {
+          await agentCommands.cancelAgent(activeClaudeSessionId);
+          return;
+        }
+        // Fall back to CLI cancel
         await commands.cancelClaude(activeClaudeSessionId);
       } catch (err) {
         console.error("Failed to cancel:", err);
