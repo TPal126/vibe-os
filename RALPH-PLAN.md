@@ -35,7 +35,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **Task 4: Implement MCP Tools** — Create `agent-sidecar/src/tools.ts` with 6 VIBE OS tools: vibe_graph_provenance, vibe_graph_impact, vibe_record_decision, vibe_search_graph, vibe_session_context, vibe_architecture. Uses request/response callback to Rust.
 
-- [ ] **Task 5: Rust Sidecar Process Manager** — Create `src-tauri/src/services/sidecar.rs` with spawn_sidecar(), send_to_sidecar(), read_sidecar_stdout(). Register in services/mod.rs.
+- [x] **Task 5: Rust Sidecar Process Manager** — Create `src-tauri/src/services/sidecar.rs` with spawn_sidecar(), send_to_sidecar(), read_sidecar_stdout(). Register in services/mod.rs.
 
 - [ ] **Task 6: Rust Tool Handler** — Create `src-tauri/src/services/tool_handler.rs` with handle_tool_request() dispatching to graph queries (provenance, impact, search, session report, topology, populate_decision).
 
