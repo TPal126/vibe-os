@@ -37,7 +37,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **Task 5: Rust Sidecar Process Manager** — Create `src-tauri/src/services/sidecar.rs` with spawn_sidecar(), send_to_sidecar(), read_sidecar_stdout(). Register in services/mod.rs.
 
-- [ ] **Task 6: Rust Tool Handler** — Create `src-tauri/src/services/tool_handler.rs` with handle_tool_request() dispatching to graph queries (provenance, impact, search, session report, topology, populate_decision).
+- [x] **Task 6: Rust Tool Handler** — Create `src-tauri/src/services/tool_handler.rs` with handle_tool_request() dispatching to graph queries (provenance, impact, search, session report, topology, populate_decision).
 
 - [ ] **Task 7: New Agent Commands (Rust)** — Create `src-tauri/src/commands/agent_commands_v2.rs` with ensure_sidecar, start_agent (with graph context assembly), send_agent_message, cancel_agent, get_sidecar_status. Register in mod.rs and lib.rs.
 
