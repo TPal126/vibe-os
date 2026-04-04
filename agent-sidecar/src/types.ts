@@ -16,6 +16,7 @@ export interface StartCommand {
     maxTurns?: number;
     settingSources?: string[];
     effort?: "low" | "medium" | "high" | "max";
+    plugins?: Array<{ type: "local"; path: string }>;
   };
 }
 

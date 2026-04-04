@@ -141,6 +141,7 @@ pub async fn start_agent(
     session_id: String,
     prompt: String,
     workspace_path: String,
+    composed_prompt: Option<String>,
 ) -> Result<(), String> {
     // Ensure sidecar is running
     ensure_sidecar(app.clone()).await?;
@@ -149,19 +150,35 @@ pub async fn start_agent(
     let graph_db = app.state::<surrealdb::Surreal<surrealdb::engine::local::Db>>();
     let graph_context = assemble_graph_context(&graph_db, &prompt, &session_id).await;
 
+    // Merge: composed prompt (skills + repos) + graph context
+    let full_system_prompt = match &composed_prompt {
+        Some(cp) if !cp.is_empty() => {
+            if graph_context.is_empty() {
+                cp.clone()
+            } else {
+                format!("{}\n\n{}", cp, graph_context)
+            }
+        }
+        _ => graph_context,
+    };
+
+    // Discover installed plugins from ~/.claude/plugins/
+    let plugin_paths = discover_plugin_paths();
+
     // Build the start command
     let cmd = SidecarCommand::Start {
         session_id: session_id.clone(),
         prompt,
-        system_prompt: graph_context,
+        system_prompt: full_system_prompt,
         options: json!({
             "cwd": workspace_path,
             "model": "sonnet",
             "permissionMode": "acceptEdits",
             "tools": { "type": "preset", "preset": "claude_code" },
             "maxTurns": 50,
-            "settingSources": ["project"],
+            "settingSources": ["project", "user"],
             "effort": "high",
+            "plugins": plugin_paths,
         }),
     };
 
@@ -285,6 +302,41 @@ fn extract_references(message: &str) -> Vec<String> {
     }
 
     refs
+}
+
+/// Discover installed Claude Code plugin paths from ~/.claude/plugins/installed_plugins.json
+fn discover_plugin_paths() -> Vec<serde_json::Value> {
+    let home = match dirs::home_dir() {
+        Some(h) => h,
+        None => return vec![],
+    };
+
+    let plugins_file = home.join(".claude").join("plugins").join("installed_plugins.json");
+    let content = match std::fs::read_to_string(&plugins_file) {
+        Ok(c) => c,
+        Err(_) => return vec![],
+    };
+
+    let parsed: serde_json::Value = match serde_json::from_str(&content) {
+        Ok(v) => v,
+        Err(_) => return vec![],
+    };
+
+    let mut paths = Vec::new();
+    if let Some(plugins) = parsed.get("plugins").and_then(|p| p.as_object()) {
+        for (_name, installs) in plugins {
+            if let Some(arr) = installs.as_array() {
+                for install in arr {
+                    if let Some(path) = install.get("installPath").and_then(|p| p.as_str()) {
+                        paths.push(json!({ "type": "local", "path": path }));
+                    }
+                }
+            }
+        }
+    }
+
+    eprintln!("[vibe-os] Discovered {} plugins", paths.len());
+    paths
 }
 
 fn format_provenance(trace: &graph::queries::ProvenanceTrace) -> String {

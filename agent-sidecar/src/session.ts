@@ -84,6 +84,7 @@ export class SessionManager {
         settingSources: (cmd.options.settingSources as ("user" | "project" | "local")[]) ?? ["project"],
         effort: cmd.options.effort ?? "high",
         mcpServers: { "vibe-os": vibeServer },
+        plugins: cmd.options.plugins ?? [],
         sessionId: cmd.sessionId,
       },
     });

@@ -172,7 +172,7 @@ export function ClaudeChat() {
         if (conversationId) {
           await agentCommands.sendAgentMessage(sessionId, text);
         } else {
-          await agentCommands.startAgent(sessionId, text, workspace?.path ?? ".");
+          await agentCommands.startAgent(sessionId, text, workspace?.path ?? ".", composedPrompt?.full);
         }
         return;
       }
