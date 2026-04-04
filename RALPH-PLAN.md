@@ -35,7 +35,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **1f: Add TypeScript command wrappers** — In `src/lib/tauri.ts`, add wrappers: `logEvent(...)`, `getEvents(sessionId, kind?, limit?)`, `exportEvents(sessionId, format, outputPath)`. These call the new Rust commands.
 
-- [ ] **1g: Update vibe_record_decision MCP tool** — In `src-tauri/src/services/tool_handler.rs`, update the `vibe_record_decision` handler to call `events_commands::log_event()` with `kind = "decision"` instead of `populate_decision()`. Also call `populate_event()` for graph population.
+- [x] **1g: Update vibe_record_decision MCP tool** — In `src-tauri/src/services/tool_handler.rs`, update the `vibe_record_decision` handler to call `events_commands::log_event()` with `kind = "decision"` instead of `populate_decision()`. Also call `populate_event()` for graph population.
 
 - [ ] **1h: Update agent_commands_v2 audit logging** — In `src-tauri/src/commands/agent_commands_v2.rs` and `claude_commands.rs`, replace any calls to `log_action()` or `log_to_audit()` with calls to `events_commands::log_event()` with `kind = "action"`.
 

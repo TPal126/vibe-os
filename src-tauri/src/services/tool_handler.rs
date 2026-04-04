@@ -2,11 +2,13 @@ use serde_json::json;
 use surrealdb::engine::local::Db;
 use surrealdb::Surreal;
 
-use crate::graph::queries;
+use crate::commands::db_commands::DbState;
+use crate::graph::{population, queries};
 
 /// Handle a tool request from the sidecar and return a JSON result.
 pub async fn handle_tool_request(
     graph_db: &Surreal<Db>,
+    db_state: &DbState,
     tool: &str,
     input: &serde_json::Value,
     session_id: &str,
@@ -55,21 +57,52 @@ pub async fn handle_tool_request(
                 .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
                 .unwrap_or_default();
 
-            let id = format!("tool_{}", uuid::Uuid::new_v4().to_string().replace('-', "_"));
-            let timestamp = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+            let id = uuid::Uuid::new_v4().to_string();
+            let timestamp = chrono::Utc::now().to_rfc3339();
+            let related_files_json = serde_json::to_string(&related_files).unwrap_or_default();
+            let related_tickets_json = serde_json::to_string(&related_tickets).unwrap_or_default();
 
-            crate::graph::population::populate_decision(
+            // Insert into unified events table (SQLite)
+            {
+                let conn = db_state
+                    .lock()
+                    .map_err(|e| format!("Failed to acquire DB lock: {}", e))?;
+                conn.execute(
+                    "INSERT INTO events (id, session_id, timestamp, kind, detail, actor, rationale, confidence, impact_category, reversible, related_files, related_tickets)
+                     VALUES (?1, ?2, ?3, 'decision', ?4, 'agent', ?5, ?6, ?7, ?8, ?9, ?10)",
+                    rusqlite::params![
+                        id,
+                        session_id,
+                        timestamp,
+                        decision,
+                        rationale,
+                        confidence,
+                        impact_category,
+                        if reversible { 1 } else { 0 },
+                        related_files_json,
+                        related_tickets_json,
+                    ],
+                )
+                .map_err(|e| format!("Failed to insert event: {}", e))?;
+            }
+
+            // Populate unified event node in graph
+            population::populate_event(
                 graph_db,
                 &id,
                 session_id,
+                "decision",
+                "",
                 decision,
-                rationale,
-                confidence,
-                impact_category,
-                reversible,
+                "agent",
+                &timestamp,
+                None,
+                Some(rationale),
+                Some(confidence),
+                Some(impact_category),
+                Some(reversible),
                 &related_files,
                 &related_tickets,
-                &timestamp,
             )
             .await
             .map_err(|e| e.to_string())?;

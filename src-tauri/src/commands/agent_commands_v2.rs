@@ -91,8 +91,10 @@ pub async fn ensure_sidecar(app: AppHandle) -> Result<String, String> {
 
                     tauri::async_runtime::spawn(async move {
                         let graph_db = app2.state::<surrealdb::Surreal<surrealdb::engine::local::Db>>();
+                        let db_state = app2.state::<crate::commands::db_commands::DbState>();
                         let result = tool_handler::handle_tool_request(
                             &graph_db,
+                            &db_state,
                             &tool_name,
                             &tool_input,
                             "", // session_id — extracted from context
