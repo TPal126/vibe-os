@@ -126,6 +126,96 @@ pub async fn populate_action(
     Ok(())
 }
 
+/// Populate a unified event node in the graph + edges to session/files/tickets/skills.
+pub async fn populate_event(
+    db: &Surreal<Db>,
+    id: &str,
+    session_id: &str,
+    kind: &str,
+    action_type: &str,
+    detail: &str,
+    actor: &str,
+    timestamp: &str,
+    metadata: Option<&str>,
+    rationale: Option<&str>,
+    confidence: Option<f64>,
+    impact_category: Option<&str>,
+    reversible: Option<bool>,
+    related_files: &[String],
+    related_tickets: &[String],
+) -> Result<(), String> {
+    let safe_id = sanitize_id(id);
+
+    let event_json = serde_json::json!({
+        "kind": kind,
+        "action_type": action_type,
+        "detail": detail,
+        "actor": actor,
+        "created_at": timestamp,
+        "session_id": session_id,
+        "metadata": metadata.and_then(|m| serde_json::from_str::<serde_json::Value>(m).ok()),
+        "rationale": rationale,
+        "confidence": confidence,
+        "impact_category": impact_category,
+        "reversible": reversible,
+    });
+
+    db.query(&format!(
+        "CREATE event:{safe_id} CONTENT {}",
+        serde_json::to_string(&event_json).unwrap()
+    ))
+    .await
+    .map_err(|e| format!("Failed to create event node: {e}"))?;
+
+    // Edge: event -> session
+    db.query(&format!(
+        "RELATE event:{safe_id}->occurred_in->session:{sid} SET created_at = time::now()",
+        sid = sanitize_id(session_id)
+    ))
+    .await
+    .ok();
+
+    // Edges: event -> modified -> module (by matching file paths)
+    for file in related_files {
+        let mod_id = sanitize_id(&file.replace('\\', "/").replace('/', "_").replace('.', "_"));
+        db.query(&format!(
+            "RELATE event:{safe_id}->modified->module:{mod_id} SET change_type = 'edit', created_at = time::now()"
+        ))
+        .await
+        .ok();
+    }
+
+    // Edges: event -> addresses -> ticket
+    for ticket_key in related_tickets {
+        let ticket_id = sanitize_id(ticket_key);
+        db.query(&format!(
+            "RELATE event:{safe_id}->addresses->ticket:{ticket_id} SET created_at = time::now()"
+        ))
+        .await
+        .ok();
+    }
+
+    // Edges: event -> informed_by -> active skills (only for decisions)
+    if kind == "decision" {
+        let mut skill_result = db
+            .query("SELECT id FROM skill WHERE active = true")
+            .await
+            .map_err(|e| e.to_string())?;
+        let skills: Vec<serde_json::Value> = skill_result.take(0).unwrap_or_default();
+        for skill in skills {
+            if let Some(skill_id) = skill.get("id").and_then(|v| v.as_str()) {
+                db.query(&format!(
+                    "RELATE event:{safe_id}->informed_by->{skill_id} SET created_at = time::now()"
+                ))
+                .await
+                .ok();
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Populate a skill node from skill data.
 pub async fn populate_skill(
     db: &Surreal<Db>,
@@ -325,6 +415,42 @@ mod tests {
         let node = nodes::get_node(&db, "session", "sess_1").await.unwrap();
         assert!(node.is_some());
         assert_eq!(node.unwrap()["system_prompt"], "You are a helpful assistant");
+    }
+
+    #[tokio::test]
+    async fn test_populate_event_action() {
+        let db = test_db().await;
+        populate_session(&db, "sess-1", "test prompt").await.unwrap();
+        populate_event(
+            &db, "evt_1", "sess-1", "action", "FILE_CREATE", "Created main.rs",
+            "agent", "2026-03-30T00:00:00Z", None, None, None, None, None,
+            &[], &[],
+        ).await.unwrap();
+
+        let node = nodes::get_node(&db, "event", "evt_1").await.unwrap();
+        assert!(node.is_some());
+        let n = node.unwrap();
+        assert_eq!(n["kind"], "action");
+        assert_eq!(n["action_type"], "FILE_CREATE");
+    }
+
+    #[tokio::test]
+    async fn test_populate_event_decision() {
+        let db = test_db().await;
+        populate_session(&db, "sess-1", "test prompt").await.unwrap();
+        populate_event(
+            &db, "evt_2", "sess-1", "decision", "ARCHITECTURE", "Use REST API",
+            "agent", "2026-03-30T00:00:00Z", None,
+            Some("Simpler than GraphQL"), Some(0.85), Some("architecture"), Some(true),
+            &["src/routes.rs".to_string()], &["VIBE-42".to_string()],
+        ).await.unwrap();
+
+        let node = nodes::get_node(&db, "event", "evt_2").await.unwrap();
+        assert!(node.is_some());
+        let n = node.unwrap();
+        assert_eq!(n["kind"], "decision");
+        assert_eq!(n["rationale"], "Simpler than GraphQL");
+        assert_eq!(n["confidence"], 0.85);
     }
 
     #[tokio::test]

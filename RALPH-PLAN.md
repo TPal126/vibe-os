@@ -27,7 +27,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **1b: Create unified events Rust commands** — Create `src-tauri/src/commands/events_commands.rs` with: `log_event(session_id, kind, action_type, detail, actor, metadata, rationale?, confidence?, impact_category?, reversible?, related_files?, related_tickets?)` that inserts into the `events` table. Add `get_events(session_id, kind?, limit?)` that queries with optional kind filter. Add `export_events(session_id, format, output_path)`. Register all three in `mod.rs` and `lib.rs`.
 
-- [ ] **1c: Update graph population for unified events** — In `src-tauri/src/graph/population.rs`, add `populate_event()` that creates a single `event` node type in SurrealDB with all fields. It should create edges to session (`occurred_in`), modified files (`modified`), tickets (`addresses`), and active skills (`informed_by` — only for decisions). Update `src-tauri/src/graph/schema.rs` to add the `event` table and index.
+- [x] **1c: Update graph population for unified events** — In `src-tauri/src/graph/population.rs`, add `populate_event()` that creates a single `event` node type in SurrealDB with all fields. It should create edges to session (`occurred_in`), modified files (`modified`), tickets (`addresses`), and active skills (`informed_by` — only for decisions). Update `src-tauri/src/graph/schema.rs` to add the `event` table and index.
 
 - [ ] **1d: Update graph queries for unified events** — In `src-tauri/src/graph/queries.rs`, update `get_session_report()` to query from the `event` table instead of separate `action` and `decision` tables. Update `get_provenance()` to look at `event` nodes where `kind = 'decision'` instead of the `decision` table.
 
