@@ -132,7 +132,8 @@ pub async fn get_full_graph(
          SELECT id, 'ticket' AS node_type, key AS label FROM ticket WHERE linked = true;
          SELECT id, 'skill' AS node_type, name AS label FROM skill WHERE active = true;
          SELECT id, 'decision' AS node_type, summary AS label FROM decision {sf};
-         SELECT id, 'test' AS node_type, name AS label FROM test {sf};"
+         SELECT id, 'test' AS node_type, name AS label FROM test {sf};
+         SELECT id, 'event' AS node_type, detail AS label FROM event {sf};"
     );
 
     let edges_query = "
@@ -162,9 +163,9 @@ pub async fn get_full_graph(
         .await
         .map_err(|e| format!("Graph edges query failed: {e}"))?;
 
-    // Collect nodes from all 8 result sets
+    // Collect nodes from all 9 result sets
     let mut nodes: Vec<GraphNode> = Vec::new();
-    for i in 0..8 {
+    for i in 0..9 {
         let batch: Vec<serde_json::Value> = nodes_result.take(i).unwrap_or_default();
         nodes.extend(extract_graph_nodes(batch));
     }
@@ -187,7 +188,7 @@ pub async fn get_provenance(
 ) -> Result<ProvenanceTrace, String> {
     let q = format!(
         "SELECT * FROM {fid};
-         SELECT * FROM decision WHERE id IN (SELECT in FROM modified WHERE out = {fid});
+         SELECT * FROM event WHERE kind = 'decision' AND id IN (SELECT in FROM modified WHERE out = {fid});
          SELECT * FROM skill WHERE id IN (SELECT out FROM informed_by WHERE in IN (SELECT in FROM modified WHERE out = {fid}));
          SELECT * FROM ticket WHERE id IN (SELECT out FROM addresses WHERE in IN (SELECT in FROM modified WHERE out = {fid}));
          SELECT * FROM test WHERE id IN (SELECT out FROM validated_by WHERE in IN (SELECT in FROM modified WHERE out = {fid}));
@@ -250,8 +251,8 @@ pub async fn get_session_report(
     session_id: &str,
 ) -> Result<SessionReport, String> {
     let sid = session_id.to_string();
-    let q = "SELECT * FROM action WHERE session_id = $sid ORDER BY created_at;
-             SELECT * FROM decision WHERE session_id = $sid ORDER BY created_at;
+    let q = "SELECT * FROM event WHERE session_id = $sid ORDER BY created_at;
+             SELECT * FROM event WHERE session_id = $sid AND kind = 'decision' ORDER BY created_at;
              SELECT * FROM fn_def WHERE session_id = $sid ORDER BY updated_at;
              SELECT * FROM test WHERE session_id = $sid ORDER BY created_at;
              SELECT math::sum(total_tokens) AS total FROM prompt WHERE session_id = $sid;";
@@ -452,18 +453,20 @@ mod tests {
         let db = test_db().await;
         nodes::create_node(&db, "fn_def", "prov_fn", &serde_json::json!({"name": "handler", "node_type": "function"})).await.unwrap();
         population::populate_session(&db, "sess-1", "").await.unwrap();
-        population::populate_decision(
-            &db, "prov_dec", "sess-1", "Refactor handler", "Clean up", 0.9,
-            "dx", true, &[], &[], "2026-03-30T00:00:00Z",
+        population::populate_event(
+            &db, "prov_dec", "sess-1", "decision", "REFACTOR", "Refactor handler",
+            "agent", "2026-03-30T00:00:00Z", None,
+            Some("Clean up"), Some(0.9), Some("dx"), Some(true),
+            &[], &[],
         ).await.unwrap();
-        edges::relate(&db, "decision:prov_dec", "modified", "fn_def:prov_fn", None).await.unwrap();
+        edges::relate(&db, "event:prov_dec", "modified", "fn_def:prov_fn", None).await.unwrap();
 
         let trace = get_provenance(&db, "fn_def:prov_fn").await.unwrap();
         // The function node itself should be returned
         assert!(!trace.function.is_null());
         // The modified edge exists — verify via direct edge query as subquery behavior
         // may vary across SurrealDB versions
-        let edges = edges::outgoing_edges(&db, "decision:prov_dec", "modified").await.unwrap();
+        let edges = edges::outgoing_edges(&db, "event:prov_dec", "modified").await.unwrap();
         assert!(!edges.is_empty());
     }
 
@@ -471,13 +474,17 @@ mod tests {
     async fn test_session_report() {
         let db = test_db().await;
         population::populate_session(&db, "report_sess", "test").await.unwrap();
-        population::populate_decision(
-            &db, "rep_dec", "report_sess", "Add tests", "Coverage", 0.7,
-            "dx", true, &[], &[], "2026-03-30T00:00:00Z",
-        ).await.unwrap();
-        population::populate_action(
-            &db, "rep_act", "report_sess", "FILE_CREATE", "Created test.rs",
+        population::populate_event(
+            &db, "rep_dec", "report_sess", "decision", "ADD_TESTS", "Add tests",
             "agent", "2026-03-30T00:00:00Z", None,
+            Some("Coverage"), Some(0.7), Some("dx"), Some(true),
+            &[], &[],
+        ).await.unwrap();
+        population::populate_event(
+            &db, "rep_act", "report_sess", "action", "FILE_CREATE", "Created test.rs",
+            "agent", "2026-03-30T00:00:00Z", None,
+            None, None, None, None,
+            &[], &[],
         ).await.unwrap();
 
         let report = get_session_report(&db, "report_sess").await.unwrap();

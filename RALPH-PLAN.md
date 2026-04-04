@@ -29,7 +29,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **1c: Update graph population for unified events** — In `src-tauri/src/graph/population.rs`, add `populate_event()` that creates a single `event` node type in SurrealDB with all fields. It should create edges to session (`occurred_in`), modified files (`modified`), tickets (`addresses`), and active skills (`informed_by` — only for decisions). Update `src-tauri/src/graph/schema.rs` to add the `event` table and index.
 
-- [ ] **1d: Update graph queries for unified events** — In `src-tauri/src/graph/queries.rs`, update `get_session_report()` to query from the `event` table instead of separate `action` and `decision` tables. Update `get_provenance()` to look at `event` nodes where `kind = 'decision'` instead of the `decision` table.
+- [x] **1d: Update graph queries for unified events** — In `src-tauri/src/graph/queries.rs`, update `get_session_report()` to query from the `event` table instead of separate `action` and `decision` tables. Update `get_provenance()` to look at `event` nodes where `kind = 'decision'` instead of the `decision` table.
 
 - [ ] **1e: Create frontend EventSlice** — Create `src/stores/slices/eventSlice.ts` with: `events: VibeEvent[]`, `eventsLoading: boolean`, `loadEvents(sessionId, kind?, limit?)`, `logEvent(...)`, `exportEvents(...)`. The `VibeEvent` type: `{ id, sessionId, timestamp, kind: 'action' | 'decision', actionType, detail, actor, metadata, rationale?, confidence?, impactCategory?, reversible?, relatedFiles?, relatedTickets? }`. Add to `types.ts` and compose into store in `index.ts`.
 
