@@ -31,7 +31,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **1d: Update graph queries for unified events** — In `src-tauri/src/graph/queries.rs`, update `get_session_report()` to query from the `event` table instead of separate `action` and `decision` tables. Update `get_provenance()` to look at `event` nodes where `kind = 'decision'` instead of the `decision` table.
 
-- [ ] **1e: Create frontend EventSlice** — Create `src/stores/slices/eventSlice.ts` with: `events: VibeEvent[]`, `eventsLoading: boolean`, `loadEvents(sessionId, kind?, limit?)`, `logEvent(...)`, `exportEvents(...)`. The `VibeEvent` type: `{ id, sessionId, timestamp, kind: 'action' | 'decision', actionType, detail, actor, metadata, rationale?, confidence?, impactCategory?, reversible?, relatedFiles?, relatedTickets? }`. Add to `types.ts` and compose into store in `index.ts`.
+- [x] **1e: Create frontend EventSlice** — Create `src/stores/slices/eventSlice.ts` with: `events: VibeEvent[]`, `eventsLoading: boolean`, `loadEvents(sessionId, kind?, limit?)`, `logEvent(...)`, `exportEvents(...)`. The `VibeEvent` type: `{ id, sessionId, timestamp, kind: 'action' | 'decision', actionType, detail, actor, metadata, rationale?, confidence?, impactCategory?, reversible?, relatedFiles?, relatedTickets? }`. Add to `types.ts` and compose into store in `index.ts`.
 
 - [ ] **1f: Add TypeScript command wrappers** — In `src/lib/tauri.ts`, add wrappers: `logEvent(...)`, `getEvents(sessionId, kind?, limit?)`, `exportEvents(sessionId, format, outputPath)`. These call the new Rust commands.
 

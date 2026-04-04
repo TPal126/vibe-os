@@ -103,6 +103,46 @@ export interface ConsoleSlice {
   clearEntries: () => void;
 }
 
+// ── Unified Event Types ──
+
+export interface VibeEvent {
+  id: string;
+  sessionId: string;
+  timestamp: string;
+  kind: "action" | "decision";
+  actionType?: string;
+  detail?: string;
+  actor?: string;
+  metadata?: string;
+  rationale?: string;
+  confidence?: number;
+  impactCategory?: string;
+  reversible?: boolean;
+  relatedFiles?: string;
+  relatedTickets?: string;
+}
+
+export interface EventSlice {
+  events: VibeEvent[];
+  eventsLoading: boolean;
+  loadEvents: (sessionId: string, kind?: string, limit?: number) => Promise<void>;
+  logEvent: (
+    sessionId: string,
+    kind: string,
+    actionType?: string,
+    detail?: string,
+    actor?: string,
+    metadata?: string,
+    rationale?: string,
+    confidence?: number,
+    impactCategory?: string,
+    reversible?: boolean,
+    relatedFiles?: string,
+    relatedTickets?: string,
+  ) => Promise<void>;
+  exportEvents: (sessionId: string, format: "json" | "csv") => Promise<void>;
+}
+
 // ── Decision, Audit & Script Types ──
 
 export interface Decision {
@@ -566,6 +606,7 @@ export type AppState = SessionSlice &
   AgentSlice &
   DecisionSlice &
   AuditSlice &
+  EventSlice &
   DiffSlice &
   PreviewSlice &
   WorkspaceSlice &

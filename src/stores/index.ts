@@ -9,6 +9,7 @@ import { createConsoleSlice } from "./slices/consoleSlice";
 import { createAgentSlice } from "./slices/agentSlice";
 import { createDecisionSlice } from "./slices/decisionSlice";
 import { createAuditSlice } from "./slices/auditSlice";
+import { createEventSlice } from "./slices/eventSlice";
 import { createDiffSlice } from "./slices/diffSlice";
 import { createPreviewSlice } from "./slices/previewSlice";
 import { createWorkspaceSlice } from "./slices/workspaceSlice";
@@ -34,6 +35,7 @@ export const useAppStore = create<AppState>()(
       ...createAgentSlice(...a),
       ...createDecisionSlice(...a),
       ...createAuditSlice(...a),
+      ...createEventSlice(...a),
       ...createDiffSlice(...a),
       ...createPreviewSlice(...a),
       ...createWorkspaceSlice(...a),
@@ -66,6 +68,8 @@ export type {
   Decision,
   AuditEntry,
   ScriptEntry,
+  VibeEvent,
+  EventSlice,
   FileTreeEntry,
   WorkspaceMeta,
   WorkspaceSlice,
