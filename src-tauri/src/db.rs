@@ -153,5 +153,37 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Migration v6 failed: {}", e))?;
     }
 
+    if version < 7 {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS events (
+                 id TEXT PRIMARY KEY,
+                 session_id TEXT NOT NULL,
+                 timestamp TEXT NOT NULL,
+                 kind TEXT NOT NULL CHECK(kind IN ('action', 'decision')),
+                 action_type TEXT,
+                 detail TEXT,
+                 actor TEXT CHECK(actor IN ('agent', 'user', 'system')),
+                 metadata TEXT,
+                 rationale TEXT,
+                 confidence REAL,
+                 impact_category TEXT,
+                 reversible INTEGER,
+                 related_files TEXT,
+                 related_tickets TEXT,
+                 FOREIGN KEY (session_id) REFERENCES sessions(id)
+             );
+             CREATE INDEX IF NOT EXISTS idx_events_session_id
+                 ON events(session_id);
+             CREATE INDEX IF NOT EXISTS idx_events_kind
+                 ON events(kind);
+             CREATE INDEX IF NOT EXISTS idx_events_timestamp
+                 ON events(timestamp);
+             PRAGMA user_version = 7;
+             COMMIT;",
+        )
+        .map_err(|e| format!("Migration v7 failed: {}", e))?;
+    }
+
     Ok(())
 }

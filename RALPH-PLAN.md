@@ -23,7 +23,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 ## Part 1: Merge Decision + Audit into Unified Events
 
-- [ ] **1a: Create unified events table in SQLite** — In `src-tauri/src/db.rs`, add a new migration that creates an `events` table: `id TEXT PRIMARY KEY, session_id TEXT, timestamp TEXT, kind TEXT NOT NULL ('action' or 'decision'), action_type TEXT, detail TEXT, actor TEXT ('agent'/'user'/'system'), metadata TEXT, rationale TEXT, confidence REAL, impact_category TEXT, reversible INTEGER, related_files TEXT, related_tickets TEXT`. Keep the old `audit_log` and `decisions` tables for now (migration compatibility). Add the migration to the version check.
+- [x] **1a: Create unified events table in SQLite** — In `src-tauri/src/db.rs`, add a new migration that creates an `events` table: `id TEXT PRIMARY KEY, session_id TEXT, timestamp TEXT, kind TEXT NOT NULL ('action' or 'decision'), action_type TEXT, detail TEXT, actor TEXT ('agent'/'user'/'system'), metadata TEXT, rationale TEXT, confidence REAL, impact_category TEXT, reversible INTEGER, related_files TEXT, related_tickets TEXT`. Keep the old `audit_log` and `decisions` tables for now (migration compatibility). Add the migration to the version check.
 
 - [ ] **1b: Create unified events Rust commands** — Create `src-tauri/src/commands/events_commands.rs` with: `log_event(session_id, kind, action_type, detail, actor, metadata, rationale?, confidence?, impact_category?, reversible?, related_files?, related_tickets?)` that inserts into the `events` table. Add `get_events(session_id, kind?, limit?)` that queries with optional kind filter. Add `export_events(session_id, format, output_path)`. Register all three in `mod.rs` and `lib.rs`.
 
