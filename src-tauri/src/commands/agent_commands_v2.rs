@@ -15,17 +15,20 @@ pub async fn ensure_sidecar(app: AppHandle) -> Result<String, String> {
     let state = app.state::<SidecarState>();
     let mut guard = state.lock().await;
 
-    if guard.as_ref().map(|s| s.ready).unwrap_or(false) {
-        return Ok("already_running".to_string());
+    if guard.is_some() {
+        let status = if guard.as_ref().unwrap().ready { "already_running" } else { "starting" };
+        return Ok(status.to_string());
     }
 
+    eprintln!("[sidecar] Spawning sidecar process...");
     let mut child = sidecar::spawn_sidecar()?;
+    eprintln!("[sidecar] Sidecar spawned (pid: {:?})", child.id());
 
-    // Read the first line — should be {"type":"ready"}
+    // Take stdout for the reader thread
     let stdout = sidecar::read_sidecar_stdout(&mut child)
         .ok_or("Failed to get sidecar stdout")?;
 
-    // Store the process (without stdout — we'll take it for the reader thread)
+    // Store the process
     *guard = Some(sidecar::SidecarProcess { child, ready: false });
     drop(guard);
 
@@ -34,15 +37,21 @@ pub async fn ensure_sidecar(app: AppHandle) -> Result<String, String> {
     let sidecar_state = app.state::<SidecarState>().inner().clone();
 
     tauri::async_runtime::spawn_blocking(move || {
+        eprintln!("[sidecar] Stdout reader thread started");
         for line in stdout.lines() {
             let line = match line {
                 Ok(l) => l,
-                Err(_) => break,
+                Err(e) => {
+                    eprintln!("[sidecar] Stdout read error: {}", e);
+                    break;
+                }
             };
 
             if line.trim().is_empty() {
                 continue;
             }
+
+            eprintln!("[sidecar] Received: {}", &line[..line.len().min(200)]);
 
             let event: SidecarEvent = match serde_json::from_str(&line) {
                 Ok(e) => e,
@@ -54,6 +63,11 @@ pub async fn ensure_sidecar(app: AppHandle) -> Result<String, String> {
 
             match &event {
                 SidecarEvent::Ready => {
+                    eprintln!("[sidecar] Received ready signal!");
+                    // Mark sidecar as ready
+                    if let Some(ref mut proc) = *tauri::async_runtime::block_on(sidecar_state.lock()) {
+                        proc.ready = true;
+                    }
                     let _ = app_handle.emit("agent-event", json!({
                         "type": "sidecar_ready"
                     }));

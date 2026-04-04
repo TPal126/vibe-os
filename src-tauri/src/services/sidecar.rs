@@ -83,11 +83,13 @@ pub fn spawn_sidecar() -> Result<Child, String> {
     // Look for the sidecar in the expected location
     let sidecar_path = find_sidecar_path()?;
 
+    eprintln!("[sidecar] Running: node {}", &sidecar_path);
+
     let child = Command::new("node")
         .arg(&sidecar_path)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::inherit()) // inherit stderr so we see sidecar errors in Tauri console
         .spawn()
         .map_err(|e| format!("Failed to spawn sidecar: {}", e))?;
 

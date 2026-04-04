@@ -1,5 +1,17 @@
 import { query, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
 import type { Query } from "@anthropic-ai/claude-agent-sdk";
+import { execSync } from "node:child_process";
+
+function findClaudeExecutable(): string | undefined {
+  try {
+    const result = execSync("where claude", { encoding: "utf-8" }).trim().split("\n")[0];
+    return result || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const CLAUDE_PATH = findClaudeExecutable();
 import type {
   StartCommand,
   SendCommand,
@@ -58,6 +70,7 @@ export class SessionManager {
       options: {
         abortController,
         cwd: cmd.options.cwd,
+        pathToClaudeCodeExecutable: CLAUDE_PATH,
         systemPrompt: cmd.systemPrompt
           ? { type: "preset" as const, preset: "claude_code" as const, append: cmd.systemPrompt }
           : { type: "preset" as const, preset: "claude_code" as const },

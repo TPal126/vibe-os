@@ -12,7 +12,6 @@ const opts = {
   outfile: "dist/main.mjs",
   sourcemap: true,
   banner: { js: "#!/usr/bin/env node" },
-  external: ["@anthropic-ai/claude-agent-sdk"],
 };
 
 if (watch) {

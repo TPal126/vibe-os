@@ -12,8 +12,8 @@ import { agentCommands } from "./lib/agentCommands";
 function App() {
   useKeyboardShortcuts();
   useWorkspaceWatcher();
-  useClaudeStream(); // existing — keep for CLI fallback
-  useAgentStream();  // new — for SDK sidecar
+  // useClaudeStream(); // disabled — SDK sidecar is primary now
+  useAgentStream();
   useNotifications();
 
   const loadActiveSession = useAppStore((s) => s.loadActiveSession);

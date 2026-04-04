@@ -24,14 +24,27 @@ export const OutcomeCard = React.memo(function OutcomeCard({
 
   if (!data) return null;
 
-  const fileCount = data.filesCreated.length + data.filesEdited.length;
+  const filesCreated = data.filesCreated ?? [];
+  const filesEdited = data.filesEdited ?? [];
+  const fileCount = filesCreated.length + filesEdited.length;
+  const testsRun = data.testsRun ?? 0;
   const testText =
-    data.testsRun > 0
+    testsRun > 0
       ? data.testsPassed
         ? ", all tests passing"
         : ", tests failed"
       : "";
-  const summary = `Changed ${fileCount} file${fileCount !== 1 ? "s" : ""}${testText}`;
+
+  // SDK result path — show cost/turns if no file data
+  const costUsd = data.costUsd ?? (data as Record<string, unknown>).cost_usd as number | null;
+  const durationMs = data.durationMs ?? (data as Record<string, unknown>).duration_ms as number | null;
+  const numTurns = (data as Record<string, unknown>).num_turns as number | undefined;
+
+  const summary = fileCount > 0
+    ? `Changed ${fileCount} file${fileCount !== 1 ? "s" : ""}${testText}`
+    : numTurns
+      ? `Completed in ${numTurns} turn${numTurns !== 1 ? "s" : ""}${costUsd ? ` · $${costUsd.toFixed(4)}` : ""}`
+      : "Done";
 
   return (
     <div className="bg-v-green/5 border border-v-green/20 rounded-lg px-3 py-2 my-1">
@@ -53,9 +66,9 @@ export const OutcomeCard = React.memo(function OutcomeCard({
 
       {expanded && (
         <div className="mt-1.5 ml-5 animate-fade-slide-in">
-          {data.filesCreated.length > 0 && (
+          {filesCreated.length > 0 && (
             <div className="space-y-0.5">
-              {data.filesCreated.map((filePath) => (
+              {filesCreated.map((filePath) => (
                 <div
                   key={filePath}
                   className="text-[10px] font-mono text-v-dim truncate"
@@ -66,9 +79,9 @@ export const OutcomeCard = React.memo(function OutcomeCard({
               ))}
             </div>
           )}
-          {data.filesEdited.length > 0 && (
+          {filesEdited.length > 0 && (
             <div className="space-y-0.5">
-              {data.filesEdited.map((filePath) => (
+              {filesEdited.map((filePath) => (
                 <div
                   key={filePath}
                   className="text-[10px] font-mono text-v-dim truncate"
@@ -80,16 +93,16 @@ export const OutcomeCard = React.memo(function OutcomeCard({
             </div>
           )}
 
-          {(data.costUsd != null || data.durationMs != null) && (
+          {(costUsd != null || durationMs != null) && (
             <div className="mt-1.5 text-[10px] text-v-dim">
-              {data.costUsd != null && (
-                <span>Cost: ${data.costUsd.toFixed(4)}</span>
+              {costUsd != null && (
+                <span>Cost: ${costUsd.toFixed(4)}</span>
               )}
-              {data.costUsd != null && data.durationMs != null && (
+              {costUsd != null && durationMs != null && (
                 <span className="mx-1">&middot;</span>
               )}
-              {data.durationMs != null && (
-                <span>Duration: {(data.durationMs / 1000).toFixed(1)}s</span>
+              {durationMs != null && (
+                <span>Duration: {(durationMs / 1000).toFixed(1)}s</span>
               )}
             </div>
           )}
