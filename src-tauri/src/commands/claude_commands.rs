@@ -87,6 +87,11 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
 
     cli_args.push(args.message.clone());
 
+    // Log the command for debugging
+    eprintln!("[vibe-os] Spawning claude CLI: claude {}", cli_args.join(" "));
+    eprintln!("[vibe-os] Working dir: {}", &args.working_dir);
+    eprintln!("[vibe-os] Session ID: {}", &args.claude_session_id);
+
     // Spawn the process using std::process::Command for reliable PATH resolution
     let mut child = Command::new("claude")
         .args(&cli_args)
@@ -94,7 +99,12 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format_spawn_error(&e))?;
+        .map_err(|e| {
+            eprintln!("[vibe-os] Failed to spawn claude: {}", e);
+            format_spawn_error(&e)
+        })?;
+
+    eprintln!("[vibe-os] Claude process spawned (pid: {:?})", child.id());
 
     // Take the stdout/stderr handles before storing the child
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
@@ -129,14 +139,23 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
     let working_dir_for_index = args.working_dir.clone();
 
     std::thread::spawn(move || {
+        eprintln!("[vibe-os] Stdout reader started for session {}", &claude_sid_stdout);
         let reader = BufReader::new(stdout);
         let mut line_buffer = String::new();
+        let mut line_count = 0u64;
 
         for line_result in reader.lines() {
             let line = match line_result {
                 Ok(l) => l,
-                Err(_) => break,
+                Err(e) => {
+                    eprintln!("[vibe-os] Stdout read error: {}", e);
+                    break;
+                }
             };
+            line_count += 1;
+            if line_count <= 5 {
+                eprintln!("[vibe-os] Stdout line {}: {}...", line_count, &line[..line.len().min(120)]);
+            }
 
             if line.trim().is_empty() {
                 continue;
@@ -149,6 +168,10 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
             let agent_event = event_stream::parse_event(&line_buffer)
                 .with_session_id(&claude_sid_stdout);
             line_buffer.clear();
+
+            if line_count <= 5 {
+                eprintln!("[vibe-os] Parsed event type: {:?}", agent_event.event_type);
+            }
 
             // Persist conversation_id from Result events and trigger auto-indexing
             if agent_event.event_type == AgentEventType::Result {

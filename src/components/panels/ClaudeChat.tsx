@@ -166,7 +166,8 @@ export function ClaudeChat() {
     try {
       // Use SDK sidecar if available
       const sidecarStatus = await agentCommands.getSidecarStatus().catch(() => "stopped" as const);
-      if (sidecarStatus === "ready" || sidecarStatus === "starting") {
+      console.log("[vibe-os] Sidecar status:", sidecarStatus);
+      if (sidecarStatus === "ready") {
         const workspace = useAppStore.getState().activeWorkspace;
         if (conversationId) {
           await agentCommands.sendAgentMessage(sessionId, text);
@@ -177,6 +178,7 @@ export function ClaudeChat() {
       }
 
       // Fall back to CLI
+      console.log("[vibe-os] Falling back to CLI path");
       const workingDir = ".";
 
       if (conversationId) {
