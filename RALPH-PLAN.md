@@ -33,7 +33,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **1e: Create frontend EventSlice** — Create `src/stores/slices/eventSlice.ts` with: `events: VibeEvent[]`, `eventsLoading: boolean`, `loadEvents(sessionId, kind?, limit?)`, `logEvent(...)`, `exportEvents(...)`. The `VibeEvent` type: `{ id, sessionId, timestamp, kind: 'action' | 'decision', actionType, detail, actor, metadata, rationale?, confidence?, impactCategory?, reversible?, relatedFiles?, relatedTickets? }`. Add to `types.ts` and compose into store in `index.ts`.
 
-- [ ] **1f: Add TypeScript command wrappers** — In `src/lib/tauri.ts`, add wrappers: `logEvent(...)`, `getEvents(sessionId, kind?, limit?)`, `exportEvents(sessionId, format, outputPath)`. These call the new Rust commands.
+- [x] **1f: Add TypeScript command wrappers** — In `src/lib/tauri.ts`, add wrappers: `logEvent(...)`, `getEvents(sessionId, kind?, limit?)`, `exportEvents(sessionId, format, outputPath)`. These call the new Rust commands.
 
 - [ ] **1g: Update vibe_record_decision MCP tool** — In `src-tauri/src/services/tool_handler.rs`, update the `vibe_record_decision` handler to call `events_commands::log_event()` with `kind = "decision"` instead of `populate_decision()`. Also call `populate_event()` for graph population.
 

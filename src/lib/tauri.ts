@@ -126,6 +126,25 @@ export interface AgentDefinitionRaw {
   color: string | null;
 }
 
+// ── Unified event type (snake_case from Rust) ──
+
+export interface VibeEventRaw {
+  id: string;
+  session_id: string;
+  timestamp: string;
+  kind: string;
+  action_type: string | null;
+  detail: string | null;
+  actor: string | null;
+  metadata: string | null;
+  rationale: string | null;
+  confidence: number | null;
+  impact_category: string | null;
+  reversible: boolean | null;
+  related_files: string | null;
+  related_tickets: string | null;
+}
+
 // ── Raw types for new commands (snake_case from Rust) ──
 
 export interface DecisionRaw {
@@ -327,6 +346,44 @@ export const commands = {
     invoke<AuditEntryRaw[]>("get_session_audit", { sessionId, limit }),
   exportAuditLog: (sessionId: string, format: string, outputPath: string) =>
     invoke<void>("export_audit_log", { sessionId, format, outputPath }),
+
+  // ── Unified event commands ──
+  logEvent: (
+    sessionId: string,
+    kind: string,
+    actionType?: string,
+    detail?: string,
+    actor?: string,
+    metadata?: string,
+    rationale?: string,
+    confidence?: number,
+    impactCategory?: string,
+    reversible?: boolean,
+    relatedFiles?: string,
+    relatedTickets?: string,
+  ) =>
+    invoke<VibeEventRaw>("log_event", {
+      sessionId,
+      kind,
+      actionType: actionType ?? null,
+      detail: detail ?? null,
+      actor: actor ?? null,
+      metadata: metadata ?? null,
+      rationale: rationale ?? null,
+      confidence: confidence ?? null,
+      impactCategory: impactCategory ?? null,
+      reversible: reversible ?? null,
+      relatedFiles: relatedFiles ?? null,
+      relatedTickets: relatedTickets ?? null,
+    }),
+  getEvents: (sessionId: string, kind?: string, limit?: number) =>
+    invoke<VibeEventRaw[]>("get_events", {
+      sessionId,
+      kind: kind ?? null,
+      limit: limit ?? null,
+    }),
+  exportEvents: (sessionId: string, format: string, outputPath: string) =>
+    invoke<void>("export_events", { sessionId, format, outputPath }),
 
   // ── Script commands ──
   getSessionScripts: (sessionId: string) =>
