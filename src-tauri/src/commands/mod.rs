@@ -6,6 +6,7 @@ pub mod claude_commands;
 pub mod context_commands;
 pub mod db_commands;
 pub mod decision_commands;
+pub mod events_commands;
 pub mod file_commands;
 pub mod graph_commands;
 pub mod script_commands;

@@ -15,6 +15,7 @@ use commands::claude_commands;
 use commands::context_commands;
 use commands::db_commands;
 use commands::decision_commands;
+use commands::events_commands;
 use commands::file_commands;
 use commands::graph_commands;
 use commands::script_commands;
@@ -180,6 +181,10 @@ pub fn run() {
             graph_commands::graph_sync_decisions,
             graph_commands::graph_sync_audit,
             graph_commands::graph_get_topology,
+            // Unified events commands
+            events_commands::log_event,
+            events_commands::get_events,
+            events_commands::export_events,
             // Agent v2 commands (SDK sidecar)
             agent_commands_v2::ensure_sidecar,
             agent_commands_v2::start_agent,
