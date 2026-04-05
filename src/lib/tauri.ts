@@ -126,6 +126,14 @@ export interface AgentDefinitionRaw {
   color: string | null;
 }
 
+// ── CLI detection types ──
+
+export interface CliInfo {
+  name: string;
+  version: string;
+  path: string;
+}
+
 // ── Unified event type (snake_case from Rust) ──
 
 export interface VibeEventRaw {
@@ -420,6 +428,10 @@ export const commands = {
     invoke<TokenBudgetRaw[]>("get_token_budgets"),
   deleteTokenBudget: (id: string) =>
     invoke<void>("delete_token_budget", { id }),
+
+  // ── CLI detection ──
+  detectAvailableClis: () =>
+    invoke<CliInfo[]>("detect_available_clis"),
 
   // ── Agent definition commands ──
   saveAgentDefinition: (

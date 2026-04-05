@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Minus, Square, X, ArrowLeft, Bell } from "lucide-react";
+import { Minus, Square, X, ArrowLeft, Bell, Terminal } from "lucide-react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { Badge } from "../shared/Badge";
 import { getAttentionItems } from "../../lib/attention";
 import { ThemeToggle } from "../shared/ThemeToggle";
+import { commands, type CliInfo } from "../../lib/tauri";
 
 const formatTokens = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
@@ -43,6 +44,12 @@ export function TitleBar() {
       openWorkspace: s.openWorkspace,
     })),
   );
+
+  // CLI detection — call once on mount and cache
+  const [detectedClis, setDetectedClis] = useState<CliInfo[]>([]);
+  useEffect(() => {
+    commands.detectAvailableClis().then(setDetectedClis).catch(() => {});
+  }, []);
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
   const activeRepoCount = repos.filter((r) => r.active).length;
@@ -122,6 +129,24 @@ export function TitleBar() {
           <span data-tauri-drag-region className="text-v-dim text-[10px]">
             ·
           </span>
+          {detectedClis.length > 0 && (
+            <>
+              <Badge color="text-v-green" bg="bg-v-green/10">
+                <span
+                  title={detectedClis
+                    .map((c) => `${c.name} (${c.version})`)
+                    .join(", ")}
+                  className="inline-flex items-center gap-1 cursor-default"
+                >
+                  <Terminal size={10} />
+                  {detectedClis.length} CLI{detectedClis.length !== 1 ? "s" : ""}
+                </span>
+              </Badge>
+              <span data-tauri-drag-region className="text-v-dim text-[10px]">
+                ·
+              </span>
+            </>
+          )}
           <Badge color="text-v-dim" bg="bg-v-surface">
             {totalTokens > 0
               ? `${formatCost(totalTokens)} (${formatTokens(totalTokens)} tokens)`
