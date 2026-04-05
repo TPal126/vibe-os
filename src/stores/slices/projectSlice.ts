@@ -57,7 +57,32 @@ export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
   openProject: (id) => {
     const project = get().projects.find((p) => p.id === id);
     if (!project) return;
-    set({ activeProjectId: id, currentView: "conversation" });
+
+    // Deactivate all repos, then reactivate this project's linked repos
+    const repos: any[] = (get() as any).repos ?? [];
+    const linkedSet = new Set(project.linkedRepoIds);
+
+    // Batch update: deactivate all, activate linked
+    const updatedRepos = repos.map((r) => ({
+      ...r,
+      active: linkedSet.has(r.id),
+    }));
+    set({ repos: updatedRepos, activeProjectId: id, currentView: "conversation" });
+
+    // Persist active states to DB + recompose prompt
+    (async () => {
+      try {
+        for (const repo of updatedRepos) {
+          await commands.setRepoActive(repo.id, repo.active);
+        }
+        const recompose = (get() as any).recompose;
+        if (typeof recompose === "function") {
+          await recompose();
+        }
+      } catch (err) {
+        console.error("Failed to update repos on project switch:", err);
+      }
+    })();
   },
 
   goHome: () => {

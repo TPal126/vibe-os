@@ -7,6 +7,7 @@ vi.mock("../../lib/tauri", () => ({
   commands: {
     saveSetting: vi.fn().mockResolvedValue(undefined),
     getSetting: vi.fn().mockResolvedValue(null),
+    setRepoActive: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -50,20 +51,20 @@ describe("projectSlice", () => {
     });
   });
 
-  describe("max 5 project enforcement", () => {
-    it("allows up to 5 projects", () => {
-      for (let i = 0; i < 5; i++) {
+  describe("max 20 project enforcement", () => {
+    it("allows up to 20 projects", () => {
+      for (let i = 0; i < 20; i++) {
         store.getState().addProject(`proj-${i}`, `/path/${i}`, `cs-${i}`);
       }
-      expect(store.getState().projects).toHaveLength(5);
+      expect(store.getState().projects).toHaveLength(20);
     });
 
-    it("rejects 6th project", () => {
-      for (let i = 0; i < 5; i++) {
+    it("rejects 21st project", () => {
+      for (let i = 0; i < 20; i++) {
         store.getState().addProject(`proj-${i}`, `/path/${i}`, `cs-${i}`);
       }
-      store.getState().addProject("proj-5", "/path/5", "cs-5");
-      expect(store.getState().projects).toHaveLength(5);
+      store.getState().addProject("proj-20", "/path/20", "cs-20");
+      expect(store.getState().projects).toHaveLength(20);
     });
   });
 
