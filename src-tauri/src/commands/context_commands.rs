@@ -171,17 +171,6 @@ pub struct RepoRow {
     pub created_at: String,
 }
 
-#[derive(Serialize, Clone)]
-pub struct RepoMeta {
-    pub id: String,
-    pub name: String,
-    pub org: String,
-    pub branch: String,
-    pub local_path: String,
-    pub file_count: usize,
-    pub language: String,
-}
-
 /// Clone a git repository and return metadata.
 /// If workspace_path is provided, clones to {workspace}/repos/{name}.
 /// Otherwise clones to ~/.vibe-os/repos/{name}.
@@ -189,10 +178,11 @@ pub struct RepoMeta {
 #[tauri::command]
 pub async fn clone_repo(
     app: tauri::AppHandle,
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
     git_url: String,
     workspace_path: Option<String>,
-) -> Result<RepoMeta, String> {
-    let (org, name) = parse_git_url(&git_url)?;
+) -> Result<RepoRow, String> {
+    let (_org, name) = parse_git_url(&git_url)?;
 
     let repos_dir = match workspace_path {
         Some(ref ws) => PathBuf::from(ws).join("repos"),
@@ -251,71 +241,40 @@ pub async fn clone_repo(
     let local_path_str = dest.to_string_lossy().to_string();
     let id = format!("repo:{}", local_path_str.replace(['/', '\\', ':'], "-"));
 
-    Ok(RepoMeta {
-        id,
-        name,
-        org,
-        branch,
-        local_path: local_path_str,
-        file_count,
-        language,
-    })
-}
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
-/// List all cloned repos.
-/// If workspace_path is provided, lists from {workspace}/repos/.
-/// Otherwise lists from ~/.vibe-os/repos/.
-#[tauri::command]
-pub fn get_repos(
-    workspace_path: Option<String>,
-) -> Result<Vec<RepoMeta>, String> {
-    let repos_dir = match workspace_path {
-        Some(ref ws) => PathBuf::from(ws).join("repos"),
-        None => {
-            let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
-            home.join(".vibe-os").join("repos")
-        }
+    let repo = RepoRow {
+        id: id.clone(),
+        name: name.clone(),
+        source: "github".to_string(),
+        path: local_path_str.clone(),
+        git_url: Some(git_url),
+        branch,
+        language,
+        file_count: file_count as i64,
+        active: false,
+        parent_id: None,
+        created_at: now,
     };
 
-    if !repos_dir.exists() {
-        return Ok(Vec::new());
+    // Persist to DB
+    {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT OR REPLACE INTO repos (id, name, source, path, git_url, branch, language, file_count, active, parent_id, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            rusqlite::params![
+                repo.id, repo.name, repo.source, repo.path, repo.git_url,
+                repo.branch, repo.language, repo.file_count, repo.active as i32,
+                repo.parent_id, repo.created_at,
+            ],
+        )
+        .map_err(|e| format!("Failed to save repo to DB: {}", e))?;
     }
 
-    let mut repos = Vec::new();
-    let entries = fs::read_dir(&repos_dir)
-        .map_err(|e| format!("Failed to read repos dir: {}", e))?;
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_dir() && path.join(".git").exists() {
-            let name = path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            let org = read_git_remote_org(&path).unwrap_or_else(|| "local".to_string());
-            let branch = read_git_branch(&path).unwrap_or_else(|| "main".to_string());
-            let file_count = count_files(&path);
-            let language = detect_language(&path);
-
-            // Use a deterministic ID based on local_path so IDs are stable across app restarts.
-            // This ensures session-linked active_repos IDs match after reload.
-            let local_path_str = path.to_string_lossy().to_string();
-            let id = format!("repo:{}", local_path_str.replace(['/', '\\', ':'], "-"));
-
-            repos.push(RepoMeta {
-                id,
-                name,
-                org,
-                branch,
-                local_path: local_path_str,
-                file_count,
-                language,
-            });
-        }
-    }
-    Ok(repos)
+    Ok(repo)
 }
+
 
 #[tauri::command]
 pub fn save_repo(
@@ -420,6 +379,209 @@ pub fn refresh_repo_branch(
     .map_err(|e| format!("Failed to update branch: {}", e))?;
 
     Ok(branch)
+}
+
+#[tauri::command]
+pub async fn list_remote_branches(
+    app: tauri::AppHandle,
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
+    repo_id: String,
+) -> Result<Vec<String>, String> {
+    let git_url = {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        let url: Option<String> = conn
+            .query_row("SELECT git_url FROM repos WHERE id = ?1", rusqlite::params![repo_id], |row| row.get(0))
+            .map_err(|e| format!("Repo not found: {}", e))?;
+        url.ok_or_else(|| "Repo has no git_url (local repo)".to_string())?
+    };
+
+    let output = app
+        .shell()
+        .command("git")
+        .args(["ls-remote", "--heads", &git_url])
+        .output()
+        .await
+        .map_err(|e| format!("git ls-remote failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git ls-remote failed: {}", stderr));
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let branches: Vec<String> = stdout
+        .lines()
+        .filter_map(|line| {
+            line.split("refs/heads/")
+                .nth(1)
+                .map(|b| b.trim().to_string())
+        })
+        .collect();
+
+    Ok(branches)
+}
+
+#[tauri::command]
+pub async fn add_branch_worktree(
+    app: tauri::AppHandle,
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
+    repo_id: String,
+    branch: String,
+) -> Result<RepoRow, String> {
+    let parent = {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        let mut stmt = conn
+            .prepare("SELECT id, name, source, path, git_url, branch, language, file_count, active, parent_id, created_at FROM repos WHERE id = ?1")
+            .map_err(|e| e.to_string())?;
+        stmt.query_row(rusqlite::params![repo_id], |row| {
+            Ok(RepoRow {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                source: row.get(2)?,
+                path: row.get(3)?,
+                git_url: row.get(4)?,
+                branch: row.get(5)?,
+                language: row.get(6)?,
+                file_count: row.get(7)?,
+                active: row.get::<_, i32>(8)? != 0,
+                parent_id: row.get(9)?,
+                created_at: row.get(10)?,
+            })
+        })
+        .map_err(|e| format!("Parent repo not found: {}", e))?
+    };
+
+    if parent.parent_id.is_some() {
+        return Err("Cannot create worktree from a branch worktree — use the parent repo".to_string());
+    }
+
+    let parent_path = PathBuf::from(&parent.path);
+    let worktree_name = format!("{}-{}", parent.name, branch.replace('/', "-"));
+    let worktree_path = parent_path
+        .parent()
+        .unwrap_or(&parent_path)
+        .join(&worktree_name);
+
+    if worktree_path.exists() {
+        return Err(format!("Worktree path already exists: {}", worktree_path.display()));
+    }
+
+    // Fetch the branch first
+    let fetch_output = app
+        .shell()
+        .command("git")
+        .args(["-C", &parent.path, "fetch", "origin", &branch])
+        .output()
+        .await
+        .map_err(|e| format!("git fetch failed: {}", e))?;
+
+    if !fetch_output.status.success() {
+        let stderr = String::from_utf8_lossy(&fetch_output.stderr);
+        return Err(format!("git fetch failed: {}", stderr));
+    }
+
+    // Create the worktree
+    let output = app
+        .shell()
+        .command("git")
+        .args([
+            "-C",
+            &parent.path,
+            "worktree",
+            "add",
+            &worktree_path.to_string_lossy(),
+            &branch,
+        ])
+        .output()
+        .await
+        .map_err(|e| format!("git worktree add failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git worktree add failed: {}", stderr));
+    }
+
+    let wt_path_str = worktree_path.to_string_lossy().to_string();
+    let child_id = format!("repo:{}", wt_path_str.replace(['/', '\\', ':'], "-"));
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let file_count = count_files(&worktree_path) as i64;
+    let language = detect_language(&worktree_path);
+
+    let child = RepoRow {
+        id: child_id,
+        name: parent.name.clone(),
+        source: parent.source.clone(),
+        path: wt_path_str,
+        git_url: parent.git_url.clone(),
+        branch,
+        language,
+        file_count,
+        active: false,
+        parent_id: Some(parent.id),
+        created_at: now,
+    };
+
+    // Save to DB
+    {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        conn.execute(
+            "INSERT OR REPLACE INTO repos (id, name, source, path, git_url, branch, language, file_count, active, parent_id, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            rusqlite::params![
+                child.id, child.name, child.source, child.path, child.git_url,
+                child.branch, child.language, child.file_count, child.active as i32,
+                child.parent_id, child.created_at,
+            ],
+        )
+        .map_err(|e| format!("Failed to save worktree repo: {}", e))?;
+    }
+
+    Ok(child)
+}
+
+#[tauri::command]
+pub async fn remove_branch_worktree(
+    app: tauri::AppHandle,
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
+    repo_id: String,
+) -> Result<(), String> {
+    let (path, parent_path) = {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        let path: String = conn
+            .query_row("SELECT path FROM repos WHERE id = ?1", rusqlite::params![repo_id], |row| row.get(0))
+            .map_err(|e| format!("Repo not found: {}", e))?;
+        let parent_id: Option<String> = conn
+            .query_row("SELECT parent_id FROM repos WHERE id = ?1", rusqlite::params![repo_id], |row| row.get(0))
+            .map_err(|e| format!("Repo not found: {}", e))?;
+        let parent_id = parent_id.ok_or_else(|| "Not a branch worktree (no parent_id)".to_string())?;
+        let parent_path: String = conn
+            .query_row("SELECT path FROM repos WHERE id = ?1", rusqlite::params![parent_id], |row| row.get(0))
+            .map_err(|e| format!("Parent repo not found: {}", e))?;
+        (path, parent_path)
+    };
+
+    // Remove the git worktree (--force in case of uncommitted changes)
+    let output = app
+        .shell()
+        .command("git")
+        .args(["-C", &parent_path, "worktree", "remove", &path, "--force"])
+        .output()
+        .await
+        .map_err(|e| format!("git worktree remove failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        eprintln!("[vibe-os] Warning: git worktree remove failed: {}", stderr);
+    }
+
+    // Delete from DB
+    {
+        let conn = db.lock().map_err(|e| e.to_string())?;
+        conn.execute("DELETE FROM repos WHERE id = ?1", rusqlite::params![repo_id])
+            .map_err(|e| format!("Failed to delete repo: {}", e))?;
+    }
+
+    Ok(())
 }
 
 /// Walk a repo directory and return a summary for prompt injection.
@@ -670,27 +832,6 @@ fn detect_language(dir: &PathBuf) -> String {
     } else {
         "Rust".to_string()
     }
-}
-
-fn read_git_remote_org(repo_path: &PathBuf) -> Option<String> {
-    let config_path = repo_path.join(".git").join("config");
-    let content = fs::read_to_string(config_path).ok()?;
-    // Parse remote "origin" URL from git config
-    let mut in_origin = false;
-    for line in content.lines() {
-        if line.trim() == "[remote \"origin\"]" {
-            in_origin = true;
-            continue;
-        }
-        if in_origin && line.trim().starts_with("url = ") {
-            let url = line.trim().strip_prefix("url = ")?;
-            return parse_git_url(url).ok().map(|(org, _)| org);
-        }
-        if line.starts_with('[') {
-            in_origin = false;
-        }
-    }
-    None
 }
 
 // ── Skill Sync to Claude Code ──
