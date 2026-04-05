@@ -10,7 +10,7 @@ import { RepoGithubModal } from "../home/RepoGithubModal";
  * to the controlled Set-based state that ResourceCatalog expects.
  */
 export function ResourcesTab() {
-  const { repos, skills, agentDefinitions, toggleRepo, toggleSkill, toggleAgentDefinition } =
+  const { repos, skills, agentDefinitions, toggleRepo, toggleSkill, toggleAgentDefinition, addRepoLocal, addRepoGithub } =
     useAppStore(
       useShallow((s) => ({
         repos: s.repos,
@@ -19,6 +19,8 @@ export function ResourcesTab() {
         toggleRepo: s.toggleRepo,
         toggleSkill: s.toggleSkill,
         toggleAgentDefinition: s.toggleAgentDefinition,
+        addRepoLocal: s.addRepoLocal,
+        addRepoGithub: s.addRepoGithub,
       })),
     );
 
@@ -55,9 +57,8 @@ export function ResourcesTab() {
 
       {showBrowseModal && (
         <RepoBrowseModal
-          onAdd={(newRepos) => {
-            useAppStore.getState().addGlobalRepos(newRepos);
-            newRepos.forEach((r) => toggleRepo(r.id));
+          onAdd={(paths) => {
+            paths.forEach((p) => addRepoLocal(p));
           }}
           onClose={() => setShowBrowseModal(false)}
         />
@@ -65,9 +66,8 @@ export function ResourcesTab() {
 
       {showGithubModal && (
         <RepoGithubModal
-          onAdd={(newRepos) => {
-            useAppStore.getState().addGlobalRepos(newRepos);
-            newRepos.forEach((r) => toggleRepo(r.id));
+          onAdd={(gitUrls) => {
+            gitUrls.forEach((url) => addRepoGithub(url));
           }}
           onClose={() => setShowGithubModal(false)}
         />

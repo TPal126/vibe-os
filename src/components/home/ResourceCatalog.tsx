@@ -1,9 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { ResourceSection } from "./ResourceSection";
 import { RepoDropZone } from "./RepoDropZone";
-import type { GlobalRepo, Skill, AgentDefinition } from "../../stores/types";
+import { RefreshCw, GitBranch, X } from "lucide-react";
+import { commands } from "../../lib/tauri";
+import type { Repo, Skill, AgentDefinition } from "../../stores/types";
 
 interface ResourceCatalogProps {
   checkedRepoIds: Set<string>;
@@ -27,25 +29,31 @@ export function ResourceCatalog({
   onAddReposGithub,
 }: ResourceCatalogProps) {
   const {
-    globalRepos,
+    repos,
     skills,
     agentDefinitions,
-    loadGlobalRepos,
+    loadRepos,
     loadAgentDefinitions,
+    addRepoLocal,
+    addBranch,
+    removeRepo,
   } = useAppStore(
     useShallow((s) => ({
-      globalRepos: s.globalRepos,
+      repos: s.repos,
       skills: s.skills,
       agentDefinitions: s.agentDefinitions,
-      loadGlobalRepos: s.loadGlobalRepos,
+      loadRepos: s.loadRepos,
       loadAgentDefinitions: s.loadAgentDefinitions,
+      addRepoLocal: s.addRepoLocal,
+      addBranch: s.addBranch,
+      removeRepo: s.removeRepo,
     })),
   );
 
   useEffect(() => {
-    loadGlobalRepos();
+    loadRepos();
     loadAgentDefinitions();
-  }, [loadGlobalRepos, loadAgentDefinitions]);
+  }, [loadRepos, loadAgentDefinitions]);
 
   const activeSkillTokens = skills
     .filter((s) => checkedSkillIds.has(s.id))
@@ -53,6 +61,10 @@ export function ResourceCatalog({
 
   const formatTokens = (n: number) =>
     n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
+
+  // Group: parents first, children indented under parent
+  const parentRepos = repos.filter((r) => !r.parentId);
+  const childrenOf = (parentId: string) => repos.filter((r) => r.parentId === parentId);
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-4 py-3">
@@ -66,7 +78,7 @@ export function ResourceCatalog({
       {/* Repos */}
       <ResourceSection
         title="Repos"
-        count={globalRepos.length}
+        count={repos.length}
         actions={
           <div className="flex gap-1">
             <button
@@ -85,12 +97,11 @@ export function ResourceCatalog({
         }
       >
         <RepoDropZone
-          onDrop={(repos) => {
-            useAppStore.getState().addGlobalRepos(repos);
-            repos.forEach((r) => onToggleRepo(r.id));
+          onDrop={(paths) => {
+            paths.forEach((p) => addRepoLocal(p));
           }}
         />
-        {globalRepos.length === 0 ? (
+        {repos.length === 0 ? (
           <div className="text-center">
             <p className="text-[11px] text-v-dim leading-relaxed">
               No repos yet — browse, paste a GitHub URL, or drop folders above
@@ -98,13 +109,25 @@ export function ResourceCatalog({
           </div>
         ) : (
           <div className="flex flex-col gap-1">
-            {globalRepos.map((repo) => (
-              <RepoRow
-                key={repo.id}
-                repo={repo}
-                checked={checkedRepoIds.has(repo.id)}
-                onToggle={() => onToggleRepo(repo.id)}
-              />
+            {parentRepos.map((repo) => (
+              <div key={repo.id}>
+                <RepoRow
+                  repo={repo}
+                  checked={checkedRepoIds.has(repo.id)}
+                  onToggle={() => onToggleRepo(repo.id)}
+                  onRemove={() => removeRepo(repo.id)}
+                  onAddBranch={(branch) => addBranch(repo.id, branch)}
+                />
+                {childrenOf(repo.id).map((child) => (
+                  <BranchRow
+                    key={child.id}
+                    repo={child}
+                    checked={checkedRepoIds.has(child.id)}
+                    onToggle={() => onToggleRepo(child.id)}
+                    onRemove={() => removeRepo(child.id)}
+                  />
+                ))}
+              </div>
             ))}
           </div>
         )}
@@ -165,27 +188,181 @@ export function ResourceCatalog({
   );
 }
 
-function RepoRow({ repo, checked, onToggle }: { repo: GlobalRepo; checked: boolean; onToggle: () => void }) {
+function RepoRow({
+  repo,
+  checked,
+  onToggle,
+  onRemove,
+  onAddBranch,
+}: {
+  repo: Repo;
+  checked: boolean;
+  onToggle: () => void;
+  onRemove: () => void;
+  onAddBranch: (branch: string) => void;
+}) {
+  const [pathMissing, setPathMissing] = useState<boolean | null>(null);
+  const [showBranchInput, setShowBranchInput] = useState(false);
+  const [branchInput, setBranchInput] = useState("");
+  const { refreshRepoBranch } = useAppStore(
+    useShallow((s) => ({ refreshRepoBranch: s.refreshRepoBranch })),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (repo.localPath) {
+      commands
+        .readFile(repo.localPath + "/.git/HEAD")
+        .then(() => { if (!cancelled) setPathMissing(false); })
+        .catch(() => { if (!cancelled) setPathMissing(true); });
+    }
+    return () => { cancelled = true; };
+  }, [repo.localPath]);
+
+  const isMissing = pathMissing === true;
+
   return (
-    <label
-      className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-        checked ? "bg-v-accent/8 border border-v-accent/20" : "bg-v-surface border border-v-border"
+    <div className="flex flex-col">
+      <div
+        className={`flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors ${
+          isMissing
+            ? "bg-v-surface border border-v-border opacity-60"
+            : checked
+            ? "bg-v-accent/8 border border-v-accent/20"
+            : "bg-v-surface border border-v-border"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          disabled={isMissing}
+          className="accent-v-accent"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="text-xs text-v-textHi truncate">{repo.name}</div>
+          <div className="text-[10px] text-v-dim truncate">
+            {repo.source === "local" ? "Local" : "GitHub"} · {repo.branch}
+            {repo.language && ` · ${repo.language}`}
+          </div>
+        </div>
+        {isMissing && (
+          <span className="text-[9px] bg-v-orangeDim text-v-orange px-1.5 py-0.5 rounded">
+            missing
+          </span>
+        )}
+        {isMissing ? (
+          <button
+            onClick={onRemove}
+            className="text-v-dim hover:text-v-red transition-colors"
+            title="Remove missing repo"
+          >
+            <X size={12} />
+          </button>
+        ) : (
+          <>
+            {repo.source === "local" && (
+              <button
+                onClick={() => refreshRepoBranch(repo.id)}
+                className="text-v-dim hover:text-v-text transition-colors"
+                title="Refresh branch"
+              >
+                <RefreshCw size={11} />
+              </button>
+            )}
+            {repo.source === "github" && (
+              <button
+                onClick={() => setShowBranchInput((v) => !v)}
+                className="text-[9px] text-v-dim border border-v-border px-1 py-0.5 rounded hover:border-v-borderHi transition-colors"
+                title="Add branch worktree"
+              >
+                + Branch
+              </button>
+            )}
+            <button
+              onClick={onRemove}
+              className="text-v-dim hover:text-v-red transition-colors"
+              title="Remove repo"
+            >
+              <X size={12} />
+            </button>
+          </>
+        )}
+      </div>
+      {showBranchInput && (
+        <div className="flex gap-1 mt-1 pl-6">
+          <input
+            type="text"
+            value={branchInput}
+            onChange={(e) => setBranchInput(e.target.value)}
+            placeholder="branch name"
+            className="flex-1 bg-v-surface border border-v-border rounded px-2 py-1 text-[10px] text-v-textHi placeholder:text-v-dim outline-none focus:border-v-accent"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && branchInput.trim()) {
+                onAddBranch(branchInput.trim());
+                setBranchInput("");
+                setShowBranchInput(false);
+              } else if (e.key === "Escape") {
+                setShowBranchInput(false);
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              if (branchInput.trim()) {
+                onAddBranch(branchInput.trim());
+                setBranchInput("");
+                setShowBranchInput(false);
+              }
+            }}
+            className="text-[9px] px-2 py-1 bg-v-accent text-white rounded hover:bg-v-accentHi transition-colors"
+          >
+            Add
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BranchRow({
+  repo,
+  checked,
+  onToggle,
+  onRemove,
+}: {
+  repo: Repo;
+  checked: boolean;
+  onToggle: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-2 px-2 py-1.5 rounded-md ml-4 mt-0.5 transition-colors ${
+        checked
+          ? "bg-v-accent/8 border border-v-accent/20"
+          : "bg-v-surface border border-v-border"
       }`}
     >
+      <GitBranch size={10} className="text-v-dim shrink-0" />
       <input
         type="checkbox"
         checked={checked}
         onChange={onToggle}
         className="accent-v-accent"
       />
-      <div className="min-w-0">
-        <div className="text-xs text-v-textHi truncate">{repo.name}</div>
-        <div className="text-[10px] text-v-dim truncate">
-          {repo.source === "local" ? "Local" : "GitHub"} · {repo.branch}
-          {repo.language && ` · ${repo.language}`}
-        </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs text-v-textHi truncate">{repo.branch}</div>
+        <div className="text-[10px] text-v-dim truncate">{repo.name}</div>
       </div>
-    </label>
+      <button
+        onClick={onRemove}
+        className="text-v-dim hover:text-v-red transition-colors"
+        title="Remove branch worktree"
+      >
+        <X size={12} />
+      </button>
+    </div>
   );
 }
 

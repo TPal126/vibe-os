@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { showOpenDirectoriesDialog, commands } from "../../lib/tauri";
-import type { GlobalRepo } from "../../stores/types";
 
 interface RepoBrowseModalProps {
-  onAdd: (repos: GlobalRepo[]) => void;
+  onAdd: (paths: string[]) => void;
   onClose: () => void;
 }
 
@@ -36,16 +35,7 @@ export function RepoBrowseModal({ onAdd, onClose }: RepoBrowseModalProps) {
   };
 
   const handleConfirm = () => {
-    const repos: GlobalRepo[] = selected.map((s) => ({
-      id: s.path.replace(/[\\/]/g, "_").toLowerCase(),
-      name: s.name,
-      source: "local" as const,
-      path: s.path,
-      gitUrl: null,
-      branch: "main",
-      language: "",
-    }));
-    onAdd(repos);
+    onAdd(selected.map((s) => s.path));
     onClose();
   };
 

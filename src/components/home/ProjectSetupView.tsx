@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { ResourceCatalog } from "./ResourceCatalog";
@@ -7,18 +7,26 @@ import { RepoGithubModal } from "./RepoGithubModal";
 
 export function ProjectSetupView() {
   const {
+    repos,
     goHome,
     addProject,
     createWorkspace,
     createClaudeSessionLocal,
     setActiveClaudeSessionId,
+    toggleRepo,
+    addRepoLocal,
+    addRepoGithub,
   } = useAppStore(
     useShallow((s) => ({
+      repos: s.repos,
       goHome: s.goHome,
       addProject: s.addProject,
       createWorkspace: s.createWorkspace,
       createClaudeSessionLocal: s.createClaudeSessionLocal,
       setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      toggleRepo: s.toggleRepo,
+      addRepoLocal: s.addRepoLocal,
+      addRepoGithub: s.addRepoGithub,
     })),
   );
 
@@ -27,12 +35,16 @@ export function ProjectSetupView() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Checked resource state
-  const [checkedRepoIds, setCheckedRepoIds] = useState<Set<string>>(new Set());
+  // Derive checked repo IDs from store's active flags
+  const checkedRepoIds = useMemo(
+    () => new Set(repos.filter((r) => r.active).map((r) => r.id)),
+    [repos],
+  );
+
   const [checkedSkillIds, setCheckedSkillIds] = useState<Set<string>>(new Set());
   const [checkedAgentNames, setCheckedAgentNames] = useState<Set<string>>(new Set());
 
-  // Modal state for repo adding (wired in Task 8)
+  // Modal state for repo adding
   const [showBrowseModal, setShowBrowseModal] = useState(false);
   const [showGithubModal, setShowGithubModal] = useState(false);
 
@@ -80,12 +92,14 @@ export function ProjectSetupView() {
       const newProject = projects[projects.length - 1];
       if (newProject) {
         const { saveProjects } = useAppStore.getState();
+        const currentRepos = useAppStore.getState().repos;
+        const linkedRepoIds = currentRepos.filter((r) => r.active).map((r) => r.id);
         const updatedProjects = projects.map((p) =>
           p.id === newProject.id
             ? {
                 ...p,
                 summary: description,
-                linkedRepoIds: Array.from(checkedRepoIds),
+                linkedRepoIds,
                 linkedSkillIds: Array.from(checkedSkillIds),
                 linkedAgentNames: Array.from(checkedAgentNames),
               }
@@ -168,9 +182,9 @@ export function ProjectSetupView() {
           checkedRepoIds={checkedRepoIds}
           checkedSkillIds={checkedSkillIds}
           checkedAgentNames={checkedAgentNames}
-          onToggleRepo={(id) => setCheckedRepoIds((prev) => toggleSet(prev, id))}
+          onToggleRepo={(id) => toggleRepo(id)}
           onToggleSkill={(id) => setCheckedSkillIds((prev) => toggleSet(prev, id))}
-          onToggleAgent={(name) => setCheckedAgentNames((prev) => toggleSet(prev, name))}
+          onToggleAgent={(agentName) => setCheckedAgentNames((prev) => toggleSet(prev, agentName))}
           onAddReposLocal={() => setShowBrowseModal(true)}
           onAddReposGithub={() => setShowGithubModal(true)}
         />
@@ -178,18 +192,16 @@ export function ProjectSetupView() {
 
       {showBrowseModal && (
         <RepoBrowseModal
-          onAdd={(repos) => {
-            useAppStore.getState().addGlobalRepos(repos);
-            repos.forEach((r) => setCheckedRepoIds((prev) => toggleSet(prev, r.id)));
+          onAdd={(paths) => {
+            paths.forEach((p) => addRepoLocal(p));
           }}
           onClose={() => setShowBrowseModal(false)}
         />
       )}
       {showGithubModal && (
         <RepoGithubModal
-          onAdd={(repos) => {
-            useAppStore.getState().addGlobalRepos(repos);
-            repos.forEach((r) => setCheckedRepoIds((prev) => toggleSet(prev, r.id)));
+          onAdd={(gitUrls) => {
+            gitUrls.forEach((url) => addRepoGithub(url));
           }}
           onClose={() => setShowGithubModal(false)}
         />

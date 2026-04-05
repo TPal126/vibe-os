@@ -1,8 +1,7 @@
 import { useState, useCallback } from "react";
-import type { GlobalRepo } from "../../stores/types";
 
 interface RepoDropZoneProps {
-  onDrop: (repos: GlobalRepo[]) => void;
+  onDrop: (paths: string[]) => void;
 }
 
 export function RepoDropZone({ onDrop }: RepoDropZoneProps) {
@@ -23,27 +22,17 @@ export function RepoDropZone({ onDrop }: RepoDropZoneProps) {
       setDragOver(false);
 
       const items = e.dataTransfer.files;
-      const repos: GlobalRepo[] = [];
+      const paths: string[] = [];
 
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
         const path = (item as File & { path?: string }).path;
         if (!path) continue;
-
-        const name = path.split(/[\\/]/).pop() || path;
-        repos.push({
-          id: path.replace(/[\\/]/g, "_").toLowerCase(),
-          name,
-          source: "local",
-          path,
-          gitUrl: null,
-          branch: "main",
-          language: "",
-        });
+        paths.push(path);
       }
 
-      if (repos.length > 0) {
-        onDrop(repos);
+      if (paths.length > 0) {
+        onDrop(paths);
       }
     },
     [onDrop],

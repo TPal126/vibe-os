@@ -1,10 +1,8 @@
 import { useState, useMemo } from "react";
 import { X } from "lucide-react";
-import { commands } from "../../lib/tauri";
-import type { GlobalRepo } from "../../stores/types";
 
 interface RepoGithubModalProps {
-  onAdd: (repos: GlobalRepo[]) => void;
+  onAdd: (gitUrls: string[]) => void;
   onClose: () => void;
 }
 
@@ -16,7 +14,6 @@ function parseGithubUrl(url: string): { org: string; name: string } | null {
 
 export function RepoGithubModal({ onAdd, onClose }: RepoGithubModalProps) {
   const [text, setText] = useState("");
-  const [cloning, setCloning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const parsed = useMemo(() => {
@@ -29,37 +26,11 @@ export function RepoGithubModal({ onAdd, onClose }: RepoGithubModalProps) {
 
   const validCount = parsed.filter((p) => p.parsed).length;
 
-  const handleConfirm = async () => {
-    setCloning(true);
+  const handleConfirm = () => {
     setError(null);
-
-    const repos: GlobalRepo[] = [];
-
-    for (const { url, parsed: p } of parsed) {
-      if (!p) continue;
-      try {
-        const meta = await commands.cloneRepo(url);
-        repos.push({
-          id: meta.local_path.replace(/[\\/]/g, "_").toLowerCase(),
-          name: meta.name,
-          source: "github",
-          path: meta.local_path,
-          gitUrl: url,
-          branch: meta.branch,
-          language: meta.language,
-        });
-      } catch (err) {
-        setError(`Failed to clone ${p.org}/${p.name}: ${err}`);
-      }
-    }
-
-    if (repos.length > 0) {
-      onAdd(repos);
-    }
-    if (!error) {
-      onClose();
-    }
-    setCloning(false);
+    const validUrls = parsed.filter((p) => p.parsed).map((p) => p.url);
+    onAdd(validUrls);
+    onClose();
   };
 
   return (
@@ -77,14 +48,13 @@ export function RepoGithubModal({ onAdd, onClose }: RepoGithubModalProps) {
           value={text}
           onChange={(e) => { setText(e.target.value); setError(null); }}
           placeholder={"https://github.com/org/repo\nhttps://github.com/org/another-repo"}
-          disabled={cloning}
           rows={4}
-          className="w-full bg-v-surface border border-v-border rounded-lg px-3 py-2.5 text-xs text-v-textHi font-mono placeholder:text-v-dim outline-none focus:border-v-accent transition-colors resize-none mb-3 disabled:opacity-50"
+          className="w-full bg-v-surface border border-v-border rounded-lg px-3 py-2.5 text-xs text-v-textHi font-mono placeholder:text-v-dim outline-none focus:border-v-accent transition-colors resize-none mb-3"
         />
 
         {parsed.length > 0 && (
           <div className="bg-v-surface border border-v-border rounded-lg p-3 mb-3 max-h-[150px] overflow-y-auto">
-            <div className="text-[10px] uppercase text-v-dim mb-2 tracking-wider">Will clone</div>
+            <div className="text-[10px] uppercase text-v-dim mb-2 tracking-wider">Will add</div>
             <div className="flex flex-col gap-1.5">
               {parsed.map(({ url, parsed: p }, i) => (
                 <div key={i} className="flex items-center justify-between px-2.5 py-1.5 bg-v-surfaceHi rounded-md border border-v-borderHi">
@@ -108,10 +78,9 @@ export function RepoGithubModal({ onAdd, onClose }: RepoGithubModalProps) {
           {validCount > 0 && (
             <button
               onClick={handleConfirm}
-              disabled={cloning}
-              className="px-4 py-2 bg-v-accent text-white rounded-lg text-xs font-medium hover:bg-v-accentHi transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-v-accent text-white rounded-lg text-xs font-medium hover:bg-v-accentHi transition-colors"
             >
-              {cloning ? "Cloning..." : `Clone & Add ${validCount} repo${validCount !== 1 ? "s" : ""}`}
+              {`Add ${validCount} repo${validCount !== 1 ? "s" : ""}`}
             </button>
           )}
         </div>
