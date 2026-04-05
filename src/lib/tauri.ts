@@ -3,14 +3,18 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 
 // ── Types matching Rust structs ──
 
-export interface RepoMeta {
+export interface RepoRow {
   id: string;
   name: string;
-  org: string;
+  source: string;
+  path: string;
+  git_url: string | null;
   branch: string;
-  local_path: string;
-  file_count: number;
   language: string;
+  file_count: number;
+  active: boolean;
+  parent_id: string | null;
+  created_at: string;
 }
 
 export interface SkillMeta {
@@ -236,11 +240,25 @@ export const commands = {
   deleteSetting: (key: string) => invoke<void>("delete_setting", { key }),
 
   // ── Repo management ──
-  cloneRepo: (gitUrl: string, workspacePath?: string) =>
-    invoke<RepoMeta>("clone_repo", { gitUrl, workspacePath: workspacePath ?? null }),
-  getRepos: (workspacePath?: string) =>
-    invoke<RepoMeta[]>("get_repos", { workspacePath: workspacePath ?? null }),
+  saveRepo: (repo: RepoRow) =>
+    invoke<RepoRow>("save_repo", { repo }),
+  getAllRepos: () =>
+    invoke<RepoRow[]>("get_all_repos"),
+  deleteRepo: (id: string) =>
+    invoke<void>("delete_repo", { id }),
+  setRepoActive: (id: string, active: boolean) =>
+    invoke<void>("set_repo_active", { id, active }),
+  refreshRepoBranch: (id: string) =>
+    invoke<string>("refresh_repo_branch", { id }),
+  cloneRepo: (gitUrl: string) =>
+    invoke<RepoRow>("clone_repo", { gitUrl, workspacePath: null }),
   indexRepo: (repoPath: string) => invoke<string>("index_repo", { repoPath }),
+  listRemoteBranches: (repoId: string) =>
+    invoke<string[]>("list_remote_branches", { repoId }),
+  addBranchWorktree: (repoId: string, branch: string) =>
+    invoke<RepoRow>("add_branch_worktree", { repoId, branch }),
+  removeBranchWorktree: (repoId: string) =>
+    invoke<void>("remove_branch_worktree", { repoId }),
 
   // ── Context commands ──
   discoverSkills: (activeRepoPaths: string[], workspacePath?: string) =>

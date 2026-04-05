@@ -6,12 +6,15 @@ import type { SessionData } from "../lib/tauri";
 export interface Repo {
   id: string;
   name: string;
-  org: string;
+  source: "local" | "github";
   branch: string;
   active: boolean;
   fileCount: number;
   language: string;
   localPath: string;
+  gitUrl: string | null;
+  parentId: string | null;
+  createdAt: string;
   indexSummary: string | null;
 }
 
@@ -37,9 +40,15 @@ export interface SessionSlice {
 export interface RepoSlice {
   repos: Repo[];
   repoLoading: boolean;
-  toggleRepo: (id: string) => Promise<void>;
-  addRepo: (gitUrl: string) => Promise<void>;
   loadRepos: () => Promise<void>;
+  addRepoLocal: (path: string) => Promise<void>;
+  addRepoGithub: (gitUrl: string) => Promise<void>;
+  removeRepo: (id: string) => Promise<void>;
+  toggleRepo: (id: string) => Promise<void>;
+  listRemoteBranches: (repoId: string) => Promise<string[]>;
+  addBranch: (repoId: string, branch: string) => Promise<void>;
+  removeBranch: (repoId: string) => Promise<void>;
+  refreshRepoBranch: (repoId: string) => Promise<void>;
 }
 
 export interface SkillSlice {
@@ -567,26 +576,6 @@ export interface AgentDefinitionSlice {
   toggleAgentDefinition: (name: string) => void;
 }
 
-// ── Global Repo Types ──
-
-export interface GlobalRepo {
-  id: string;
-  name: string;
-  source: "local" | "github";
-  path: string;
-  gitUrl: string | null;
-  branch: string;
-  language: string;
-}
-
-export interface GlobalRepoSlice {
-  globalRepos: GlobalRepo[];
-  globalReposLoading: boolean;
-  loadGlobalRepos: () => Promise<void>;
-  addGlobalRepos: (repos: GlobalRepo[]) => Promise<void>;
-  removeGlobalRepo: (id: string) => Promise<void>;
-}
-
 // ── Theme Types ──
 
 export type Theme = "light" | "dark";
@@ -616,8 +605,7 @@ export type AppState = SessionSlice &
   TokenSlice &
   ProjectSlice &
   ThemeSlice &
-  AgentDefinitionSlice &
-  GlobalRepoSlice;
+  AgentDefinitionSlice;
 
 // ── Slice Creator Helper ──
 
