@@ -165,6 +165,19 @@ pub async fn start_agent(
         _ => graph_context,
     };
 
+    // Detect available CLIs and append to system prompt
+    let cli_info = detect_available_clis().await.unwrap_or_default();
+    let full_system_prompt = if cli_info.is_empty() {
+        full_system_prompt
+    } else {
+        let cli_list = cli_info
+            .iter()
+            .map(|c| format!("{} ({})", c.name, c.version))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("{}\n\n## Available CLIs\nYou have access to these command-line tools: {}", full_system_prompt, cli_list)
+    };
+
     // Discover installed plugins from ~/.claude/plugins/
     let plugin_paths = discover_plugin_paths();
 

@@ -43,7 +43,7 @@ You are an autonomous agent running in a loop. Each time you start:
 
 - [x] **2a: Add CLI detection command** — In `src-tauri/src/commands/agent_commands_v2.rs`, add a new command `detect_available_clis() -> Vec<CliInfo>` where `CliInfo` has `name: String, version: String, path: String`. Check for: git, gh, aws, docker, kubectl, node, npm, python, cargo, pip, terraform, gcloud. For each, run `<cli> --version` and capture the output. Return only the ones found. Register in `lib.rs`.
 
-- [ ] **2b: Inject CLI info into system prompt** — In `src-tauri/src/commands/agent_commands_v2.rs`, update `start_agent()` to call `detect_available_clis()` and format the results as a line in the system prompt: `"\n\n## Available CLIs\nYou have access to these command-line tools: git (2.44.0), gh (2.45.0), node (22.0.0), ..."`. Append this to `full_system_prompt` before sending to the sidecar.
+- [x] **2b: Inject CLI info into system prompt** — In `src-tauri/src/commands/agent_commands_v2.rs`, update `start_agent()` to call `detect_available_clis()` and format the results as a line in the system prompt: `"\n\n## Available CLIs\nYou have access to these command-line tools: git (2.44.0), gh (2.45.0), node (22.0.0), ..."`. Append this to `full_system_prompt` before sending to the sidecar.
 
 - [ ] **2c: Add CLI info TypeScript wrapper and display** — Add `detectAvailableClis()` wrapper in `src/lib/tauri.ts` or `src/lib/agentCommands.ts`. In `src/components/layout/TitleBar.tsx`, add a small info badge next to the existing repo/skill badges that shows the count of available CLIs with a tooltip listing them. Call `detectAvailableClis()` on app startup and cache the result in a simple React state or Zustand slice.
 
