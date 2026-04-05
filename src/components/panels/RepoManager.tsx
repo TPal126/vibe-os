@@ -70,7 +70,7 @@ function RepoRow({
             {repo.name}
           </span>
           <Badge color="text-v-dim" bg="bg-v-border/50">
-            {repo.org}
+            {repo.source}
           </Badge>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
@@ -96,11 +96,11 @@ function RepoRow({
 export function RepoManager() {
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const { repos, toggleRepo, addRepo, loadRepos } = useAppStore(
+  const { repos, toggleRepo, addRepoGithub, loadRepos } = useAppStore(
     useShallow((s) => ({
       repos: s.repos,
       toggleRepo: s.toggleRepo,
-      addRepo: s.addRepo,
+      addRepoGithub: s.addRepoGithub,
       loadRepos: s.loadRepos,
     })),
   );
@@ -144,7 +144,7 @@ export function RepoManager() {
       <AddRepoModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onSubmit={addRepo}
+        onSubmit={addRepoGithub}
       />
     </div>
   );
