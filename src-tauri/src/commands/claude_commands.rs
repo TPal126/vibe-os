@@ -11,7 +11,6 @@ use tokio::sync::Mutex as TokioMutex;
 use crate::services::event_stream::{self, AgentEvent, AgentEventType};
 
 use super::db_commands::DbState;
-use super::decision_commands;
 
 // ── Process State ──
 
@@ -616,7 +615,7 @@ fn update_session_conversation_id(
     }
 }
 
-/// Log an AgentEvent to the audit_log table.
+/// Log an AgentEvent to the unified events table.
 fn log_to_audit(app: &AppHandle, event: &AgentEvent) {
     if event.event_type == AgentEventType::Raw && event.content.is_empty() {
         return;
@@ -640,61 +639,97 @@ fn log_to_audit(app: &AppHandle, event: &AgentEvent) {
                     .as_ref()
                     .map(|m| serde_json::to_string(m).unwrap_or_default());
 
+                // Determine kind and decision-specific fields
+                let is_decision = event.event_type == AgentEventType::Decision;
+                let kind = if is_decision { "decision" } else { "action" };
+                let rationale = if is_decision {
+                    Some("Auto-captured from agent stream".to_string())
+                } else {
+                    None
+                };
+                let confidence = if is_decision { Some(0.8) } else { None };
+                let impact_category = if is_decision {
+                    Some("architecture".to_string())
+                } else {
+                    None
+                };
+                let reversible = if is_decision { Some(1i32) } else { None };
+                let related_files = if is_decision {
+                    event
+                        .metadata
+                        .as_ref()
+                        .and_then(|m| m.get("path"))
+                        .and_then(|v| v.as_str())
+                        .map(|p| serde_json::json!([p]).to_string())
+                } else {
+                    None
+                };
+
                 let _ = conn.execute(
-                    "INSERT INTO audit_log (id, session_id, timestamp, action_type, detail, actor, metadata) VALUES (?1, ?2, ?3, ?4, ?5, 'agent', ?6)",
-                    rusqlite::params![id, session_id, event.timestamp, action_type, event.content, metadata_str],
+                    "INSERT INTO events (id, session_id, timestamp, kind, action_type, detail, actor, metadata, rationale, confidence, impact_category, reversible, related_files, related_tickets)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'agent', ?7, ?8, ?9, ?10, ?11, ?12, NULL)",
+                    rusqlite::params![
+                        id,
+                        session_id,
+                        event.timestamp,
+                        kind,
+                        action_type,
+                        event.content,
+                        metadata_str,
+                        rationale,
+                        confidence,
+                        impact_category,
+                        reversible,
+                        related_files,
+                    ],
                 );
 
-                // Mirror action to knowledge graph (fire-and-forget async)
+                // Mirror to knowledge graph via unified populate_event (fire-and-forget async)
                 if let Some(graph_db) = app.try_state::<surrealdb::Surreal<surrealdb::engine::local::Db>>() {
                     let gdb = graph_db.inner().clone();
                     let gid = id.clone();
                     let gsid = session_id.clone();
+                    let gkind = kind.to_string();
                     let gat = action_type.clone();
                     let gdet = event.content.clone();
                     let gts = event.timestamp.clone();
                     let gmeta = metadata_str.clone();
-                    tauri::async_runtime::spawn(async move {
-                        let _ = crate::graph::population::populate_action(
-                            &gdb, &gid, &gsid, &gat, &gdet, "agent", &gts, gmeta.as_deref(),
-                        ).await;
-                    });
-                }
-
-                if event.event_type == AgentEventType::Decision {
-                    let decision = decision_commands::Decision {
-                        id: uuid::Uuid::new_v4().to_string(),
-                        session_id: session_id.clone(),
-                        timestamp: event.timestamp.clone(),
-                        decision: event.content.clone(),
-                        rationale: "Auto-captured from agent stream".to_string(),
-                        confidence: 0.8,
-                        impact_category: "architecture".to_string(),
-                        reversible: true,
-                        related_files: event
+                    let grationale = rationale.clone();
+                    let gconfidence = confidence;
+                    let gimpact = impact_category.clone();
+                    let greversible = if is_decision { Some(true) } else { None };
+                    let gfiles: Vec<String> = if is_decision {
+                        event
                             .metadata
                             .as_ref()
                             .and_then(|m| m.get("path"))
                             .and_then(|v| v.as_str())
                             .map(|p| vec![p.to_string()])
-                            .unwrap_or_default(),
-                        related_tickets: Vec::new(),
+                            .unwrap_or_default()
+                    } else {
+                        vec![]
                     };
-                    let _ = decision_commands::insert_decision(&conn, &decision);
 
-                    // Mirror decision to knowledge graph
-                    if let Some(graph_db) = app.try_state::<surrealdb::Surreal<surrealdb::engine::local::Db>>() {
-                        let gdb = graph_db.inner().clone();
-                        let dec = decision;
-                        tauri::async_runtime::spawn(async move {
-                            let _ = crate::graph::population::populate_decision(
-                                &gdb, &dec.id, &dec.session_id, &dec.decision,
-                                &dec.rationale, dec.confidence, &dec.impact_category,
-                                dec.reversible, &dec.related_files, &dec.related_tickets,
-                                &dec.timestamp,
-                            ).await;
-                        });
-                    }
+                    tauri::async_runtime::spawn(async move {
+                        let _ = crate::graph::population::populate_event(
+                            &gdb,
+                            &gid,
+                            &gsid,
+                            &gkind,
+                            &gat,
+                            &gdet,
+                            "agent",
+                            &gts,
+                            gmeta.as_deref(),
+                            grationale.as_deref(),
+                            gconfidence,
+                            gimpact.as_deref(),
+                            greversible,
+                            &gfiles,
+                            &[],
+                        )
+                        .await;
+                    });
                 }
             }
         }
