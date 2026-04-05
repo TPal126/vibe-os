@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { Project, ClaudeSessionState } from "../../stores/types";
 
 interface EnhancedProjectCardProps {
@@ -6,6 +6,7 @@ interface EnhancedProjectCardProps {
   sessions: Map<string, ClaudeSessionState>;
   onOpen: () => void;
   onOpenSession: (sessionId: string) => void;
+  onDelete: () => void;
 }
 
 const statusDotColor: Record<ClaudeSessionState["status"], string> = {
@@ -20,6 +21,7 @@ export function EnhancedProjectCard({
   sessions,
   onOpen,
   onOpenSession,
+  onDelete,
 }: EnhancedProjectCardProps) {
   const sessionList = Array.from(sessions.values());
   const activeCount = sessionList.filter((s) => s.status === "working" || s.status === "needs-input").length;
@@ -27,26 +29,35 @@ export function EnhancedProjectCard({
 
   return (
     <div
-      className={`bg-v-surface border rounded-lg p-3.5 flex flex-col ${
+      className={`bg-v-surface border rounded-lg p-3.5 flex flex-col group ${
         hasActive ? "border-v-accent" : "border-v-border"
       } hover:border-v-borderHi transition-colors`}
     >
       <div className="flex justify-between items-center mb-2.5">
         <button
           onClick={onOpen}
-          className="text-xs font-semibold text-v-textHi hover:text-v-accentHi transition-colors text-left"
+          className="text-xs font-semibold text-v-textHi hover:text-v-accentHi transition-colors text-left truncate flex-1"
         >
           {project.name}
         </button>
-        {hasActive ? (
-          <span className="text-[8px] text-v-green bg-v-greenDim px-1.5 py-0.5 rounded">
-            {activeCount} active
-          </span>
-        ) : (
-          <span className="text-[8px] text-v-dim bg-v-surfaceHi px-1.5 py-0.5 rounded">
-            idle
-          </span>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {hasActive ? (
+            <span className="text-[8px] text-v-green bg-v-greenDim px-1.5 py-0.5 rounded">
+              {activeCount} active
+            </span>
+          ) : (
+            <span className="text-[8px] text-v-dim bg-v-surfaceHi px-1.5 py-0.5 rounded">
+              idle
+            </span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="p-0.5 text-v-dim hover:text-v-red transition-colors opacity-0 group-hover:opacity-100"
+            title="Delete project"
+          >
+            <X size={10} />
+          </button>
+        </div>
       </div>
 
       <p className="text-[9px] text-v-dim mb-2.5 line-clamp-1">

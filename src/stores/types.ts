@@ -506,6 +506,7 @@ export interface ProjectSlice {
   // CRUD
   addProject: (name: string, workspacePath: string, claudeSessionId: string) => void;
   removeProject: (id: string) => void;
+  clearAllProjects: () => void;
   updateProjectSummary: (id: string, summary: string) => void;
 
   // Navigation

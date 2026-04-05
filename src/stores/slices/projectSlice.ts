@@ -1,7 +1,7 @@
 import type { SliceCreator, ProjectSlice, Project } from "../types";
 import { commands } from "../../lib/tauri";
 
-const MAX_PROJECTS = 5;
+const MAX_PROJECTS = 20;
 const PROJECTS_SETTING_KEY = "projects_list";
 
 export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
@@ -39,6 +39,11 @@ export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
       set({ activeProjectId: null, currentView: "home" });
     }
     commands.saveSetting(PROJECTS_SETTING_KEY, JSON.stringify(next)).catch(() => {});
+  },
+
+  clearAllProjects: () => {
+    set({ projects: [], activeProjectId: null, currentView: "home" });
+    commands.saveSetting(PROJECTS_SETTING_KEY, JSON.stringify([])).catch(() => {});
   },
 
   updateProjectSummary: (id, summary) => {

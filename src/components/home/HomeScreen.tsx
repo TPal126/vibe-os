@@ -9,6 +9,8 @@ export function HomeScreen() {
     projects,
     claudeSessions,
     openProject,
+    removeProject,
+    clearAllProjects,
     setActiveClaudeSessionId,
     openWorkspace,
     goToSetup,
@@ -17,6 +19,8 @@ export function HomeScreen() {
       projects: s.projects,
       claudeSessions: s.claudeSessions,
       openProject: s.openProject,
+      removeProject: s.removeProject,
+      clearAllProjects: s.clearAllProjects,
       setActiveClaudeSessionId: s.setActiveClaudeSessionId,
       openWorkspace: s.openWorkspace,
       goToSetup: s.goToSetup,
@@ -73,14 +77,21 @@ export function HomeScreen() {
                 setActiveClaudeSessionId(sessionId);
                 openProject(project.id);
               }}
+              onDelete={() => removeProject(project.id)}
             />
           );
         })}
         <NewProjectCard
-          disabled={projects.length >= 5}
+          disabled={projects.length >= 20}
           onNewProject={goToSetup}
         />
       </div>
+      <button
+        onClick={clearAllProjects}
+        className="mt-4 text-[10px] text-v-dim hover:text-v-red transition-colors"
+      >
+        Clear all projects
+      </button>
     </div>
   );
 }
