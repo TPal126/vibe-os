@@ -282,6 +282,93 @@ pub async fn populate_session(
     Ok(())
 }
 
+/// Populate a repo node in the graph.
+pub async fn populate_repo(
+    db: &Surreal<Db>,
+    id: &str,
+    name: &str,
+    path: &str,
+    branch: &str,
+    source: &str,
+    active: bool,
+    language: &str,
+    file_count: i64,
+    parent_id: Option<&str>,
+) -> Result<(), String> {
+    let safe_id = sanitize_id(id);
+    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+
+    let repo_json = serde_json::json!({
+        "name": name,
+        "path": path,
+        "branch": branch,
+        "source": source,
+        "active": active,
+        "language": language,
+        "file_count": file_count,
+        "parent_id": parent_id,
+        "created_at": now,
+        "updated_at": now,
+    });
+
+    // Upsert via DELETE + CREATE
+    db.query(&format!("DELETE repo:{safe_id}")).await.ok();
+    db.query(&format!(
+        "CREATE repo:{safe_id} CONTENT {}",
+        serde_json::to_string(&repo_json).unwrap()
+    ))
+    .await
+    .map_err(|e| format!("Failed to create repo node: {e}"))?;
+
+    // Edge: branched_from if this is a worktree
+    if let Some(pid) = parent_id {
+        let safe_pid = sanitize_id(pid);
+        db.query(&format!(
+            "RELATE repo:{safe_id}->branched_from->repo:{safe_pid} SET created_at = time::now()"
+        ))
+        .await
+        .ok();
+    }
+
+    Ok(())
+}
+
+/// Create an edge between a repo and a session or project.
+pub async fn populate_repo_edge(
+    db: &Surreal<Db>,
+    edge_table: &str,
+    from_table: &str,
+    from_id: &str,
+    to_table: &str,
+    to_id: &str,
+) -> Result<(), String> {
+    let safe_from = sanitize_id(from_id);
+    let safe_to = sanitize_id(to_id);
+    db.query(&format!(
+        "RELATE {from_table}:{safe_from}->{edge_table}->{to_table}:{safe_to} SET created_at = time::now()"
+    ))
+    .await
+    .map_err(|e| format!("Failed to create {edge_table} edge: {e}"))?;
+    Ok(())
+}
+
+/// Remove all edges of a given type from/to a repo node.
+pub async fn remove_repo_edges(
+    db: &Surreal<Db>,
+    repo_id: &str,
+) -> Result<(), String> {
+    let safe_id = sanitize_id(repo_id);
+    db.query(&format!("DELETE session_uses_repo WHERE out = repo:{safe_id}"))
+        .await.ok();
+    db.query(&format!("DELETE project_contains_repo WHERE out = repo:{safe_id}"))
+        .await.ok();
+    db.query(&format!("DELETE branched_from WHERE in = repo:{safe_id}"))
+        .await.ok();
+    db.query(&format!("DELETE repo:{safe_id}"))
+        .await.ok();
+    Ok(())
+}
+
 /// Bulk sync: pull all decisions from SQLite and mirror to graph.
 pub async fn sync_decisions_from_sqlite(
     db: &Surreal<Db>,
@@ -451,6 +538,39 @@ mod tests {
         assert_eq!(n["kind"], "decision");
         assert_eq!(n["rationale"], "Simpler than GraphQL");
         assert_eq!(n["confidence"], 0.85);
+    }
+
+    #[tokio::test]
+    async fn test_populate_repo() {
+        let db = test_db().await;
+        populate_repo(
+            &db, "repo_1", "my-app", "/path/to/my-app", "main",
+            "local", true, "TypeScript", 42, None,
+        ).await.unwrap();
+
+        let node = nodes::get_node(&db, "repo", "repo_1").await.unwrap();
+        assert!(node.is_some());
+        let n = node.unwrap();
+        assert_eq!(n["name"], "my-app");
+        assert_eq!(n["branch"], "main");
+        assert_eq!(n["active"], true);
+    }
+
+    #[tokio::test]
+    async fn test_populate_repo_with_parent() {
+        let db = test_db().await;
+        populate_repo(
+            &db, "repo_parent", "my-app", "/path/to/my-app", "main",
+            "github", true, "Rust", 100, None,
+        ).await.unwrap();
+        populate_repo(
+            &db, "repo_child", "my-app", "/path/to/my-app-feature", "feature-x",
+            "github", false, "Rust", 100, Some("repo_parent"),
+        ).await.unwrap();
+
+        let child = nodes::get_node(&db, "repo", "repo_child").await.unwrap();
+        assert!(child.is_some());
+        assert_eq!(child.unwrap()["branch"], "feature-x");
     }
 
     #[tokio::test]

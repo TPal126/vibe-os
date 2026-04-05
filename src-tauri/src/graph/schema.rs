@@ -51,6 +51,9 @@ DEFINE TABLE IF NOT EXISTS contextualized SCHEMALESS;
 DEFINE TABLE IF NOT EXISTS produced SCHEMALESS;
 DEFINE TABLE IF NOT EXISTS occurred_in SCHEMALESS;
 DEFINE TABLE IF NOT EXISTS followed SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS session_uses_repo SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS project_contains_repo SCHEMALESS;
+DEFINE TABLE IF NOT EXISTS branched_from SCHEMALESS;
 ";
 
 const INDEXES: &str = "
@@ -66,4 +69,6 @@ DEFINE INDEX IF NOT EXISTS idx_skill_active ON skill FIELDS active;
 DEFINE INDEX IF NOT EXISTS idx_repo_active ON repo FIELDS active;
 DEFINE INDEX IF NOT EXISTS idx_event_session ON event FIELDS session_id;
 DEFINE INDEX IF NOT EXISTS idx_event_kind ON event FIELDS kind;
+DEFINE INDEX IF NOT EXISTS idx_repo_source ON repo FIELDS source;
+DEFINE INDEX IF NOT EXISTS idx_repo_parent ON repo FIELDS parent_id;
 ";
