@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
@@ -156,6 +156,21 @@ fn title_case(s: &str) -> String {
 
 // ── Repo Management ──
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RepoRow {
+    pub id: String,
+    pub name: String,
+    pub source: String,
+    pub path: String,
+    pub git_url: Option<String>,
+    pub branch: String,
+    pub language: String,
+    pub file_count: i64,
+    pub active: bool,
+    pub parent_id: Option<String>,
+    pub created_at: String,
+}
+
 #[derive(Serialize, Clone)]
 pub struct RepoMeta {
     pub id: String,
@@ -300,6 +315,111 @@ pub fn get_repos(
         }
     }
     Ok(repos)
+}
+
+#[tauri::command]
+pub fn save_repo(
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
+    repo: RepoRow,
+) -> Result<RepoRow, String> {
+    let conn = db.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT OR REPLACE INTO repos (id, name, source, path, git_url, branch, language, file_count, active, parent_id, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        rusqlite::params![
+            repo.id, repo.name, repo.source, repo.path, repo.git_url,
+            repo.branch, repo.language, repo.file_count, repo.active as i32,
+            repo.parent_id, repo.created_at,
+        ],
+    )
+    .map_err(|e| format!("Failed to save repo: {}", e))?;
+    Ok(repo)
+}
+
+#[tauri::command]
+pub fn get_all_repos(
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
+) -> Result<Vec<RepoRow>, String> {
+    let conn = db.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, name, source, path, git_url, branch, language, file_count, active, parent_id, created_at
+             FROM repos ORDER BY created_at",
+        )
+        .map_err(|e| format!("Failed to prepare query: {}", e))?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(RepoRow {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                source: row.get(2)?,
+                path: row.get(3)?,
+                git_url: row.get(4)?,
+                branch: row.get(5)?,
+                language: row.get(6)?,
+                file_count: row.get(7)?,
+                active: row.get::<_, i32>(8)? != 0,
+                parent_id: row.get(9)?,
+                created_at: row.get(10)?,
+            })
+        })
+        .map_err(|e| format!("Failed to query repos: {}", e))?;
+
+    let mut repos = Vec::new();
+    for row in rows {
+        repos.push(row.map_err(|e| format!("Failed to read row: {}", e))?);
+    }
+    Ok(repos)
+}
+
+#[tauri::command]
+pub fn delete_repo(
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
+    id: String,
+) -> Result<(), String> {
+    let conn = db.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM repos WHERE parent_id = ?1", rusqlite::params![id])
+        .map_err(|e| format!("Failed to delete child repos: {}", e))?;
+    conn.execute("DELETE FROM repos WHERE id = ?1", rusqlite::params![id])
+        .map_err(|e| format!("Failed to delete repo: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_repo_active(
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
+    id: String,
+    active: bool,
+) -> Result<(), String> {
+    let conn = db.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE repos SET active = ?1 WHERE id = ?2",
+        rusqlite::params![active as i32, id],
+    )
+    .map_err(|e| format!("Failed to update repo active state: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn refresh_repo_branch(
+    db: tauri::State<'_, std::sync::Mutex<rusqlite::Connection>>,
+    id: String,
+) -> Result<String, String> {
+    let conn = db.lock().map_err(|e| e.to_string())?;
+    let path: String = conn
+        .query_row("SELECT path FROM repos WHERE id = ?1", rusqlite::params![id], |row| row.get(0))
+        .map_err(|e| format!("Repo not found: {}", e))?;
+
+    let branch = read_git_branch(&PathBuf::from(&path)).unwrap_or_else(|| "main".to_string());
+
+    conn.execute(
+        "UPDATE repos SET branch = ?1 WHERE id = ?2",
+        rusqlite::params![branch, id],
+    )
+    .map_err(|e| format!("Failed to update branch: {}", e))?;
+
+    Ok(branch)
 }
 
 /// Walk a repo directory and return a summary for prompt injection.
