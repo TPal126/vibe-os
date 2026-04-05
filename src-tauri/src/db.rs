@@ -185,5 +185,60 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Migration v7 failed: {}", e))?;
     }
 
+    if version < 8 {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS repos (
+                 id TEXT PRIMARY KEY,
+                 name TEXT NOT NULL,
+                 source TEXT NOT NULL,
+                 path TEXT NOT NULL UNIQUE,
+                 git_url TEXT,
+                 branch TEXT NOT NULL,
+                 language TEXT NOT NULL DEFAULT '',
+                 file_count INTEGER NOT NULL DEFAULT 0,
+                 active INTEGER NOT NULL DEFAULT 0,
+                 parent_id TEXT,
+                 created_at TEXT NOT NULL
+             );
+             PRAGMA user_version = 8;
+             COMMIT;",
+        )
+        .map_err(|e| format!("Migration v8 failed: {}", e))?;
+
+        // Migrate existing global_repos from settings JSON into repos table
+        let maybe_json: Option<String> = conn
+            .query_row(
+                "SELECT value FROM settings WHERE key = 'global_repos'",
+                [],
+                |row| row.get(0),
+            )
+            .ok();
+
+        if let Some(json_str) = maybe_json {
+            if let Ok(repos) = serde_json::from_str::<Vec<serde_json::Value>>(&json_str) {
+                for repo in repos {
+                    let id = repo.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                    let name = repo.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                    let source = repo.get("source").and_then(|v| v.as_str()).unwrap_or("local");
+                    let path = repo.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                    let git_url = repo.get("gitUrl").and_then(|v| v.as_str());
+                    let branch = repo.get("branch").and_then(|v| v.as_str()).unwrap_or("main");
+                    let language = repo.get("language").and_then(|v| v.as_str()).unwrap_or("");
+                    let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+
+                    if !id.is_empty() && !path.is_empty() {
+                        conn.execute(
+                            "INSERT OR IGNORE INTO repos (id, name, source, path, git_url, branch, language, file_count, active, parent_id, created_at)
+                             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, 0, NULL, ?8)",
+                            rusqlite::params![id, name, source, path, git_url, branch, language, now],
+                        ).ok();
+                    }
+                }
+            }
+            conn.execute("DELETE FROM settings WHERE key = 'global_repos'", []).ok();
+        }
+    }
+
     Ok(())
 }
