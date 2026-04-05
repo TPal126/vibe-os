@@ -1,5 +1,6 @@
 use std::io::BufRead;
 
+use serde::Serialize;
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -363,4 +364,89 @@ fn format_provenance(trace: &graph::queries::ProvenanceTrace) -> String {
     }
 
     out
+}
+
+/// Info about a detected CLI tool.
+#[derive(Serialize, Clone)]
+pub struct CliInfo {
+    pub name: String,
+    pub version: String,
+    pub path: String,
+}
+
+/// Detect available CLI tools on the system.
+#[tauri::command]
+pub async fn detect_available_clis() -> Result<Vec<CliInfo>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let clis: Vec<(&str, Vec<&str>)> = vec![
+            ("git", vec!["--version"]),
+            ("gh", vec!["--version"]),
+            ("aws", vec!["--version"]),
+            ("docker", vec!["--version"]),
+            ("kubectl", vec!["version", "--client"]),
+            ("node", vec!["--version"]),
+            ("npm", vec!["--version"]),
+            ("python", vec!["--version"]),
+            ("cargo", vec!["--version"]),
+            ("pip", vec!["--version"]),
+            ("terraform", vec!["--version"]),
+            ("gcloud", vec!["--version"]),
+        ];
+
+        let mut results = Vec::new();
+        for (name, args) in &clis {
+            if let Some(info) = detect_single_cli(name, args) {
+                results.push(info);
+            }
+        }
+        results
+    })
+    .await
+    .map_err(|e| format!("CLI detection failed: {}", e))
+}
+
+fn detect_single_cli(name: &str, version_args: &[&str]) -> Option<CliInfo> {
+    let output = std::process::Command::new(name)
+        .args(version_args)
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let version_text = if stdout.trim().is_empty() { &stderr } else { &stdout };
+
+    let version = extract_version_number(version_text)
+        .unwrap_or_else(|| version_text.lines().next().unwrap_or("unknown").trim().to_string());
+
+    let path = get_cli_path(name).unwrap_or_default();
+
+    Some(CliInfo {
+        name: name.to_string(),
+        version,
+        path,
+    })
+}
+
+fn extract_version_number(text: &str) -> Option<String> {
+    let re = regex::Regex::new(r"(\d+\.\d+(?:\.\d+)*)").ok()?;
+    re.captures(text)?.get(1).map(|m| m.as_str().to_string())
+}
+
+fn get_cli_path(name: &str) -> Option<String> {
+    let cmd = if cfg!(target_os = "windows") { "where" } else { "which" };
+    let output = std::process::Command::new(cmd)
+        .arg(name)
+        .output()
+        .ok()?;
+
+    if output.status.success() {
+        let path = String::from_utf8_lossy(&output.stdout);
+        Some(path.lines().next()?.trim().to_string())
+    } else {
+        None
+    }
 }

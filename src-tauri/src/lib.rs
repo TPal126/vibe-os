@@ -191,6 +191,7 @@ pub fn run() {
             agent_commands_v2::send_agent_message,
             agent_commands_v2::cancel_agent,
             agent_commands_v2::get_sidecar_status,
+            agent_commands_v2::detect_available_clis,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
