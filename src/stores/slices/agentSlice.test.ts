@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { create } from "zustand";
 import { createAgentSlice } from "./agentSlice";
-import type { AgentSlice, ChatMessage, AgentEvent, AppState } from "../types";
+import type { AgentSlice, ChatMessage, AgentEvent } from "../types";
 
 // Minimal store that only has agentSlice (sufficient for unit tests)
 function createTestStore() {
@@ -13,12 +13,6 @@ const makeMessage = (role: "user" | "assistant", content: string): ChatMessage =
   role,
   content,
   timestamp: new Date().toISOString(),
-});
-
-const makeEvent = (type: string, content: string): AgentEvent => ({
-  timestamp: new Date().toISOString(),
-  event_type: type as AgentEvent["event_type"],
-  content,
 });
 
 describe("agentSlice", () => {

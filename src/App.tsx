@@ -4,7 +4,7 @@ import { MainLayout } from "./components/layout/MainLayout";
 import { useAppStore } from "./stores";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useWorkspaceWatcher } from "./hooks/useWorkspaceWatcher";
-import { useClaudeStream } from "./hooks/useClaudeStream";
+
 import { useAgentStream } from "./hooks/useAgentStream";
 import { useNotifications } from "./hooks/useNotifications";
 import { agentCommands } from "./lib/agentCommands";

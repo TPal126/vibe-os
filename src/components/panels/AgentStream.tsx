@@ -15,6 +15,11 @@ const EVENT_CONFIG: Record<
   error:          { icon: "\u2715", color: "var(--color-v-red)",     label: "Error" },
   result:         { icon: "\u25CB", color: "var(--color-v-dim)",     label: "Result" },
   raw:            { icon: "\u00B7", color: "var(--color-v-dim)",     label: "Raw" },
+  agent_spawn:    { icon: "\u25B6", color: "var(--color-v-accent)",  label: "Spawn" },
+  agent_complete: { icon: "\u25A0", color: "var(--color-v-accent)",  label: "Complete" },
+  task_create:    { icon: "\u002B", color: "var(--color-v-cyan)",    label: "Task" },
+  task_update:    { icon: "\u21BB", color: "var(--color-v-cyan)",    label: "Update" },
+  api_metrics:    { icon: "\u2261", color: "var(--color-v-dim)",     label: "Metrics" },
 };
 
 function EventBadges({ event }: { event: AgentEvent }) {

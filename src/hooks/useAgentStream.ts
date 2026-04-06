@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
 import { useAppStore } from "../stores";
 
 interface SdkAssistantMessage {
@@ -40,14 +40,13 @@ interface AgentEventPayload {
 // ── Singleton listener — prevents double-registration from React strict mode ──
 
 let listenerActive = false;
-let unlistenFn: UnlistenFn | null = null;
 const processedIds = new Set<string>();
 
 async function startListener() {
   if (listenerActive) return;
   listenerActive = true;
 
-  unlistenFn = await listen<AgentEventPayload>("agent-event", (event) => {
+  await listen<AgentEventPayload>("agent-event", (event) => {
     const data = event.payload;
     const store = useAppStore.getState();
 
@@ -138,14 +137,6 @@ async function startListener() {
       store.setSessionWorking(sid, false);
     }
   });
-}
-
-function stopListener() {
-  if (unlistenFn) {
-    unlistenFn();
-    unlistenFn = null;
-  }
-  listenerActive = false;
 }
 
 /**

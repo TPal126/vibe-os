@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { create } from "zustand";
 import { createTokenSlice } from "./tokenSlice";
-import type { TokenSlice, TokenBudget } from "../types";
+import type { TokenSlice } from "../types";
 
 vi.mock("../../lib/tauri", () => ({
   commands: {

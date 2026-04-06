@@ -71,7 +71,6 @@ export function ClaudeChat() {
     setActiveClaudeSessionId,
     activeSessionId,
     claudeCliAvailable,
-    claudeCliError,
     validateClaudeCli,
   } = useAppStore(
     useShallow((s) => ({
@@ -83,7 +82,6 @@ export function ClaudeChat() {
       setActiveClaudeSessionId: s.setActiveClaudeSessionId,
       activeSessionId: s.activeSession?.id ?? null,
       claudeCliAvailable: s.claudeCliAvailable,
-      claudeCliError: s.claudeCliError,
       validateClaudeCli: s.validateClaudeCli,
     }))
   );

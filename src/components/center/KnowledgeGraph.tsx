@@ -328,7 +328,7 @@ export const KnowledgeGraph = memo(function KnowledgeGraph() {
       .attr("pointer-events", "none");
 
     // Hover / Click
-    node.on("mouseover", function (event, d) {
+    node.on("mouseover", function (_event, d) {
       d3.select(this).select("circle").attr("stroke", "#5b7cfa").attr("stroke-width", 2.5);
       // Highlight connected edges
       link.attr("opacity", (l) => {

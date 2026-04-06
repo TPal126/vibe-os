@@ -25,7 +25,7 @@ const mockSessions: Map<string, ClaudeSessionState> = new Map([
     agentError: null, needsInput: false, attentionPreview: null,
     attentionMessageId: null, status: "working", createdAt: "2026-03-30T00:00:00Z",
     currentActivityMessageId: null, previewUrl: null, testSummary: null,
-    buildStatus: "idle", buildStatusText: null,
+    buildStatus: "idle", buildStatusText: null, apiMetrics: null, tasks: [],
   }],
   ["cs-2", {
     id: "cs-2", name: "Dashboard UI", chatMessages: [], agentEvents: [],
@@ -33,7 +33,7 @@ const mockSessions: Map<string, ClaudeSessionState> = new Map([
     agentError: null, needsInput: false, attentionPreview: null,
     attentionMessageId: null, status: "idle", createdAt: "2026-03-30T00:00:00Z",
     currentActivityMessageId: null, previewUrl: null, testSummary: null,
-    buildStatus: "idle", buildStatusText: null,
+    buildStatus: "idle", buildStatusText: null, apiMetrics: null, tasks: [],
   }],
 ]);
 
@@ -45,6 +45,7 @@ describe("EnhancedProjectCard", () => {
         sessions={mockSessions}
         onOpen={vi.fn()}
         onOpenSession={vi.fn()}
+        onDelete={vi.fn()}
       />
     );
     expect(screen.getByText("my-saas-app")).toBeDefined();
@@ -57,6 +58,7 @@ describe("EnhancedProjectCard", () => {
         sessions={mockSessions}
         onOpen={vi.fn()}
         onOpenSession={vi.fn()}
+        onDelete={vi.fn()}
       />
     );
     expect(screen.getByText("1 active")).toBeDefined();
@@ -69,6 +71,7 @@ describe("EnhancedProjectCard", () => {
         sessions={mockSessions}
         onOpen={vi.fn()}
         onOpenSession={vi.fn()}
+        onDelete={vi.fn()}
       />
     );
     expect(screen.getByText("Auth refactor")).toBeDefined();
