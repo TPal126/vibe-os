@@ -31,3 +31,11 @@ Thumbs.db
 
 # Superpowers brainstorm artifacts
 .superpowers/
+
+# Claude Code local settings (personal paths, permissions)
+.claude/settings.local.json
+
+# Ralph loop artifacts
+ralph-loop.log
+RALPH-PLAN.md
+ralph-loop.sh
