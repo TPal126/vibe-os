@@ -501,6 +501,12 @@ MIT
 
 ---
 
+## Disclaimer
+
+**VIBE OS is an independent open-source project and is not affiliated with, endorsed by, or sponsored by Anthropic.** It builds on top of the publicly available [`@anthropic-ai/claude-agent-sdk`](https://github.com/anthropics/claude-agent-sdk-typescript) and requires users to have their own Claude Code installation and subscription. "Claude" and "Claude Code" are trademarks of Anthropic, PBC.
+
+---
+
 <p align="center">
   <sub>Built with Tauri v2, React 18, and Rust. Powered by the Claude Agent SDK.</sub>
 </p>
