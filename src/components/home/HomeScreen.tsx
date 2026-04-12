@@ -30,6 +30,8 @@ export function HomeScreen() {
   const handleOpenProject = async (project: { id: string; workspacePath: string; activeSessionId: string }) => {
     openProject(project.id);
     setActiveSessionId(project.activeSessionId);
+    // Hydrate pipeline state for this project
+    useAppStore.getState().loadProjectPipeline(project.id);
     try {
       await openWorkspace(project.workspacePath);
     } catch (err) {
