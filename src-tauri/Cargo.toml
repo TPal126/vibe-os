@@ -36,6 +36,10 @@ notify-debouncer-mini = "0.7"
 tauri-plugin-notification = "2"
 surrealdb = { version = "3.0", default-features = false, features = ["kv-surrealkv"] }
 
+[dev-dependencies]
+tempfile = "3"
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+test-fake = []
