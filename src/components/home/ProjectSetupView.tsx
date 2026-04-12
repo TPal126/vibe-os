@@ -1,7 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
+import { commands } from "../../lib/tauri";
 import { ResourceCatalog } from "./ResourceCatalog";
+import { WorkflowBuilder } from "./WorkflowBuilder";
 import { RepoBrowseModal } from "./RepoBrowseModal";
 import { RepoGithubModal } from "./RepoGithubModal";
 
@@ -9,7 +11,6 @@ export function ProjectSetupView() {
   const {
     repos,
     goHome,
-    addProject,
     createWorkspace,
     createSessionLocal,
     setActiveSessionId,
@@ -20,7 +21,6 @@ export function ProjectSetupView() {
     useShallow((s) => ({
       repos: s.repos,
       goHome: s.goHome,
-      addProject: s.addProject,
       createWorkspace: s.createWorkspace,
       createSessionLocal: s.createSessionLocal,
       setActiveSessionId: s.setActiveSessionId,
@@ -30,6 +30,7 @@ export function ProjectSetupView() {
     })),
   );
 
+  const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +49,12 @@ export function ProjectSetupView() {
   const [showBrowseModal, setShowBrowseModal] = useState(false);
   const [showGithubModal, setShowGithubModal] = useState(false);
 
+  // Cleanup builder state on unmount
+  useEffect(() => {
+    const { resetBuilder } = useAppStore.getState();
+    return () => resetBuilder();
+  }, []);
+
   const toggleSet = <T,>(prev: Set<T>, item: T): Set<T> => {
     const next = new Set(prev);
     if (next.has(item)) next.delete(item);
@@ -55,12 +62,19 @@ export function ProjectSetupView() {
     return next;
   };
 
-  const handleCreate = async () => {
+  const advanceToStep2 = () => {
     const trimmed = name.trim();
     if (!trimmed) {
       setError("Name is required");
       return;
     }
+    setError(null);
+    setStep(2);
+  };
+
+  const handleCreate = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) { setError("Name is required"); return; }
 
     const safeName = trimmed
       .replace(/\s+/g, "-")
@@ -68,10 +82,7 @@ export function ProjectSetupView() {
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "");
 
-    if (!safeName) {
-      setError("Invalid project name");
-      return;
-    }
+    if (!safeName) { setError("Invalid project name"); return; }
 
     setSubmitting(true);
     setError(null);
@@ -81,34 +92,54 @@ export function ProjectSetupView() {
       const workspace = useAppStore.getState().activeWorkspace;
       if (!workspace) throw new Error("Workspace creation failed");
 
+      // Create project in SQLite directly — get ID back
+      const projectRow = await commands.createProject(safeName, workspace.path);
+
+      // Create pipeline from builder phases
+      const { builderPhases, resetBuilder } = useAppStore.getState();
+      if (builderPhases.length > 0) {
+        await commands.createPipeline({
+          project_id: projectRow.id,
+          name: "Default",
+          phases: builderPhases.map((p) => ({
+            label: p.label,
+            phase_type: p.phaseType,
+            backend: p.backend,
+            framework: p.framework,
+            model: p.model,
+            custom_prompt: p.customPrompt,
+            gate_after: p.gateAfter,
+          })),
+        });
+      }
+
+      // Create session
       const sessionId = crypto.randomUUID();
       createSessionLocal(sessionId, trimmed);
 
-      // Create project
-      addProject(trimmed, workspace.path, sessionId);
-
-      // Update project with linked resources and description
-      const projects = useAppStore.getState().projects;
-      const newProject = projects[projects.length - 1];
-      if (newProject) {
-        const { saveProjects } = useAppStore.getState();
-        const currentRepos = useAppStore.getState().repos;
-        const linkedRepoIds = currentRepos.filter((r) => r.active).map((r) => r.id);
-        const updatedProjects = projects.map((p) =>
-          p.id === newProject.id
-            ? {
-                ...p,
-                summary: description,
-                linkedRepoIds,
-                linkedSkillIds: Array.from(checkedSkillIds),
-                linkedAgentNames: Array.from(checkedAgentNames),
-              }
-            : p,
-        );
-        useAppStore.setState({ projects: updatedProjects });
-        saveProjects();
+      // Update project summary and linked resources
+      if (description) {
+        await commands.updateProject(projectRow.id, undefined, description);
       }
 
+      // Add to local store
+      useAppStore.setState((state) => ({
+        projects: [...state.projects, {
+          id: projectRow.id,
+          name: projectRow.name,
+          workspacePath: projectRow.workspace_path,
+          activeSessionId: sessionId,
+          summary: description,
+          createdAt: projectRow.created_at,
+          linkedRepoIds: repos.filter((r) => r.active).map((r) => r.id),
+          linkedSkillIds: Array.from(checkedSkillIds),
+          linkedAgentNames: Array.from(checkedAgentNames),
+        }],
+        activeProjectId: projectRow.id,
+        currentView: "conversation" as const,
+      }));
+
+      resetBuilder();
       setActiveSessionId(sessionId);
     } catch (err) {
       setError(String(err));
@@ -118,77 +149,113 @@ export function ProjectSetupView() {
 
   return (
     <div className="flex-1 flex h-full">
-      {/* Left: Project config */}
-      <div className="flex-1 flex flex-col p-8 max-w-[480px]">
-        <div className="text-[11px] uppercase tracking-wider text-v-dim font-semibold mb-6">
-          New Project
+      {step === 1 ? (
+        <>
+          {/* Left: Project config */}
+          <div className="flex-1 flex flex-col p-8 max-w-[480px]">
+            <div className="text-[11px] uppercase tracking-wider text-v-dim font-semibold mb-6">
+              New Project
+            </div>
+
+            <div className="mb-5">
+              <label className="text-xs text-v-text mb-1.5 block">Project name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => { setName(e.target.value); setError(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") advanceToStep2(); }}
+                placeholder="my-project"
+                disabled={submitting}
+                autoFocus
+                className="w-full bg-v-surface border border-v-border rounded-lg px-3 py-2.5 text-sm text-v-textHi placeholder:text-v-dim outline-none focus:border-v-accent transition-colors disabled:opacity-50"
+              />
+            </div>
+
+            <div className="mb-5">
+              <label className="text-xs text-v-text mb-1.5 block">
+                Description <span className="text-v-dim">(optional)</span>
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What is this project about?"
+                disabled={submitting}
+                rows={3}
+                className="w-full bg-v-surface border border-v-border rounded-lg px-3 py-2.5 text-[13px] text-v-textHi placeholder:text-v-dim outline-none focus:border-v-accent transition-colors resize-none disabled:opacity-50"
+              />
+            </div>
+
+            {error && (
+              <p className="text-v-red text-[11px] mb-4">{error}</p>
+            )}
+
+            <div className="flex-1" />
+
+            <div className="flex gap-3">
+              <button
+                onClick={goHome}
+                disabled={submitting}
+                className="px-5 py-2.5 bg-v-surface border border-v-border rounded-lg text-sm text-v-text hover:border-v-borderHi transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={advanceToStep2}
+                disabled={submitting || !name.trim()}
+                className="flex-1 px-5 py-2.5 bg-v-accent text-white rounded-lg text-sm font-medium hover:bg-v-accentHi transition-colors disabled:opacity-50"
+              >
+                Next: Configure Pipeline
+              </button>
+            </div>
+          </div>
+
+          {/* Right: Resource catalog */}
+          <div className="w-[300px] border-l border-v-border bg-v-bgAlt">
+            <ResourceCatalog
+              checkedRepoIds={checkedRepoIds}
+              checkedSkillIds={checkedSkillIds}
+              checkedAgentNames={checkedAgentNames}
+              onToggleRepo={(id) => toggleRepo(id)}
+              onToggleSkill={(id) => setCheckedSkillIds((prev) => toggleSet(prev, id))}
+              onToggleAgent={(agentName) => setCheckedAgentNames((prev) => toggleSet(prev, agentName))}
+              onAddReposLocal={() => setShowBrowseModal(true)}
+              onAddReposGithub={() => setShowGithubModal(true)}
+            />
+          </div>
+        </>
+      ) : (
+        /* Step 2: Full-width workflow builder */
+        <div className="flex-1 flex flex-col p-8">
+          <div className="text-[11px] uppercase tracking-wider text-v-dim font-semibold mb-6">
+            Configure Pipeline
+          </div>
+
+          <div className="flex-1 min-h-0">
+            <WorkflowBuilder />
+          </div>
+
+          {error && (
+            <p className="text-v-red text-[11px] mt-4">{error}</p>
+          )}
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => { setStep(1); setError(null); }}
+              disabled={submitting}
+              className="px-5 py-2.5 bg-v-surface border border-v-border rounded-lg text-sm text-v-text hover:border-v-borderHi transition-colors disabled:opacity-50"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={submitting}
+              className="flex-1 px-5 py-2.5 bg-v-accent text-white rounded-lg text-sm font-medium hover:bg-v-accentHi transition-colors disabled:opacity-50"
+            >
+              {submitting ? "Creating..." : "Create Project"}
+            </button>
+          </div>
         </div>
-
-        <div className="mb-5">
-          <label className="text-xs text-v-text mb-1.5 block">Project name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => { setName(e.target.value); setError(null); }}
-            onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
-            placeholder="my-project"
-            disabled={submitting}
-            autoFocus
-            className="w-full bg-v-surface border border-v-border rounded-lg px-3 py-2.5 text-sm text-v-textHi placeholder:text-v-dim outline-none focus:border-v-accent transition-colors disabled:opacity-50"
-          />
-        </div>
-
-        <div className="mb-5">
-          <label className="text-xs text-v-text mb-1.5 block">
-            Description <span className="text-v-dim">(optional)</span>
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What is this project about?"
-            disabled={submitting}
-            rows={3}
-            className="w-full bg-v-surface border border-v-border rounded-lg px-3 py-2.5 text-[13px] text-v-textHi placeholder:text-v-dim outline-none focus:border-v-accent transition-colors resize-none disabled:opacity-50"
-          />
-        </div>
-
-        {error && (
-          <p className="text-v-red text-[11px] mb-4">{error}</p>
-        )}
-
-        <div className="flex-1" />
-
-        <div className="flex gap-3">
-          <button
-            onClick={goHome}
-            disabled={submitting}
-            className="px-5 py-2.5 bg-v-surface border border-v-border rounded-lg text-sm text-v-text hover:border-v-borderHi transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleCreate}
-            disabled={submitting || !name.trim()}
-            className="flex-1 px-5 py-2.5 bg-v-accent text-white rounded-lg text-sm font-medium hover:bg-v-accentHi transition-colors disabled:opacity-50"
-          >
-            {submitting ? "Creating..." : "Create Project"}
-          </button>
-        </div>
-      </div>
-
-      {/* Right: Resource catalog */}
-      <div className="w-[300px] border-l border-v-border bg-v-bgAlt">
-        <ResourceCatalog
-          checkedRepoIds={checkedRepoIds}
-          checkedSkillIds={checkedSkillIds}
-          checkedAgentNames={checkedAgentNames}
-          onToggleRepo={(id) => toggleRepo(id)}
-          onToggleSkill={(id) => setCheckedSkillIds((prev) => toggleSet(prev, id))}
-          onToggleAgent={(agentName) => setCheckedAgentNames((prev) => toggleSet(prev, agentName))}
-          onAddReposLocal={() => setShowBrowseModal(true)}
-          onAddReposGithub={() => setShowGithubModal(true)}
-        />
-      </div>
+      )}
 
       {showBrowseModal && (
         <RepoBrowseModal
