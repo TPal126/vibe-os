@@ -27,9 +27,24 @@ export function HomeScreen() {
     })),
   );
 
-  const handleOpenProject = async (project: { id: string; workspacePath: string; activeSessionId: string }) => {
+  const handleOpenProject = async (project: { id: string; workspacePath: string; activeSessionId: string; name: string }) => {
     openProject(project.id);
-    setActiveSessionId(project.activeSessionId);
+
+    // Create a fresh session if the project doesn't have a valid one
+    let sessionId = project.activeSessionId;
+    const { agentSessions, createSessionLocal } = useAppStore.getState();
+    if (!sessionId || !agentSessions.has(sessionId)) {
+      sessionId = crypto.randomUUID();
+      createSessionLocal(sessionId, project.name || "Session");
+      // Update the project's session reference in store
+      useAppStore.setState((state) => ({
+        projects: state.projects.map((p) =>
+          p.id === project.id ? { ...p, activeSessionId: sessionId } : p,
+        ),
+      }));
+    }
+    setActiveSessionId(sessionId);
+
     // Hydrate pipeline state for this project
     useAppStore.getState().loadProjectPipeline(project.id);
     try {

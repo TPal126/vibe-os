@@ -44,7 +44,8 @@ function App() {
       const { projects, agentSessions, createSessionLocal } =
         useAppStore.getState();
       for (const project of projects) {
-        if (!agentSessions.has(project.activeSessionId)) {
+        // Skip empty session IDs (will be created fresh on project open)
+        if (project.activeSessionId && !agentSessions.has(project.activeSessionId)) {
           createSessionLocal(project.activeSessionId, project.name);
         }
       }
