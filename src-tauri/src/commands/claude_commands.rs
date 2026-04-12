@@ -262,7 +262,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                 event_type: AgentEventType::Error,
                 content: text,
                 metadata: None,
-                claude_session_id: Some(claude_sid_stderr.clone()),
+                agent_session_id: Some(claude_sid_stderr.clone()),
             };
             let _ = app_handle_err.emit("claude-stream", &error_event);
         }
@@ -547,7 +547,7 @@ pub async fn attach_claude_code_session(
                 event_type: AgentEventType::Error,
                 content: text,
                 metadata: None,
-                claude_session_id: Some(claude_sid_stderr.clone()),
+                agent_session_id: Some(claude_sid_stderr.clone()),
             };
             let _ = app_handle_err.emit("claude-stream", &error_event);
         }

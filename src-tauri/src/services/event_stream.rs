@@ -24,13 +24,13 @@ pub struct AgentEvent {
     pub content: String,
     pub metadata: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub claude_session_id: Option<String>,
+    pub agent_session_id: Option<String>,
 }
 
 impl AgentEvent {
-    /// Tag this event with a Claude session ID for frontend routing.
+    /// Tag this event with a session ID for frontend routing.
     pub fn with_session_id(mut self, id: &str) -> Self {
-        self.claude_session_id = Some(id.to_string());
+        self.agent_session_id = Some(id.to_string());
         self
     }
 }
@@ -358,7 +358,7 @@ fn make_event(
         event_type,
         content,
         metadata,
-        claude_session_id: None,
+        agent_session_id: None,
     }
 }
 
