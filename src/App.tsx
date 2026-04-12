@@ -12,13 +12,12 @@ import { agentCommands } from "./lib/agentCommands";
 function App() {
   useKeyboardShortcuts();
   useWorkspaceWatcher();
-  // useClaudeStream(); // disabled — SDK sidecar is primary now
   useAgentStream();
   useNotifications();
 
   const loadActiveSession = useAppStore((s) => s.loadActiveSession);
   const createSession = useAppStore((s) => s.createSession);
-  const validateClaudeCli = useAppStore((s) => s.validateClaudeCli);
+  const validateCli = useAppStore((s) => s.validateCli);
   const loadProjects = useAppStore((s) => s.loadProjects);
 
   useEffect(() => {
@@ -28,8 +27,8 @@ function App() {
 
   useEffect(() => {
     async function init() {
-      // 0. Validate Claude CLI availability (non-blocking)
-      validateClaudeCli().catch(() => {});
+      // 0. Validate CLI availability (non-blocking)
+      validateCli().catch(() => {});
 
       // 1. Load persisted projects
       await loadProjects();
@@ -41,12 +40,12 @@ function App() {
         await createSession();
       }
 
-      // 3. Hydrate Claude sessions for each project
-      const { projects, claudeSessions, createClaudeSessionLocal } =
+      // 3. Hydrate agent sessions for each project
+      const { projects, agentSessions, createSessionLocal } =
         useAppStore.getState();
       for (const project of projects) {
-        if (!claudeSessions.has(project.claudeSessionId)) {
-          createClaudeSessionLocal(project.claudeSessionId, project.name);
+        if (!agentSessions.has(project.activeSessionId)) {
+          createSessionLocal(project.activeSessionId, project.name);
         }
       }
 

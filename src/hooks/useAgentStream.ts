@@ -32,6 +32,7 @@ interface SdkResultMessage {
 
 interface AgentEventPayload {
   type: "sdk_message" | "sidecar_ready" | "session_ended" | "error";
+  source?: "cli-claude" | "cli-codex" | "sdk-sidecar";
   sessionId?: string;
   message?: SdkAssistantMessage | SdkResultMessage | Record<string, unknown>;
   error?: string;
@@ -46,7 +47,7 @@ async function startListener() {
   if (listenerActive) return;
   listenerActive = true;
 
-  await listen<AgentEventPayload>("agent-event", (event) => {
+  await listen<AgentEventPayload>("agent-stream", (event) => {
     const data = event.payload;
     const store = useAppStore.getState();
 
@@ -55,12 +56,14 @@ async function startListener() {
     const sid = data.sessionId;
     if (!sid) return;
 
+    const source = data.source ?? "sdk-sidecar";
+
     // Ensure session exists in store
-    if (!store.claudeSessions.has(sid)) {
-      store.createClaudeSessionLocal(sid, "Agent Session");
+    if (!store.agentSessions.has(sid)) {
+      store.createSessionLocal(sid, "Agent Session", "sidecar");
     }
 
-    if (data.type === "sdk_message" && data.message) {
+    if (source === "sdk-sidecar" && data.type === "sdk_message" && data.message) {
       const msg = data.message;
 
       if (msg.type === "assistant") {
@@ -140,7 +143,7 @@ async function startListener() {
 }
 
 /**
- * Hook that listens to 'agent-event' Tauri events from the sidecar.
+ * Hook that listens to 'agent-stream' Tauri events from the sidecar.
  * Uses a module-level singleton so React strict mode double-mount
  * doesn't create duplicate listeners.
  */

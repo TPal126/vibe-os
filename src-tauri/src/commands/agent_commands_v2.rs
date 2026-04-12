@@ -69,13 +69,13 @@ pub async fn ensure_sidecar(app: AppHandle) -> Result<String, String> {
                     if let Some(ref mut proc) = *tauri::async_runtime::block_on(sidecar_state.lock()) {
                         proc.ready = true;
                     }
-                    let _ = app_handle.emit("agent-event", json!({
+                    let _ = app_handle.emit("agent-stream", json!({
                         "type": "sidecar_ready"
                     }));
                 }
 
                 SidecarEvent::SdkMessage { session_id, message } => {
-                    let _ = app_handle.emit("agent-event", json!({
+                    let _ = app_handle.emit("agent-stream", json!({
                         "type": "sdk_message",
                         "sessionId": session_id,
                         "message": message,
@@ -117,14 +117,14 @@ pub async fn ensure_sidecar(app: AppHandle) -> Result<String, String> {
                 }
 
                 SidecarEvent::SessionEnded { session_id } => {
-                    let _ = app_handle.emit("agent-event", json!({
+                    let _ = app_handle.emit("agent-stream", json!({
                         "type": "session_ended",
                         "sessionId": session_id,
                     }));
                 }
 
                 SidecarEvent::Error { session_id, error } => {
-                    let _ = app_handle.emit("agent-event", json!({
+                    let _ = app_handle.emit("agent-stream", json!({
                         "type": "error",
                         "sessionId": session_id,
                         "error": error,
