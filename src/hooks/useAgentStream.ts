@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore } from "../stores";
+import { normalizeCliStatus, normalizeCliEvent } from "../lib/agentStreamNormalizer";
+import type { CliEventPayload, CliStatusPayload, StoreMutation } from "../lib/agentStreamNormalizer";
 
 interface SdkAssistantMessage {
   type: "assistant";
@@ -38,30 +40,48 @@ interface AgentEventPayload {
   error?: string;
 }
 
-/** Envelope for CLI adapter events */
-interface CliEventPayload {
-  type: "agent_event";
-  source: "cli-claude" | "cli-codex" | "workflow";
-  sessionId: string;
-  event: {
-    event_type: string;
-    content: string;
-    metadata?: Record<string, unknown>;
-    timestamp: string;
-  };
-}
-
-/** Envelope for CLI status events */
-interface CliStatusPayload {
-  type: "status";
-  source: "cli-claude" | "cli-codex";
-  sessionId: string;
-  status: "working" | "done" | "cancelled";
-  invocation_id?: string;
-  exit_code?: number | null;
-}
-
 type AgentStreamPayload = AgentEventPayload | CliEventPayload | CliStatusPayload;
+
+// ── Mutation applicator ──
+
+function applyMutations(mutations: StoreMutation[], store: ReturnType<typeof useAppStore.getState>): void {
+  for (const mut of mutations) {
+    switch (mut.type) {
+      case "createSession":
+        if (!store.agentSessions.has(mut.sessionId)) {
+          store.createSessionLocal(mut.sessionId, mut.name, mut.backend);
+        }
+        break;
+      case "setWorking":
+        store.setSessionWorking(mut.sessionId, mut.working);
+        break;
+      case "appendAssistant":
+        store.appendToSessionLastAssistant(mut.sessionId, mut.text);
+        break;
+      case "addAgentEvent":
+        store.addSessionAgentEvent(mut.sessionId, mut.event);
+        break;
+      case "upsertActivity":
+        store.upsertActivityLine(mut.sessionId, mut.event);
+        break;
+      case "finalizeActivity":
+        store.finalizeActivityLine(mut.sessionId);
+        break;
+      case "insertCard":
+        store.insertRichCard(mut.sessionId, mut.cardType, mut.content, mut.data);
+        break;
+      case "setError":
+        store.setSessionError(mut.sessionId, mut.error);
+        break;
+      case "setApiMetrics":
+        store.setSessionApiMetrics(mut.sessionId, mut.metrics);
+        break;
+      case "refreshPipelineRun":
+        void useAppStore.getState().refreshPipelineRun(mut.pipelineRunId);
+        break;
+    }
+  }
+}
 
 // ── Singleton listener — prevents double-registration from React strict mode ──
 
@@ -79,105 +99,19 @@ async function startListener() {
     // Handle CLI status events
     if (data.type === "status" && "source" in data && (data as any).source?.startsWith("cli-")) {
       const statusData = data as CliStatusPayload;
-      const sid = statusData.sessionId;
-      if (!sid) return;
-      const backend = statusData.source === "cli-claude" ? "claude" : "codex";
-      if (!store.agentSessions.has(sid)) {
-        store.createSessionLocal(sid, "CLI Session", backend as any);
-      }
-      if (statusData.status === "working") {
-        store.setSessionWorking(sid, true);
-      } else {
-        store.setSessionWorking(sid, false);
-      }
+      if (!statusData.sessionId) return;
+      const mutations = normalizeCliStatus(statusData);
+      applyMutations(mutations, store);
       return;
     }
 
     // Handle CLI agent events
     if (data.type === "agent_event") {
       const cliData = data as CliEventPayload;
-      const sid = cliData.sessionId;
-      if (!sid) return;
-      const evt = cliData.event;
-      const backend = cliData.source === "cli-claude" ? "claude" : cliData.source === "cli-codex" ? "codex" : "sidecar";
-
-      if (!store.agentSessions.has(sid)) {
-        store.createSessionLocal(sid, "CLI Session", backend as any);
-      }
-
-      const eventType = evt.event_type;
-      const content = evt.content || "";
-      const meta = evt.metadata;
-
-      // Agent text (think events without tool metadata)
-      if (eventType === "think" && !meta?.tool) {
-        store.appendToSessionLastAssistant(sid, content);
-        return;
-      }
-
-      // Tool use / activity events
-      if (meta?.tool) {
-        const agentEvent = { timestamp: evt.timestamp, event_type: eventType as any, content, metadata: meta };
-        store.addSessionAgentEvent(sid, agentEvent);
-        store.upsertActivityLine(sid, agentEvent);
-        return;
-      }
-
-      // Result events
-      if (eventType === "result") {
-        store.setSessionWorking(sid, false);
-        store.finalizeActivityLine(sid);
-        store.insertRichCard(sid, "outcome", content, {
-          cost_usd: meta?.cost_usd,
-          input_tokens: meta?.input_tokens,
-          output_tokens: meta?.output_tokens,
-          duration_ms: meta?.duration_ms,
-        });
-        if (meta?.input_tokens || meta?.output_tokens) {
-          store.setSessionApiMetrics(sid, {
-            inputTokens: (meta.input_tokens as number) || 0,
-            outputTokens: (meta.output_tokens as number) || 0,
-            cacheCreationInputTokens: (meta.cache_creation_input_tokens as number) || 0,
-            cacheReadInputTokens: (meta.cache_read_input_tokens as number) || 0,
-            cost: (meta.cost_usd as number) || 0,
-            durationMs: (meta.duration_ms as number) || 0,
-            durationApiMs: (meta.duration_api_ms as number) || 0,
-          });
-        }
-        // Refresh pipeline state if active
-        const runId = useAppStore.getState().activePipelineRun?.pipelineRunId;
-        if (runId) {
-          useAppStore.getState().refreshPipelineRun(runId);
-        }
-        return;
-      }
-
-      // Error events
-      if (eventType === "error") {
-        store.setSessionError(sid, content);
-        store.insertRichCard(sid, "error", content, {});
-        return;
-      }
-
-      // Phase transition events
-      if (eventType === "phase_transition") {
-        // Gate events get the gate-prompt card type; others get outcome
-        const isGate = meta?.gate === "awaiting";
-        store.insertRichCard(sid, isGate ? "gate-prompt" : "outcome", content, meta || {});
-        // Refresh pipeline run state so PhaseIndicator stays current
-        const runId = (meta?.pipeline_run_id as string) || useAppStore.getState().activePipelineRun?.pipelineRunId;
-        if (runId) {
-          useAppStore.getState().refreshPipelineRun(runId);
-        }
-        return;
-      }
-
-      // Interaction request events (framework questions)
-      if (eventType === "interaction_request") {
-        store.insertRichCard(sid, "interaction", content, meta || {});
-        return;
-      }
-
+      if (!cliData.sessionId) return;
+      const activePipelineRunId = useAppStore.getState().activePipelineRun?.pipelineRunId ?? null;
+      const mutations = normalizeCliEvent(cliData, activePipelineRunId);
+      applyMutations(mutations, store);
       return;
     }
 
