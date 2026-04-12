@@ -2,56 +2,72 @@ import type { SliceCreator, ProjectSlice, Project } from "../types";
 import { commands } from "../../lib/tauri";
 
 const MAX_PROJECTS = 20;
-const PROJECTS_SETTING_KEY = "projects_list";
 
 export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
   projects: [],
   activeProjectId: null,
   currentView: "home",
 
-  addProject: (name, workspacePath, sessionId) => {
+  addProject: (name, workspacePath, _sessionId) => {
     const { projects } = get();
     if (projects.length >= MAX_PROJECTS) return;
 
-    const project: Project = {
-      id: crypto.randomUUID(),
-      name,
-      workspacePath,
-      activeSessionId: sessionId,
-      summary: "",
-      createdAt: new Date().toISOString(),
-      linkedRepoIds: [],
-      linkedSkillIds: [],
-      linkedAgentNames: [],
-    };
-
-    const next = [...projects, project];
-    set({ projects: next, activeProjectId: project.id, currentView: "conversation" });
-
-    // Persist async (fire-and-forget)
-    commands.saveSetting(PROJECTS_SETTING_KEY, JSON.stringify(next)).catch(() => {});
+    // Persist async (fire-and-forget), then update state from DB row
+    commands.createProject(name, workspacePath).then((row) => {
+      const project: Project = {
+        id: row.id,
+        name: row.name,
+        workspacePath: row.workspace_path,
+        activeSessionId: "",
+        summary: row.summary,
+        createdAt: row.created_at,
+        linkedRepoIds: [],
+        linkedSkillIds: [],
+        linkedAgentNames: [],
+      };
+      set((state) => ({
+        projects: [...state.projects, project],
+        activeProjectId: project.id,
+        currentView: "conversation",
+      }));
+    }).catch((err) => {
+      console.error("[vibe-os] Failed to create project:", err);
+    });
   },
 
   removeProject: (id) => {
-    const next = get().projects.filter((p) => p.id !== id);
-    set({ projects: next });
-    if (get().activeProjectId === id) {
-      set({ activeProjectId: null, currentView: "home" });
-    }
-    commands.saveSetting(PROJECTS_SETTING_KEY, JSON.stringify(next)).catch(() => {});
+    // Update state immediately, then persist deletion
+    set((state) => {
+      const next = state.projects.filter((p) => p.id !== id);
+      const wasActive = state.activeProjectId === id;
+      return {
+        projects: next,
+        ...(wasActive ? { activeProjectId: null, currentView: "home" as const } : {}),
+      };
+    });
+    commands.deleteProject(id).catch((err) => {
+      console.error("[vibe-os] Failed to delete project:", err);
+    });
   },
 
   clearAllProjects: () => {
+    const { projects } = get();
     set({ projects: [], activeProjectId: null, currentView: "home" });
-    commands.saveSetting(PROJECTS_SETTING_KEY, JSON.stringify([])).catch(() => {});
+    // Delete each project from DB (fire-and-forget)
+    for (const p of projects) {
+      commands.deleteProject(p.id).catch(() => {});
+    }
   },
 
   updateProjectSummary: (id, summary) => {
-    const next = get().projects.map((p) =>
-      p.id === id ? { ...p, summary } : p,
-    );
-    set({ projects: next });
-    commands.saveSetting(PROJECTS_SETTING_KEY, JSON.stringify(next)).catch(() => {});
+    set((state) => ({
+      projects: state.projects.map((p) =>
+        p.id === id ? { ...p, summary } : p,
+      ),
+    }));
+    commands.updateProject(id, undefined, summary).catch((err) => {
+      console.error("[vibe-os] Failed to update project summary:", err);
+    });
   },
 
   openProject: (id) => {
@@ -95,18 +111,24 @@ export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
 
   loadProjects: async () => {
     try {
-      const raw = await commands.getSetting(PROJECTS_SETTING_KEY);
-      if (raw) {
-        const projects: Project[] = JSON.parse(raw);
-        set({ projects });
-      }
+      const rows = await commands.listProjects();
+      const projects: Project[] = rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        workspacePath: row.workspace_path,
+        activeSessionId: "",
+        summary: row.summary,
+        createdAt: row.created_at,
+        linkedRepoIds: [],
+        linkedSkillIds: [],
+        linkedAgentNames: [],
+      }));
+      set({ projects });
     } catch {
       console.warn("[vibe-os] Failed to load projects");
     }
   },
 
-  saveProjects: async () => {
-    const { projects } = get();
-    await commands.saveSetting(PROJECTS_SETTING_KEY, JSON.stringify(projects));
-  },
+  // No-op: projects are now persisted on each mutation
+  saveProjects: async () => {},
 });

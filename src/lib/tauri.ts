@@ -451,6 +451,64 @@ export const commands = {
   detectAvailableClis: () =>
     invoke<CliInfo[]>("detect_available_clis"),
 
+  // ── Project commands ──
+  createProject: (name: string, workspacePath: string) =>
+    invoke<{ id: string; name: string; workspace_path: string; summary: string; created_at: string; updated_at: string }>("create_project", { name, workspacePath }),
+
+  listProjects: () =>
+    invoke<{ id: string; name: string; workspace_path: string; summary: string; created_at: string; updated_at: string }[]>("list_projects"),
+
+  updateProject: (id: string, name?: string, summary?: string) =>
+    invoke<void>("update_project", { id, name: name ?? null, summary: summary ?? null }),
+
+  deleteProject: (id: string) =>
+    invoke<void>("delete_project", { id }),
+
+  // ── Pipeline commands ──
+  createPipeline: (args: {
+    project_id: string;
+    name: string;
+    phases: {
+      label: string;
+      phase_type: string;
+      backend: string;
+      framework: string;
+      model: string;
+      custom_prompt: string | null;
+      gate_after: string;
+    }[];
+  }) => invoke<{ id: string; project_id: string; name: string; created_at: string; updated_at: string }>("create_pipeline", { args }),
+
+  getProjectPipeline: (projectId: string) =>
+    invoke<{ id: string; project_id: string; name: string; created_at: string; updated_at: string } | null>("get_project_pipeline", { projectId }),
+
+  getPipelinePhases: (pipelineId: string) =>
+    invoke<{ id: string; pipeline_id: string; position: number; label: string; phase_type: string; backend: string; framework: string; model: string; custom_prompt: string | null; gate_after: string }[]>("get_pipeline_phases", { pipelineId }),
+
+  updatePipelinePhases: (pipelineId: string, phases: {
+    label: string;
+    phase_type: string;
+    backend: string;
+    framework: string;
+    model: string;
+    custom_prompt: string | null;
+    gate_after: string;
+  }[]) => invoke<void>("update_pipeline_phases", { pipelineId, phases }),
+
+  deletePipeline: (pipelineId: string) =>
+    invoke<void>("delete_pipeline", { pipelineId }),
+
+  // ── Framework commands ──
+  listFrameworks: () =>
+    invoke<{
+      id: string;
+      name: string;
+      supported_backends: string[];
+      supported_phases: string[];
+      features: { visual_companion: boolean; interactive_questions: boolean };
+      phase_skills: Record<string, string>;
+    }[]>("list_frameworks"),
+
   // ── Agent definition commands ──
   saveAgentDefinition: (
     name: string,
