@@ -156,7 +156,15 @@ async function startListener() {
 
       // Phase transition events
       if (eventType === "phase_transition") {
-        store.insertRichCard(sid, "outcome", content, { ...meta, cardSubtype: "phase_transition" });
+        // Gate events get the gate-prompt card type; others get outcome
+        const isGate = meta?.gate === "awaiting";
+        store.insertRichCard(sid, isGate ? "gate-prompt" : "outcome", content, meta || {});
+        return;
+      }
+
+      // Interaction request events (framework questions)
+      if (eventType === "interaction_request") {
+        store.insertRichCard(sid, "interaction", content, meta || {});
         return;
       }
 
