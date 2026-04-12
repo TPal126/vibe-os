@@ -1200,31 +1200,71 @@ Add to `src-tauri/src/backends/mod.rs`:
 pub mod fake;
 ```
 
-- [ ] **Step 3: Add injectable adapter dispatch to WorkflowRunner**
+- [ ] **Step 3: Refactor WorkflowRunner into engine + Tauri layer**
 
-In `src-tauri/src/workflow/runner.rs`, refactor `start_phase` so the adapter selection is overridable. Add a method:
+The core design decision: **extract a `WorkflowEngine` that takes `&Connection` + an adapter factory closure**, separate from the Tauri-coupled `WorkflowRunner`. This is the test seam.
+
+In `src-tauri/src/workflow/runner.rs`:
+
+**Add `WorkflowEngine`** — a struct that holds `&Connection` and an adapter factory:
 
 ```rust
-impl WorkflowRunner {
-    /// Resolve a backend adapter by name. In production, returns Claude/Codex.
-    /// In tests, this can be overridden via `with_adapter_override`.
-    fn resolve_adapter(&self, backend: &str) -> Result<Box<dyn BackendAdapter>, String> {
-        #[cfg(any(test, feature = "test-fake"))]
-        if let Some(adapter) = &self.adapter_override {
-            return Ok(adapter.clone());  // or use a factory
+type AdapterFactory = Box<dyn Fn(&str) -> Result<Box<dyn BackendAdapter>, String> + Send + Sync>;
+
+/// Testable core engine. No Tauri dependency — takes &Connection directly.
+pub struct WorkflowEngine<'a> {
+    conn: &'a Connection,
+    adapter_factory: AdapterFactory,
+    app: Option<&'a AppHandle>,  // None in tests, Some in production
+}
+
+impl<'a> WorkflowEngine<'a> {
+    /// Production constructor — uses real adapters.
+    pub fn new(conn: &'a Connection, app: &'a AppHandle) -> Self {
+        Self {
+            conn,
+            adapter_factory: Box::new(|backend| match backend {
+                "claude" => Ok(Box::new(ClaudeAdapter) as Box<dyn BackendAdapter>),
+                "codex" => Ok(Box::new(CodexAdapter) as Box<dyn BackendAdapter>),
+                other => Err(format!("Unknown backend: {}", other)),
+            }),
+            app: Some(app),
         }
-        match backend {
-            "claude" => Ok(Box::new(ClaudeAdapter)),
-            "codex" => Ok(Box::new(CodexAdapter)),
-            other => Err(format!("Unknown backend: {}", other)),
-        }
+    }
+
+    /// Test constructor — injectable adapter factory, no AppHandle needed for DB-only operations.
+    #[cfg(any(test, feature = "test-fake"))]
+    pub fn for_test(conn: &'a Connection, factory: AdapterFactory) -> Self {
+        Self { conn, adapter_factory: factory, app: None }
     }
 }
 ```
 
-The simplest approach: add an `adapter_factory: Option<Box<dyn Fn(&str) -> Result<Box<dyn BackendAdapter>, String> + Send + Sync>>` field to `WorkflowRunner`, and a `pub fn with_adapter_factory(mut self, f: ...) -> Self` builder method. In `start_phase`, call `self.adapter_factory` if set, otherwise fall through to the hardcoded match.
+Move ALL the method bodies from `WorkflowRunner` into `WorkflowEngine`, replacing `self.app.state::<Mutex<Connection>>()` with `self.conn`. The adapter dispatch in `start_phase` calls `(self.adapter_factory)(backend)`.
 
-Read the current `runner.rs` to find the exact dispatch site (~line 181) and make it use `self.resolve_adapter(backend)` instead of the inline match.
+**Keep `WorkflowRunner`** as a thin Tauri layer:
+
+```rust
+pub struct WorkflowRunner { app: AppHandle }
+
+impl WorkflowRunner {
+    pub fn new(app: AppHandle) -> Self { Self { app } }
+
+    pub async fn start_pipeline(&self, pipeline_id: &str) -> Result<String, String> {
+        let db = self.app.state::<Mutex<Connection>>();
+        let conn = db.lock().map_err(|e| format!("DB lock: {}", e))?;
+        let engine = WorkflowEngine::new(&conn, &self.app);
+        engine.start_pipeline(pipeline_id)
+    }
+    // ... same pattern for other methods
+}
+```
+
+This means:
+- Production path unchanged (WorkflowRunner → WorkflowEngine with real adapters)
+- Tests construct `WorkflowEngine::for_test(&conn, factory)` with a FakeAdapter factory and an in-memory DB
+- No AppHandle needed for DB-only test scenarios (start_pipeline, on_phase_complete, advance_gate, get_run_status all work against the DB)
+- Adapter spawn is skipped in tests where `app` is None (the engine can early-return or no-op for the spawn call in test mode)
 
 - [ ] **Step 4: Verify with test feature**
 
@@ -1277,19 +1317,62 @@ git add src-tauri/test-fixtures/
 git commit -m "chore: add Rust workflow fixture files for integration tests"
 ```
 
-### Task 10: Create Rust test helpers that use real app code
+### Task 10: Extract inner command functions + create test helpers
 
 **Files:**
-- Create: `src-tauri/tests/test_helpers.rs`
 - Modify: `src-tauri/src/db.rs` — make `run_migrations` pub(crate)
+- Modify: `src-tauri/src/commands/project_commands.rs` — extract `create_project_db`, `delete_project_db` inner functions
+- Modify: `src-tauri/src/commands/pipeline_commands.rs` — extract `create_pipeline_db`, `get_pipeline_phases_db`, `delete_pipeline_db` inner functions
+- Create: `src-tauri/tests/test_helpers.rs`
 
-The test helpers use the **real** `db::run_migrations` function (not hand-copied SQL) so schema changes are automatically reflected in tests.
+The Tauri `#[tauri::command]` functions use `State<'_>` which isn't constructable in tests. Extract the core logic into plain functions that take `&Connection`, which the commands call and tests also call.
 
 - [ ] **Step 1: Make run_migrations accessible**
 
-In `src-tauri/src/db.rs`, change `fn run_migrations` from private to `pub(crate) fn run_migrations`. Read the file to find the function signature.
+In `src-tauri/src/db.rs`, change `fn run_migrations` to `pub(crate) fn run_migrations`.
 
-- [ ] **Step 2: Create test_helpers.rs**
+- [ ] **Step 2: Extract inner functions from project_commands.rs**
+
+In `src-tauri/src/commands/project_commands.rs`, extract the SQL logic:
+
+```rust
+/// Inner function callable from tests (no State<'_> dependency).
+pub fn create_project_db(conn: &Connection, name: &str, workspace_path: &str, summary: Option<&str>) -> Result<ProjectRow, String> {
+    let id = uuid::Uuid::new_v4().to_string();
+    let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+    let summary_val = summary.unwrap_or("");
+    conn.execute(
+        "INSERT INTO projects (id, name, workspace_path, summary, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
+        rusqlite::params![id, name, workspace_path, summary_val, now],
+    ).map_err(|e| format!("Insert failed: {}", e))?;
+    Ok(ProjectRow { id, name: name.to_string(), workspace_path: workspace_path.to_string(), summary: summary_val.to_string(), created_at: now.clone(), updated_at: now })
+}
+
+pub fn delete_project_db(conn: &Connection, id: &str) -> Result<(), String> {
+    // Same cascade logic as the existing delete_project command
+    conn.execute("DELETE FROM phase_run WHERE pipeline_run_id IN (SELECT id FROM pipeline_run WHERE pipeline_id IN (SELECT id FROM pipeline WHERE project_id = ?1))", [id]).map_err(|e| format!("{}", e))?;
+    conn.execute("DELETE FROM pipeline_run WHERE pipeline_id IN (SELECT id FROM pipeline WHERE project_id = ?1)", [id]).map_err(|e| format!("{}", e))?;
+    conn.execute("DELETE FROM pipeline_phase WHERE pipeline_id IN (SELECT id FROM pipeline WHERE project_id = ?1)", [id]).map_err(|e| format!("{}", e))?;
+    conn.execute("DELETE FROM pipeline WHERE project_id = ?1", [id]).map_err(|e| format!("{}", e))?;
+    conn.execute("DELETE FROM projects WHERE id = ?1", [id]).map_err(|e| format!("{}", e))?;
+    Ok(())
+}
+
+// The #[tauri::command] functions become thin wrappers:
+#[tauri::command]
+pub fn create_project(state: State<'_, DbState>, name: String, workspace_path: String) -> Result<ProjectRow, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    create_project_db(&conn, &name, &workspace_path, None)
+}
+```
+
+Do the same for `delete_project`. The key is that the inner `_db` functions are `pub` and take `&Connection`.
+
+- [ ] **Step 3: Extract inner functions from pipeline_commands.rs**
+
+Same pattern: extract `create_pipeline_db(conn, project_id, name, phases)`, `get_pipeline_phases_db(conn, pipeline_id)`, `delete_pipeline_db(conn, pipeline_id)`.
+
+- [ ] **Step 4: Create test_helpers.rs**
 
 ```rust
 //! Shared test utilities for Rust integration tests.
@@ -1352,84 +1435,73 @@ git add src-tauri/src/db.rs src-tauri/tests/test_helpers.rs
 git commit -m "chore: add Rust test helpers using real migration code"
 ```
 
-### Task 10.5: Pipeline persistence integration tests (calling real command logic)
+### Task 10.5: Pipeline persistence integration tests (calling REAL command functions)
 
 **Files:**
 - Create: `src-tauri/tests/pipeline_persistence_integration.rs`
 
-These tests exercise the same SQL patterns used by `project_commands.rs` and `pipeline_commands.rs`, not hand-copied scripts. They verify cascade behavior by using the same delete pattern as the real `delete_project` command.
+These tests call the **real** extracted `_db` inner functions from `project_commands` and `pipeline_commands`, not ad hoc SQL. This validates actual command behavior including edge cases in the real code.
 
 - [ ] **Step 1: Create pipeline_persistence_integration.rs**
 
 ```rust
 mod test_helpers;
 use test_helpers::*;
+use app_lib::commands::project_commands::{create_project_db, delete_project_db};
+use app_lib::commands::pipeline_commands::{create_pipeline_db, get_pipeline_phases_db, delete_pipeline_db, CreatePhaseArgs};
 
 #[test]
 fn test_create_pipeline_with_ordered_phases() {
     let conn = create_test_db();
-    let project_id = insert_test_project(&conn, "test-project");
-    let (pipeline_id, phase_ids) = insert_test_pipeline(
+    let project = create_project_db(&conn, "test-project", "/tmp/test", None).unwrap();
+
+    let pipeline = create_pipeline_db(
         &conn,
-        &project_id,
+        &project.id,
+        "Test Pipeline",
         &[
-            ("Ideation", "ideation", "claude", "superpowers", "opus", "gated"),
-            ("Planning", "planning", "codex", "native", "gpt-4.1", "auto"),
-            ("Execution", "execution", "claude", "gsd", "sonnet", "gated"),
+            CreatePhaseArgs { label: "Ideation".into(), phase_type: "ideation".into(), backend: "claude".into(), framework: "superpowers".into(), model: "opus".into(), custom_prompt: None, gate_after: "gated".into() },
+            CreatePhaseArgs { label: "Planning".into(), phase_type: "planning".into(), backend: "codex".into(), framework: "native".into(), model: "gpt-4.1".into(), custom_prompt: None, gate_after: "auto".into() },
+            CreatePhaseArgs { label: "Execution".into(), phase_type: "execution".into(), backend: "claude".into(), framework: "gsd".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "gated".into() },
         ],
-    );
+    ).unwrap();
 
-    assert_eq!(phase_ids.len(), 3);
-
-    // Verify phases are ordered correctly
-    let mut stmt = conn
-        .prepare("SELECT label, position, backend FROM pipeline_phase WHERE pipeline_id = ?1 ORDER BY position")
-        .unwrap();
-    let phases: Vec<(String, i32, String)> = stmt
-        .query_map([&pipeline_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect();
-
-    assert_eq!(phases[0], ("Ideation".into(), 0, "claude".into()));
-    assert_eq!(phases[1], ("Planning".into(), 1, "codex".into()));
-    assert_eq!(phases[2], ("Execution".into(), 2, "claude".into()));
+    let phases = get_pipeline_phases_db(&conn, &pipeline.id).unwrap();
+    assert_eq!(phases.len(), 3);
+    assert_eq!(phases[0].label, "Ideation");
+    assert_eq!(phases[0].position, 0);
+    assert_eq!(phases[0].backend, "claude");
+    assert_eq!(phases[1].label, "Planning");
+    assert_eq!(phases[1].backend, "codex");
+    assert_eq!(phases[2].label, "Execution");
+    assert_eq!(phases[2].position, 2);
 }
 
 #[test]
-fn test_delete_project_cascades_using_real_pattern() {
+fn test_delete_project_cascades_via_real_command() {
     let conn = create_test_db();
-    let project_id = insert_test_project(&conn, "cascade-test");
-    let (pipeline_id, phase_ids) = insert_test_pipeline(
+    let project = create_project_db(&conn, "cascade-test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(
         &conn,
-        &project_id,
-        &[("Phase 1", "ideation", "claude", "native", "sonnet", "auto")],
-    );
+        &project.id,
+        "Test",
+        &[CreatePhaseArgs { label: "Phase 1".into(), phase_type: "ideation".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() }],
+    ).unwrap();
 
-    // Add run data
+    // Add run data (this part uses direct SQL since run creation goes through the runner)
+    let phases = get_pipeline_phases_db(&conn, &pipeline.id).unwrap();
     let run_id = uuid::Uuid::new_v4().to_string();
     conn.execute(
         "INSERT INTO pipeline_run (id, pipeline_id, status, started_at) VALUES (?1, ?2, 'completed', '2026-04-12T00:00:00Z')",
-        rusqlite::params![run_id, pipeline_id],
+        rusqlite::params![run_id, pipeline.id],
     ).unwrap();
-
     conn.execute(
         "INSERT INTO phase_run (id, pipeline_run_id, phase_id, session_id, status, started_at) VALUES (?1, ?2, ?3, 'sess-1', 'completed', '2026-04-12T00:00:00Z')",
-        rusqlite::params![uuid::Uuid::new_v4().to_string(), run_id, phase_ids[0]],
+        rusqlite::params![uuid::Uuid::new_v4().to_string(), run_id, phases[0].id],
     ).unwrap();
 
-    // Use the same cascade delete pattern as project_commands::delete_project
-    conn.execute(
-        "DELETE FROM phase_run WHERE pipeline_run_id IN (SELECT id FROM pipeline_run WHERE pipeline_id IN (SELECT id FROM pipeline WHERE project_id = ?1))",
-        [&project_id],
-    ).unwrap();
-    conn.execute(
-        "DELETE FROM pipeline_run WHERE pipeline_id IN (SELECT id FROM pipeline WHERE project_id = ?1)",
-        [&project_id],
-    ).unwrap();
-    conn.execute("DELETE FROM pipeline_phase WHERE pipeline_id IN (SELECT id FROM pipeline WHERE project_id = ?1)", [&project_id]).unwrap();
-    conn.execute("DELETE FROM pipeline WHERE project_id = ?1", [&project_id]).unwrap();
-    conn.execute("DELETE FROM projects WHERE id = ?1", [&project_id]).unwrap();
+    // Call real delete_project_db — should cascade everything
+    delete_project_db(&conn, &project.id).unwrap();
 
     // Verify complete cleanup
     for table in &["projects", "pipeline", "pipeline_phase", "pipeline_run", "phase_run"] {
@@ -1440,24 +1512,25 @@ fn test_delete_project_cascades_using_real_pattern() {
 
 #[test]
 fn test_update_phases_replaces_all() {
-    let conn = create_test_db();
-    let project_id = insert_test_project(&conn, "replace-test");
-    let (pipeline_id, _) = insert_test_pipeline(
-        &conn,
-        &project_id,
-        &[
-            ("Old Phase 1", "ideation", "claude", "native", "sonnet", "auto"),
-            ("Old Phase 2", "execution", "claude", "native", "sonnet", "auto"),
-        ],
-    );
+    use app_lib::commands::pipeline_commands::update_pipeline_phases_db;
 
-    // Delete and re-insert (same pattern as update_pipeline_phases command)
-    conn.execute("DELETE FROM pipeline_phase WHERE pipeline_id = ?1", [&pipeline_id]).unwrap();
-    let new_phase_id = uuid::Uuid::new_v4().to_string();
-    conn.execute(
-        "INSERT INTO pipeline_phase (id, pipeline_id, position, label, phase_type, backend, framework, model, gate_after)
-         VALUES (?1, ?2, 0, 'New Single Phase', 'verification', 'codex', 'native', 'gpt-4.1', 'gated')",
-        rusqlite::params![new_phase_id, pipeline_id],
+    let conn = create_test_db();
+    let project = create_project_db(&conn, "replace-test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(
+        &conn,
+        &project.id,
+        "Test",
+        &[
+            CreatePhaseArgs { label: "Old Phase 1".into(), phase_type: "ideation".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+            CreatePhaseArgs { label: "Old Phase 2".into(), phase_type: "execution".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+        ],
+    ).unwrap();
+
+    // Call real update function
+    update_pipeline_phases_db(
+        &conn,
+        &pipeline.id,
+        &[CreatePhaseArgs { label: "New Single Phase".into(), phase_type: "verification".into(), backend: "codex".into(), framework: "native".into(), model: "gpt-4.1".into(), custom_prompt: None, gate_after: "gated".into() }],
     ).unwrap();
 
     let count: i32 = conn.query_row(
@@ -1489,29 +1562,209 @@ git commit -m "test: add pipeline persistence integration tests using real comma
 **Files:**
 - Create: `src-tauri/tests/workflow_runner_integration.rs`
 
-This is the highest-value Rust test in Phase A. It tests the real WorkflowRunner methods (`start_pipeline`, `on_phase_complete`, `advance_gate`, `get_run_status`) against a temp SQLite DB. The FakeAdapter is injected via the adapter factory seam added in Task 8.
+This is the highest-value Rust test in Phase A. It tests the real `WorkflowEngine` methods (`start_pipeline`, `on_phase_complete`, `advance_gate`, `get_run_status`) against a temp SQLite DB with an injected FakeAdapter factory.
 
-**NOTE:** These tests require the WorkflowRunner to be usable without a full Tauri AppHandle. The implementer should check whether WorkflowRunner methods can be extracted to accept `&Connection` directly (for test simplicity) or if a test AppHandle wrapper is needed. If AppHandle is required and can't be easily constructed in tests, the implementer should refactor the relevant runner methods to accept `&Connection` as a parameter, with the Tauri command layer calling them with the managed state.
+**Test seam (decided in Task 8):** Task 8 extracted `WorkflowEngine` from `WorkflowRunner`. The engine takes `&Connection` directly (no `AppHandle`) and an `adapter_factory` closure. Tests use `WorkflowEngine::for_test(&conn, factory)` where the factory returns a `FakeAdapter` for any backend name. The FakeAdapter's `spawn()` is a no-op in these tests (we're testing DB state transitions, not event emission).
 
 - [ ] **Step 1: Create workflow_runner_integration.rs**
 
-The tests should cover:
+```rust
+mod test_helpers;
+use test_helpers::*;
+use app_lib::workflow::runner::{WorkflowEngine, PipelineRunStatus};
+use app_lib::commands::project_commands::create_project_db;
+use app_lib::commands::pipeline_commands::{create_pipeline_db, CreatePhaseArgs};
+use app_lib::backends::fake::{FakeAdapter, FakeScenario};
+use app_lib::backends::BackendAdapter;
 
-1. **start_pipeline creates run + first phase_run** — Insert a project + pipeline + phases via test helpers. Call the runner's start_pipeline logic. Assert pipeline_run row exists with status "running", first phase_run exists with status "running".
+fn noop_factory() -> Box<dyn Fn(&str) -> Result<Box<dyn BackendAdapter>, String> + Send + Sync> {
+    Box::new(|_backend| {
+        // FakeAdapter with empty events — spawn is a no-op
+        Ok(Box::new(FakeAdapter::new(FakeScenario { events: vec![], source: "cli-claude".into() })))
+    })
+}
 
-2. **on_phase_complete with auto gate advances to next phase** — Set up a running phase_run, call on_phase_complete. Assert the phase is marked "completed" and the next phase_run is created with status "running".
+#[test]
+fn test_start_pipeline_creates_run_and_first_phase() {
+    let conn = create_test_db();
+    let project = create_project_db(&conn, "test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(&conn, &project.id, "Test", &[
+        CreatePhaseArgs { label: "Ideation".into(), phase_type: "ideation".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+        CreatePhaseArgs { label: "Execution".into(), phase_type: "execution".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "gated".into() },
+    ]).unwrap();
 
-3. **on_phase_complete with gated gate stops at awaiting_gate** — Same setup but with `gate_after = "gated"`. Assert phase status becomes "awaiting_gate" and no new phase_run is created.
+    let engine = WorkflowEngine::for_test(&conn, noop_factory());
+    let run_id = engine.start_pipeline(&pipeline.id).unwrap();
 
-4. **advance_gate starts next phase** — Set up an "awaiting_gate" phase_run. Call advance_gate. Assert the phase is completed and the next phase_run is created.
+    // Verify pipeline_run created
+    let status: String = conn.query_row("SELECT status FROM pipeline_run WHERE id = ?1", [&run_id], |r| r.get(0)).unwrap();
+    assert_eq!(status, "running");
 
-5. **final phase completion completes the pipeline run** — Set up a pipeline with only one phase remaining. Complete it. Assert pipeline_run status becomes "completed".
+    // Verify first phase_run created
+    let phase_status: String = conn.query_row(
+        "SELECT status FROM phase_run WHERE pipeline_run_id = ?1", [&run_id], |r| r.get(0),
+    ).unwrap();
+    assert_eq!(phase_status, "running");
+}
 
-6. **get_run_status returns correct current and completed phases** — Set up a run with some completed and one running phase. Assert the returned status matches.
+#[test]
+fn test_on_phase_complete_auto_advances() {
+    let conn = create_test_db();
+    let project = create_project_db(&conn, "test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(&conn, &project.id, "Test", &[
+        CreatePhaseArgs { label: "Phase 1".into(), phase_type: "ideation".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+        CreatePhaseArgs { label: "Phase 2".into(), phase_type: "execution".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+    ]).unwrap();
 
-7. **unknown backend produces failed phase** — Set up a phase with backend "nonexistent". Start it. Assert phase_run status is "failed".
+    let engine = WorkflowEngine::for_test(&conn, noop_factory());
+    let run_id = engine.start_pipeline(&pipeline.id).unwrap();
 
-The implementer should read `src-tauri/src/workflow/runner.rs` to understand the exact method signatures and determine how to call them from tests (either extracting DB-only methods or constructing a minimal test harness).
+    // Find the running phase_run
+    let (phase_run_id,): (String,) = conn.query_row(
+        "SELECT id FROM phase_run WHERE pipeline_run_id = ?1 AND status = 'running'",
+        [&run_id], |r| Ok((r.get(0)?,)),
+    ).unwrap();
+
+    // Complete it
+    engine.on_phase_complete(&run_id, &phase_run_id).unwrap();
+
+    // Phase 1 should be completed
+    let p1_status: String = conn.query_row("SELECT status FROM phase_run WHERE id = ?1", [&phase_run_id], |r| r.get(0)).unwrap();
+    assert_eq!(p1_status, "completed");
+
+    // Phase 2 should be running (auto-advanced)
+    let p2_count: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM phase_run WHERE pipeline_run_id = ?1 AND status = 'running'",
+        [&run_id], |r| r.get(0),
+    ).unwrap();
+    assert_eq!(p2_count, 1);
+}
+
+#[test]
+fn test_on_phase_complete_gated_stops() {
+    let conn = create_test_db();
+    let project = create_project_db(&conn, "test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(&conn, &project.id, "Test", &[
+        CreatePhaseArgs { label: "Phase 1".into(), phase_type: "ideation".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "gated".into() },
+        CreatePhaseArgs { label: "Phase 2".into(), phase_type: "execution".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+    ]).unwrap();
+
+    let engine = WorkflowEngine::for_test(&conn, noop_factory());
+    let run_id = engine.start_pipeline(&pipeline.id).unwrap();
+
+    let (phase_run_id,): (String,) = conn.query_row(
+        "SELECT id FROM phase_run WHERE pipeline_run_id = ?1 AND status = 'running'",
+        [&run_id], |r| Ok((r.get(0)?,)),
+    ).unwrap();
+
+    engine.on_phase_complete(&run_id, &phase_run_id).unwrap();
+
+    // Phase 1 should be awaiting_gate
+    let p1_status: String = conn.query_row("SELECT status FROM phase_run WHERE id = ?1", [&phase_run_id], |r| r.get(0)).unwrap();
+    assert_eq!(p1_status, "awaiting_gate");
+
+    // No Phase 2 running yet
+    let running: i32 = conn.query_row(
+        "SELECT COUNT(*) FROM phase_run WHERE pipeline_run_id = ?1 AND status = 'running'",
+        [&run_id], |r| r.get(0),
+    ).unwrap();
+    assert_eq!(running, 0);
+}
+
+#[test]
+fn test_advance_gate_starts_next_phase() {
+    let conn = create_test_db();
+    let project = create_project_db(&conn, "test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(&conn, &project.id, "Test", &[
+        CreatePhaseArgs { label: "Phase 1".into(), phase_type: "ideation".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "gated".into() },
+        CreatePhaseArgs { label: "Phase 2".into(), phase_type: "execution".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+    ]).unwrap();
+
+    let engine = WorkflowEngine::for_test(&conn, noop_factory());
+    let run_id = engine.start_pipeline(&pipeline.id).unwrap();
+
+    let (pr_id,): (String,) = conn.query_row(
+        "SELECT id FROM phase_run WHERE pipeline_run_id = ?1 AND status = 'running'",
+        [&run_id], |r| Ok((r.get(0)?,)),
+    ).unwrap();
+
+    // Complete → awaiting_gate
+    engine.on_phase_complete(&run_id, &pr_id).unwrap();
+
+    // Advance gate
+    engine.advance_gate(&run_id).unwrap();
+
+    // Phase 2 should now be running
+    let running_label: String = conn.query_row(
+        "SELECT pp.label FROM phase_run pr JOIN pipeline_phase pp ON pr.phase_id = pp.id WHERE pr.pipeline_run_id = ?1 AND pr.status = 'running'",
+        [&run_id], |r| r.get(0),
+    ).unwrap();
+    assert_eq!(running_label, "Phase 2");
+}
+
+#[test]
+fn test_final_phase_completes_pipeline() {
+    let conn = create_test_db();
+    let project = create_project_db(&conn, "test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(&conn, &project.id, "Test", &[
+        CreatePhaseArgs { label: "Only Phase".into(), phase_type: "execution".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+    ]).unwrap();
+
+    let engine = WorkflowEngine::for_test(&conn, noop_factory());
+    let run_id = engine.start_pipeline(&pipeline.id).unwrap();
+
+    let (pr_id,): (String,) = conn.query_row(
+        "SELECT id FROM phase_run WHERE pipeline_run_id = ?1 AND status = 'running'",
+        [&run_id], |r| Ok((r.get(0)?,)),
+    ).unwrap();
+
+    engine.on_phase_complete(&run_id, &pr_id).unwrap();
+
+    let run_status: String = conn.query_row("SELECT status FROM pipeline_run WHERE id = ?1", [&run_id], |r| r.get(0)).unwrap();
+    assert_eq!(run_status, "completed");
+}
+
+#[test]
+fn test_get_run_status_returns_phases() {
+    let conn = create_test_db();
+    let project = create_project_db(&conn, "test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(&conn, &project.id, "Test", &[
+        CreatePhaseArgs { label: "Phase 1".into(), phase_type: "ideation".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+        CreatePhaseArgs { label: "Phase 2".into(), phase_type: "execution".into(), backend: "claude".into(), framework: "native".into(), model: "sonnet".into(), custom_prompt: None, gate_after: "auto".into() },
+    ]).unwrap();
+
+    let engine = WorkflowEngine::for_test(&conn, noop_factory());
+    let run_id = engine.start_pipeline(&pipeline.id).unwrap();
+
+    let status = engine.get_run_status(&run_id).unwrap();
+    assert_eq!(status.status, "running");
+    assert!(status.current_phase.is_some());
+    assert_eq!(status.current_phase.unwrap().label, "Phase 1");
+}
+
+#[test]
+fn test_unknown_backend_fails_phase() {
+    let conn = create_test_db();
+    let project = create_project_db(&conn, "test", "/tmp/test", None).unwrap();
+    let pipeline = create_pipeline_db(&conn, &project.id, "Test", &[
+        CreatePhaseArgs { label: "Bad Phase".into(), phase_type: "ideation".into(), backend: "nonexistent".into(), framework: "native".into(), model: "x".into(), custom_prompt: None, gate_after: "auto".into() },
+    ]).unwrap();
+
+    // Factory that rejects unknown backends
+    let strict_factory: Box<dyn Fn(&str) -> Result<Box<dyn BackendAdapter>, String> + Send + Sync> =
+        Box::new(|backend| Err(format!("Unknown backend: {}", backend)));
+
+    let engine = WorkflowEngine::for_test(&conn, strict_factory);
+    let run_id = engine.start_pipeline(&pipeline.id).unwrap();
+
+    // Phase should be marked failed
+    let phase_status: String = conn.query_row(
+        "SELECT status FROM phase_run WHERE pipeline_run_id = ?1",
+        [&run_id], |r| r.get(0),
+    ).unwrap();
+    assert_eq!(phase_status, "failed");
+}
+```
 
 - [ ] **Step 2: Run tests**
 
