@@ -309,18 +309,18 @@ export const commands = {
     message: string;
     system_prompt?: string;
     conversation_id?: string;
-    claude_session_id: string;
+    agent_session_id: string;
   }) => invoke<string>("start_claude", { args }),
 
   sendMessage: (args: {
     message: string;
     conversationId: string;
     workingDir: string;
-    claudeSessionId: string;
+    agentSessionId: string;
   }) => invoke<string>("send_message", args),
 
-  cancelClaude: (claudeSessionId: string) =>
-    invoke<void>("cancel_claude", { claudeSessionId }),
+  cancelClaude: (agentSessionId: string) =>
+    invoke<void>("cancel_claude", { agentSessionId }),
 
   listClaudeCodeSessions: () =>
     invoke<ClaudeCodeSessionInfo[]>("list_claude_code_sessions"),
