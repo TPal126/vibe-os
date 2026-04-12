@@ -14,8 +14,8 @@ use super::db_commands::DbState;
 
 // ── Process State ──
 
-/// Managed state for active Claude CLI processes.
-/// Key: claude_session_id, Value: the Child handle.
+/// Managed state for active CLI processes.
+/// Key: agent_session_id, Value: the Child handle.
 pub type ClaudeProcesses = Arc<TokioMutex<HashMap<String, Child>>>;
 
 #[derive(Debug, Deserialize)]
@@ -24,7 +24,7 @@ pub struct StartClaudeArgs {
     pub message: String,
     pub system_prompt: Option<String>,
     pub conversation_id: Option<String>,
-    pub claude_session_id: String,
+    pub agent_session_id: String,
 }
 
 // ── Commands ──
@@ -89,7 +89,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
     // Log the command for debugging
     eprintln!("[vibe-os] Spawning claude CLI: claude {}", cli_args.join(" "));
     eprintln!("[vibe-os] Working dir: {}", &args.working_dir);
-    eprintln!("[vibe-os] Session ID: {}", &args.claude_session_id);
+    eprintln!("[vibe-os] Session ID: {}", &args.agent_session_id);
 
     // Spawn the process using std::process::Command for reliable PATH resolution
     let mut child = Command::new("claude")
@@ -109,15 +109,15 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
-    // Store the child handle keyed by claude_session_id
+    // Store the child handle keyed by agent_session_id
     let processes = get_or_init_processes(&app);
-    let claude_sid = args.claude_session_id.clone();
+    let session_id = args.agent_session_id.clone();
     {
         let mut procs = processes.lock().await;
-        procs.insert(claude_sid.clone(), child);
+        procs.insert(session_id.clone(), child);
     }
 
-    update_session_status_in_db(&app, &claude_sid, "active");
+    update_session_status_in_db(&app, &session_id, "active");
 
     // Emit a "working" event to signal the frontend
     let _ = app.emit(
@@ -126,14 +126,14 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
             "type": "status",
             "status": "working",
             "invocation_id": &invocation_id,
-            "claude_session_id": &claude_sid,
+            "agent_session_id": &session_id,
         }),
     );
 
     // Spawn a background thread to read stdout line by line
     let app_handle = app.clone();
     let inv_id = invocation_id.clone();
-    let claude_sid_stdout = claude_sid.clone();
+    let claude_sid_stdout = session_id.clone();
     let processes_clone = processes.clone();
     let working_dir_for_index = args.working_dir.clone();
 
@@ -163,7 +163,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
             // Accumulate partial JSON if needed
             line_buffer.push_str(&line);
 
-            // Parse via event_stream, then tag with claude_session_id
+            // Parse via event_stream, then tag with agent_session_id
             let agent_event = event_stream::parse_event(&line_buffer)
                 .with_session_id(&claude_sid_stdout);
             line_buffer.clear();
@@ -234,7 +234,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                 "type": "status",
                 "status": "done",
                 "invocation_id": &inv_id,
-                "claude_session_id": &claude_sid_stdout,
+                "agent_session_id": &claude_sid_stdout,
                 "exit_code": exit_code,
             }),
         );
@@ -244,7 +244,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
 
     // Spawn a background thread to read stderr
     let app_handle_err = app.clone();
-    let claude_sid_stderr = claude_sid.clone();
+    let claude_sid_stderr = session_id.clone();
 
     std::thread::spawn(move || {
         let reader = BufReader::new(stderr);
@@ -278,7 +278,7 @@ pub async fn send_message(
     message: String,
     conversation_id: String,
     working_dir: String,
-    claude_session_id: String,
+    agent_session_id: String,
 ) -> Result<String, String> {
     start_claude(
         app,
@@ -287,7 +287,7 @@ pub async fn send_message(
             message,
             system_prompt: None,
             conversation_id: Some(conversation_id),
-            claude_session_id,
+            agent_session_id,
         },
     )
     .await
@@ -295,11 +295,11 @@ pub async fn send_message(
 
 /// Cancel a running Claude CLI invocation by killing the process.
 #[tauri::command]
-pub async fn cancel_claude(app: AppHandle, claude_session_id: String) -> Result<(), String> {
+pub async fn cancel_claude(app: AppHandle, agent_session_id: String) -> Result<(), String> {
     let processes = get_or_init_processes(&app);
     let mut procs = processes.lock().await;
 
-    if let Some(mut child) = procs.remove(&claude_session_id) {
+    if let Some(mut child) = procs.remove(&agent_session_id) {
         child
             .kill()
             .map_err(|e| format!("Failed to kill claude process: {}", e))?;
@@ -309,16 +309,16 @@ pub async fn cancel_claude(app: AppHandle, claude_session_id: String) -> Result<
             serde_json::json!({
                 "type": "status",
                 "status": "cancelled",
-                "claude_session_id": &claude_session_id,
+                "agent_session_id": &agent_session_id,
             }),
         );
 
-        update_session_status_in_db(&app, &claude_session_id, "idle");
+        update_session_status_in_db(&app, &agent_session_id, "idle");
         Ok(())
     } else {
         Err(format!(
-            "No active process for claude session: {}",
-            claude_session_id
+            "No active process for agent session: {}",
+            agent_session_id
         ))
     }
 }
@@ -416,7 +416,7 @@ pub async fn list_claude_code_sessions() -> Result<Vec<ClaudeCodeSession>, Strin
 pub async fn attach_claude_code_session(
     app: AppHandle,
     session_id: String,
-    claude_session_id: String,
+    agent_session_id: String,
 ) -> Result<String, String> {
     let invocation_id = uuid::Uuid::new_v4().to_string();
 
@@ -439,15 +439,15 @@ pub async fn attach_claude_code_session(
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
-    // Store the child handle keyed by claude_session_id
+    // Store the child handle keyed by agent_session_id
     let processes = get_or_init_processes(&app);
-    let claude_sid = claude_session_id.clone();
+    let agent_sid = agent_session_id.clone();
     {
         let mut procs = processes.lock().await;
-        procs.insert(claude_sid.clone(), child);
+        procs.insert(agent_sid.clone(), child);
     }
 
-    update_session_status_in_db(&app, &claude_sid, "active");
+    update_session_status_in_db(&app, &agent_sid, "active");
 
     let _ = app.emit(
         "claude-stream",
@@ -455,14 +455,14 @@ pub async fn attach_claude_code_session(
             "type": "status",
             "status": "working",
             "invocation_id": &invocation_id,
-            "claude_session_id": &claude_sid,
+            "agent_session_id": &agent_sid,
         }),
     );
 
     // Spawn stdout reader thread (same pattern as start_claude)
     let app_handle = app.clone();
     let inv_id = invocation_id.clone();
-    let claude_sid_stdout = claude_sid.clone();
+    let claude_sid_stdout = agent_sid.clone();
     let processes_clone = processes.clone();
 
     std::thread::spawn(move || {
@@ -519,7 +519,7 @@ pub async fn attach_claude_code_session(
                 "type": "status",
                 "status": "done",
                 "invocation_id": &inv_id,
-                "claude_session_id": &claude_sid_stdout,
+                "agent_session_id": &claude_sid_stdout,
                 "exit_code": exit_code,
             }),
         );
@@ -529,7 +529,7 @@ pub async fn attach_claude_code_session(
 
     // Spawn stderr reader thread
     let app_handle_err = app.clone();
-    let claude_sid_stderr = claude_sid.clone();
+    let claude_sid_stderr = agent_sid.clone();
 
     std::thread::spawn(move || {
         let reader = BufReader::new(stderr);
