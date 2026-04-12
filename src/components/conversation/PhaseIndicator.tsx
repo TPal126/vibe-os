@@ -1,11 +1,55 @@
+import { useState } from "react";
 import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
-import { CheckCircle, Circle, Loader, PauseCircle } from "lucide-react";
+import { commands } from "../../lib/tauri";
+import { CheckCircle, Circle, Loader, PauseCircle, Play } from "lucide-react";
 
 export function PhaseIndicator() {
-  const activePipelineRun = useAppStore(useShallow((s) => s.activePipelineRun));
+  const { activePipelineRun, activeProjectId, startPipelineRun } = useAppStore(
+    useShallow((s) => ({
+      activePipelineRun: s.activePipelineRun,
+      activeProjectId: s.activeProjectId,
+      startPipelineRun: s.startPipelineRun,
+    })),
+  );
+  const [starting, setStarting] = useState(false);
 
-  if (!activePipelineRun) return null;
+  // When no active run, offer a "Run Pipeline" button if a project pipeline exists
+  if (!activePipelineRun) {
+    if (!activeProjectId) return null;
+
+    const handleStart = async () => {
+      setStarting(true);
+      try {
+        const pipeline = await commands.getProjectPipeline(activeProjectId);
+        if (pipeline) {
+          await startPipelineRun(pipeline.id);
+        }
+      } catch (err) {
+        console.error("[vibe-os] Failed to start pipeline:", err);
+      } finally {
+        setStarting(false);
+      }
+    };
+
+    return (
+      <div className="flex items-center gap-2 px-4 py-1.5 bg-v-surface/50 border-b border-v-border">
+        <span className="text-[10px] text-v-dim mr-1">Pipeline:</span>
+        <button
+          onClick={handleStart}
+          disabled={starting}
+          className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono text-v-accent hover:text-v-accentHi bg-v-surface border border-v-accent/30 hover:border-v-accent transition-colors disabled:opacity-50"
+        >
+          {starting ? (
+            <Loader size={10} className="animate-spin" />
+          ) : (
+            <Play size={10} />
+          )}
+          {starting ? "Starting..." : "Run Pipeline"}
+        </button>
+      </div>
+    );
+  }
 
   const allPhases = [
     ...activePipelineRun.completedPhases.map((p) => ({ ...p, isCurrent: false })),
