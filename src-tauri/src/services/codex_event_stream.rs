@@ -88,11 +88,29 @@ fn classify_event(evt: CodexEvent) -> AgentEvent {
             }
         }
         "turn.completed" => {
-            let metadata = serde_json::json!({
-                "input_tokens": evt.usage.as_ref().and_then(|u| u.input_tokens),
-                "cached_input_tokens": evt.usage.as_ref().and_then(|u| u.cached_input_tokens),
-                "output_tokens": evt.usage.as_ref().and_then(|u| u.output_tokens),
-            });
+            let metadata = if let Some(ref usage) = evt.usage {
+                serde_json::json!({
+                    "input_tokens": usage.input_tokens,
+                    "output_tokens": usage.output_tokens,
+                    "cached_input_tokens": usage.cached_input_tokens,
+                    "cache_creation_input_tokens": null,
+                    "cache_read_input_tokens": usage.cached_input_tokens,
+                    "cost_usd": null,
+                    "duration_ms": null,
+                    "duration_api_ms": null,
+                })
+            } else {
+                serde_json::json!({
+                    "input_tokens": null,
+                    "output_tokens": null,
+                    "cached_input_tokens": null,
+                    "cache_creation_input_tokens": null,
+                    "cache_read_input_tokens": null,
+                    "cost_usd": null,
+                    "duration_ms": null,
+                    "duration_api_ms": null,
+                })
+            };
             make_event(AgentEventType::Result, String::new(), Some(metadata))
         }
         "error" => {
@@ -316,6 +334,13 @@ mod tests {
         assert_eq!(meta["input_tokens"], 10884);
         assert_eq!(meta["cached_input_tokens"], 9600);
         assert_eq!(meta["output_tokens"], 5);
+        // cache_read_input_tokens mirrors cached_input_tokens
+        assert_eq!(meta["cache_read_input_tokens"], 9600);
+        // Fields present but null (Codex doesn't report these)
+        assert!(meta["cache_creation_input_tokens"].is_null());
+        assert!(meta["cost_usd"].is_null());
+        assert!(meta["duration_ms"].is_null());
+        assert!(meta["duration_api_ms"].is_null());
     }
 
     #[test]
