@@ -1,0 +1,8 @@
+{
+  "events": [
+    { "type": "status", "status": "working" },
+    { "type": "agent_event", "event": { "event_type": "think", "content": "Working on phase..." } },
+    { "type": "agent_event", "event": { "event_type": "result", "content": "Phase complete.", "metadata": { "input_tokens": 200, "output_tokens": 100 } } },
+    { "type": "status", "status": "done" }
+  ]
+}
