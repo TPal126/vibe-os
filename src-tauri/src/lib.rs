@@ -73,6 +73,11 @@ pub fn run() {
             // Register sidecar state
             app.manage(Arc::new(TokioMutex::new(None::<services::sidecar::SidecarProcess>)));
 
+            // Register backend process registry
+            app.manage(Arc::new(TokioMutex::new(
+                std::collections::HashMap::<String, std::process::Child>::new(),
+            )));
+
             // Copy bundled skill files to ~/.vibe-os/skills/ on first launch
             let home = dirs::home_dir().expect("Cannot determine home directory");
             let skills_dir = home.join(".vibe-os").join("skills");

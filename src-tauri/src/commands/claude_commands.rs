@@ -57,7 +57,7 @@ pub async fn validate_claude_cli() -> Result<String, String> {
 
 /// Start a Claude CLI invocation. Spawns `claude -p --output-format stream-json`
 /// as a child process, reads stdout in a background thread, parses events,
-/// and emits them as 'claude-stream' Tauri events.
+/// and emits them as 'agent-stream' Tauri events.
 ///
 /// Returns an invocation_id that can be used to cancel.
 #[tauri::command]
@@ -121,7 +121,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
 
     // Emit a "working" event to signal the frontend
     let _ = app.emit(
-        "claude-stream",
+        "agent-stream",
         serde_json::json!({
             "type": "status",
             "status": "working",
@@ -211,7 +211,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
             }
 
             log_to_audit(&app_handle, &agent_event);
-            let _ = app_handle.emit("claude-stream", &agent_event);
+            let _ = app_handle.emit("agent-stream", &agent_event);
         }
 
         // Process terminated — emit done status
@@ -229,7 +229,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
         };
 
         let _ = app_handle.emit(
-            "claude-stream",
+            "agent-stream",
             serde_json::json!({
                 "type": "status",
                 "status": "done",
@@ -264,7 +264,7 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                 metadata: None,
                 agent_session_id: Some(claude_sid_stderr.clone()),
             };
-            let _ = app_handle_err.emit("claude-stream", &error_event);
+            let _ = app_handle_err.emit("agent-stream", &error_event);
         }
     });
 
@@ -305,7 +305,7 @@ pub async fn cancel_claude(app: AppHandle, agent_session_id: String) -> Result<(
             .map_err(|e| format!("Failed to kill claude process: {}", e))?;
 
         let _ = app.emit(
-            "claude-stream",
+            "agent-stream",
             serde_json::json!({
                 "type": "status",
                 "status": "cancelled",
@@ -450,7 +450,7 @@ pub async fn attach_claude_code_session(
     update_session_status_in_db(&app, &agent_sid, "active");
 
     let _ = app.emit(
-        "claude-stream",
+        "agent-stream",
         serde_json::json!({
             "type": "status",
             "status": "working",
@@ -498,7 +498,7 @@ pub async fn attach_claude_code_session(
             }
 
             log_to_audit(&app_handle, &agent_event);
-            let _ = app_handle.emit("claude-stream", &agent_event);
+            let _ = app_handle.emit("agent-stream", &agent_event);
         }
 
         let exit_code = {
@@ -514,7 +514,7 @@ pub async fn attach_claude_code_session(
         };
 
         let _ = app_handle.emit(
-            "claude-stream",
+            "agent-stream",
             serde_json::json!({
                 "type": "status",
                 "status": "done",
@@ -549,7 +549,7 @@ pub async fn attach_claude_code_session(
                 metadata: None,
                 agent_session_id: Some(claude_sid_stderr.clone()),
             };
-            let _ = app_handle_err.emit("claude-stream", &error_event);
+            let _ = app_handle_err.emit("agent-stream", &error_event);
         }
     });
 
