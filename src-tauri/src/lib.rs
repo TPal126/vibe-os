@@ -2,10 +2,12 @@ use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use tokio::sync::Mutex as TokioMutex;
 
+mod backends;
 mod commands;
 mod db;
 mod graph;
 mod services;
+mod workflow;
 
 use commands::agent_commands;
 use commands::agent_commands_v2;
@@ -212,6 +214,8 @@ pub fn run() {
             pipeline_commands::get_pipeline_phases,
             pipeline_commands::update_pipeline_phases,
             pipeline_commands::delete_pipeline,
+            // Backend commands
+            backends::list_frameworks,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
