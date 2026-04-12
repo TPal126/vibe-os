@@ -277,7 +277,7 @@ export interface ApiMetrics {
   durationApiMs: number;
 }
 
-export interface ClaudeTask {
+export interface AgentTask {
   id: string;
   subject: string;
   description: string;
@@ -308,9 +308,10 @@ export interface ChatMessage {
   cardData?: Record<string, unknown>;
 }
 
-export interface ClaudeSessionState {
+export interface AgentSessionState {
   id: string;
   name: string;
+  backend: "claude" | "codex" | "sidecar";
   chatMessages: ChatMessage[];
   agentEvents: AgentEvent[];
   isWorking: boolean;
@@ -328,24 +329,24 @@ export interface ClaudeSessionState {
   buildStatus: BuildStatus;
   buildStatusText: string | null;
   apiMetrics: ApiMetrics | null;
-  tasks: ClaudeTask[];
+  tasks: AgentTask[];
 }
 
 export interface AgentSlice {
   // CLI availability
-  claudeCliAvailable: boolean | null;
-  claudeCliError: string | null;
-  validateClaudeCli: () => Promise<void>;
+  cliAvailable: Record<string, boolean | null>;
+  cliError: Record<string, string | null>;
+  validateCli: (backend?: string) => Promise<void>;
 
   // Per-session state
-  claudeSessions: Map<string, ClaudeSessionState>;
-  activeClaudeSessionId: string | null;
+  agentSessions: Map<string, AgentSessionState>;
+  activeSessionId: string | null;
 
   // Session lifecycle
-  createClaudeSessionLocal: (id: string, name: string) => void;
-  removeClaudeSession: (id: string) => void;
-  setActiveClaudeSessionId: (id: string | null) => void;
-  renameClaudeSession: (id: string, name: string) => void;
+  createSessionLocal: (id: string, name: string, backend?: "claude" | "codex" | "sidecar") => void;
+  removeSession: (id: string) => void;
+  setActiveSessionId: (id: string | null) => void;
+  renameSession: (id: string, name: string) => void;
 
   // Session-scoped mutations
   addSessionChatMessage: (sessionId: string, message: ChatMessage) => void;
@@ -374,8 +375,8 @@ export interface AgentSlice {
   setSessionApiMetrics: (sessionId: string, metrics: ApiMetrics) => void;
 
   // Task tracking
-  upsertSessionTask: (sessionId: string, task: ClaudeTask) => void;
-  updateSessionTaskStatus: (sessionId: string, taskId: string, status: ClaudeTask["status"]) => void;
+  upsertSessionTask: (sessionId: string, task: AgentTask) => void;
+  updateSessionTaskStatus: (sessionId: string, taskId: string, status: AgentTask["status"]) => void;
 
   // Legacy compat (delegate to active session)
   chatMessages: ChatMessage[];
@@ -497,7 +498,7 @@ export interface Project {
   id: string;
   name: string;
   workspacePath: string;
-  claudeSessionId: string;
+  activeSessionId: string;
   summary: string;
   createdAt: string;
   linkedRepoIds: string[];
@@ -513,7 +514,7 @@ export interface ProjectSlice {
   currentView: ViewMode;
 
   // CRUD
-  addProject: (name: string, workspacePath: string, claudeSessionId: string) => void;
+  addProject: (name: string, workspacePath: string, sessionId: string) => void;
   removeProject: (id: string) => void;
   clearAllProjects: () => void;
   updateProjectSummary: (id: string, summary: string) => void;

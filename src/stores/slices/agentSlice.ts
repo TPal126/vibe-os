@@ -3,8 +3,8 @@ import type {
   AgentSlice,
   ChatMessage,
   AgentEvent,
-  ClaudeSessionState,
-  ClaudeTask,
+  AgentSessionState,
+  AgentTask,
   ActivityEvent,
   CardType,
   TestSummary,
@@ -15,10 +15,11 @@ import { commands } from "../../lib/tauri";
 
 // ── Helpers ──
 
-function createDefaultSession(id: string, name: string): ClaudeSessionState {
+function createDefaultSession(id: string, name: string, backend: "claude" | "codex" | "sidecar" = "sidecar"): AgentSessionState {
   return {
     id,
     name,
+    backend,
     chatMessages: [],
     agentEvents: [],
     isWorking: false,
@@ -76,10 +77,10 @@ function summarizeActivity(events: ActivityEvent[]): string {
 }
 
 function updateSession(
-  sessions: Map<string, ClaudeSessionState>,
+  sessions: Map<string, AgentSessionState>,
   sessionId: string,
-  updater: (s: ClaudeSessionState) => Partial<ClaudeSessionState>,
-): Map<string, ClaudeSessionState> {
+  updater: (s: AgentSessionState) => Partial<AgentSessionState>,
+): Map<string, AgentSessionState> {
   const existing = sessions.get(sessionId);
   if (!existing) return sessions;
   const next = new Map(sessions);
@@ -90,8 +91,8 @@ function updateSession(
 }
 
 function deriveStatus(
-  s: ClaudeSessionState,
-): ClaudeSessionState["status"] {
+  s: AgentSessionState,
+): AgentSessionState["status"] {
   if (s.agentError) return "error";
   if (s.needsInput) return "needs-input";
   if (s.isWorking) return "working";
@@ -102,25 +103,31 @@ function deriveStatus(
 
 export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   // CLI availability
-  claudeCliAvailable: null,
-  claudeCliError: null,
+  cliAvailable: {},
+  cliError: {},
 
-  validateClaudeCli: async () => {
+  validateCli: async (backend = "claude") => {
     try {
       const version = await commands.validateClaudeCli();
-      set({ claudeCliAvailable: true, claudeCliError: null });
-      console.log("[vibe-os] Claude CLI validated:", version);
+      set((state) => ({
+        cliAvailable: { ...state.cliAvailable, [backend]: true },
+        cliError: { ...state.cliError, [backend]: null },
+      }));
+      console.log("[vibe-os] CLI validated:", version);
     } catch (err) {
       const message =
         typeof err === "string" ? err : (err as Error)?.message ?? String(err);
-      set({ claudeCliAvailable: false, claudeCliError: message });
-      console.warn("[vibe-os] Claude CLI validation failed:", message);
+      set((state) => ({
+        cliAvailable: { ...state.cliAvailable, [backend]: false },
+        cliError: { ...state.cliError, [backend]: message },
+      }));
+      console.warn("[vibe-os] CLI validation failed:", message);
     }
   },
 
   // Per-session state
-  claudeSessions: new Map<string, ClaudeSessionState>(),
-  activeClaudeSessionId: null,
+  agentSessions: new Map<string, AgentSessionState>(),
+  activeSessionId: null,
 
   // Legacy compat defaults
   chatMessages: [],
@@ -132,21 +139,21 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   // ── Session lifecycle ──
 
-  createClaudeSessionLocal: (id: string, name: string) =>
+  createSessionLocal: (id: string, name: string, backend: "claude" | "codex" | "sidecar" = "sidecar") =>
     set((state) => {
-      const next = new Map(state.claudeSessions);
-      next.set(id, createDefaultSession(id, name));
+      const next = new Map(state.agentSessions);
+      next.set(id, createDefaultSession(id, name, backend));
       // Auto-activate if first session
       const activeId =
-        state.activeClaudeSessionId ?? id;
-      return { claudeSessions: next, activeClaudeSessionId: activeId };
+        state.activeSessionId ?? id;
+      return { agentSessions: next, activeSessionId: activeId };
     }),
 
-  removeClaudeSession: (id: string) =>
+  removeSession: (id: string) =>
     set((state) => {
-      const next = new Map(state.claudeSessions);
+      const next = new Map(state.agentSessions);
       next.delete(id);
-      let activeId = state.activeClaudeSessionId;
+      let activeId = state.activeSessionId;
       if (activeId === id) {
         // Activate another session, or null
         const remaining = Array.from(next.keys());
@@ -155,8 +162,8 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
       // Derive legacy state from new active
       const activeSession = activeId ? next.get(activeId) : undefined;
       return {
-        claudeSessions: next,
-        activeClaudeSessionId: activeId,
+        agentSessions: next,
+        activeSessionId: activeId,
         chatMessages: activeSession?.chatMessages ?? [],
         agentEvents: activeSession?.agentEvents ?? [],
         isWorking: activeSession?.isWorking ?? false,
@@ -166,10 +173,10 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
       };
     }),
 
-  setActiveClaudeSessionId: (id: string | null) =>
+  setActiveSessionId: (id: string | null) =>
     set((state) => {
       // Clear needsInput and attention on target session when switching to it
-      let sessions = state.claudeSessions;
+      let sessions = state.agentSessions;
       if (id) {
         sessions = updateSession(sessions, id, () => ({
           needsInput: false,
@@ -179,8 +186,8 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
       }
       const activeSession = id ? sessions.get(id) : undefined;
       return {
-        claudeSessions: sessions,
-        activeClaudeSessionId: id,
+        agentSessions: sessions,
+        activeSessionId: id,
         chatMessages: activeSession?.chatMessages ?? [],
         agentEvents: activeSession?.agentEvents ?? [],
         isWorking: activeSession?.isWorking ?? false,
@@ -190,9 +197,9 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
       };
     }),
 
-  renameClaudeSession: (id: string, name: string) =>
+  renameSession: (id: string, name: string) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, id, () => ({
+      agentSessions: updateSession(state.agentSessions, id, () => ({
         name,
       })),
     })),
@@ -202,13 +209,13 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   addSessionChatMessage: (sessionId: string, message: ChatMessage) =>
     set((state) => {
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         (s) => ({ chatMessages: [...s.chatMessages, message] }),
       );
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive
           ? { chatMessages: sessions.get(sessionId)!.chatMessages }
           : {}),
@@ -218,13 +225,13 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   addSessionAgentEvent: (sessionId: string, event: AgentEvent) =>
     set((state) => {
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         (s) => ({ agentEvents: [...s.agentEvents, event] }),
       );
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive
           ? { agentEvents: sessions.get(sessionId)!.agentEvents }
           : {}),
@@ -234,7 +241,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   appendToSessionLastAssistant: (sessionId: string, text: string) =>
     set((state) => {
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         (s) => {
           const messages = [...s.chatMessages];
@@ -255,9 +262,9 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           return { chatMessages: messages };
         },
       );
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive
           ? { chatMessages: sessions.get(sessionId)!.chatMessages }
           : {}),
@@ -267,13 +274,13 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   setSessionWorking: (sessionId: string, working: boolean) =>
     set((state) => {
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         () => ({ isWorking: working }),
       );
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive ? { isWorking: working } : {}),
       };
     }),
@@ -281,13 +288,13 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   setSessionConversationId: (sessionId: string, id: string | null) =>
     set((state) => {
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         () => ({ conversationId: id }),
       );
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive ? { conversationId: id } : {}),
       };
     }),
@@ -295,13 +302,13 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   setSessionInvocationId: (sessionId: string, id: string | null) =>
     set((state) => {
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         () => ({ currentInvocationId: id }),
       );
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive ? { currentInvocationId: id } : {}),
       };
     }),
@@ -309,21 +316,21 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   setSessionError: (sessionId: string, error: string | null) =>
     set((state) => {
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         () => ({ agentError: error }),
       );
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive ? { agentError: error } : {}),
       };
     }),
 
   setSessionNeedsInput: (sessionId: string, needsInput: boolean) =>
     set((state) => ({
-      claudeSessions: updateSession(
-        state.claudeSessions,
+      agentSessions: updateSession(
+        state.agentSessions,
         sessionId,
         () => ({ needsInput }),
       ),
@@ -332,7 +339,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   clearSessionChat: (sessionId: string) =>
     set((state) => {
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         () => ({
           chatMessages: [],
@@ -350,9 +357,9 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           tasks: [],
         }),
       );
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive
           ? {
               chatMessages: [],
@@ -369,7 +376,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   setSessionAttention: (sessionId: string, preview: string | null, messageId: string | null) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+      agentSessions: updateSession(state.agentSessions, sessionId, () => ({
         attentionPreview: preview,
         attentionMessageId: messageId,
       })),
@@ -377,7 +384,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   clearSessionAttention: (sessionId: string) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+      agentSessions: updateSession(state.agentSessions, sessionId, () => ({
         attentionPreview: null,
         attentionMessageId: null,
         needsInput: false,
@@ -388,7 +395,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   upsertActivityLine: (sessionId: string, event: AgentEvent) =>
     set((state) => {
-      const session = state.claudeSessions.get(sessionId);
+      const session = state.agentSessions.get(sessionId);
       if (!session) return {};
 
       const tool = event.metadata?.tool as string | undefined;
@@ -404,7 +411,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
       if (session.currentActivityMessageId) {
         // Update existing activity line
         const sessions = updateSession(
-          state.claudeSessions,
+          state.agentSessions,
           sessionId,
           (s) => {
             const messages = s.chatMessages.map((msg) => {
@@ -420,9 +427,9 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
             return { chatMessages: messages };
           },
         );
-        const isActive = sessionId === state.activeClaudeSessionId;
+        const isActive = sessionId === state.activeSessionId;
         return {
-          claudeSessions: sessions,
+          agentSessions: sessions,
           ...(isActive
             ? { chatMessages: sessions.get(sessionId)!.chatMessages }
             : {}),
@@ -439,16 +446,16 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
           cardData: { events: [activityEvent] },
         };
         const sessions = updateSession(
-          state.claudeSessions,
+          state.agentSessions,
           sessionId,
           (s) => ({
             chatMessages: [...s.chatMessages, newMsg],
             currentActivityMessageId: newId,
           }),
         );
-        const isActive = sessionId === state.activeClaudeSessionId;
+        const isActive = sessionId === state.activeSessionId;
         return {
-          claudeSessions: sessions,
+          agentSessions: sessions,
           ...(isActive
             ? { chatMessages: sessions.get(sessionId)!.chatMessages }
             : {}),
@@ -458,14 +465,14 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   finalizeActivityLine: (sessionId: string) =>
     set((state) => {
-      const session = state.claudeSessions.get(sessionId);
+      const session = state.agentSessions.get(sessionId);
       if (!session || !session.currentActivityMessageId) return {};
       const sessions = updateSession(
-        state.claudeSessions,
+        state.agentSessions,
         sessionId,
         () => ({ currentActivityMessageId: null }),
       );
-      return { claudeSessions: sessions };
+      return { agentSessions: sessions };
     }),
 
   insertRichCard: (
@@ -475,11 +482,11 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
     cardData: Record<string, unknown>,
   ) =>
     set((state) => {
-      const session = state.claudeSessions.get(sessionId);
+      const session = state.agentSessions.get(sessionId);
       if (!session) return {};
 
       // Finalize any open activity line first
-      let sessions = state.claudeSessions;
+      let sessions = state.agentSessions;
       if (session.currentActivityMessageId) {
         sessions = updateSession(sessions, sessionId, () => ({
           currentActivityMessageId: null,
@@ -497,9 +504,9 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
       sessions = updateSession(sessions, sessionId, (s) => ({
         chatMessages: [...s.chatMessages, newMsg],
       }));
-      const isActive = sessionId === state.activeClaudeSessionId;
+      const isActive = sessionId === state.activeSessionId;
       return {
-        claudeSessions: sessions,
+        agentSessions: sessions,
         ...(isActive
           ? { chatMessages: sessions.get(sessionId)!.chatMessages }
           : {}),
@@ -510,21 +517,21 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   setSessionPreviewUrl: (sessionId: string, url: string | null) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+      agentSessions: updateSession(state.agentSessions, sessionId, () => ({
         previewUrl: url,
       })),
     })),
 
   setSessionTestSummary: (sessionId: string, summary: TestSummary | null) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+      agentSessions: updateSession(state.agentSessions, sessionId, () => ({
         testSummary: summary,
       })),
     })),
 
   setSessionBuildStatus: (sessionId: string, status: BuildStatus, text: string | null) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, sessionId, () => ({
+      agentSessions: updateSession(state.agentSessions, sessionId, () => ({
         buildStatus: status,
         buildStatusText: text,
       })),
@@ -532,7 +539,7 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   setSessionApiMetrics: (sessionId: string, metrics: ApiMetrics) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, sessionId, (s) => {
+      agentSessions: updateSession(state.agentSessions, sessionId, (s) => {
         // Accumulate metrics across turns within the same session
         const prev = s.apiMetrics;
         if (!prev) return { apiMetrics: metrics };
@@ -552,9 +559,9 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
 
   // ── Task tracking ──
 
-  upsertSessionTask: (sessionId: string, task: ClaudeTask) =>
+  upsertSessionTask: (sessionId: string, task: AgentTask) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, sessionId, (s) => {
+      agentSessions: updateSession(state.agentSessions, sessionId, (s) => {
         const idx = s.tasks.findIndex((t) => t.id === task.id);
         if (idx >= 0) {
           const tasks = [...s.tasks];
@@ -565,9 +572,9 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
       }),
     })),
 
-  updateSessionTaskStatus: (sessionId: string, taskId: string, status: ClaudeTask["status"]) =>
+  updateSessionTaskStatus: (sessionId: string, taskId: string, status: AgentTask["status"]) =>
     set((state) => ({
-      claudeSessions: updateSession(state.claudeSessions, sessionId, (s) => ({
+      agentSessions: updateSession(state.agentSessions, sessionId, (s) => ({
         tasks: s.tasks.map((t) =>
           t.id === taskId ? { ...t, status } : t,
         ),
@@ -577,66 +584,66 @@ export const createAgentSlice: SliceCreator<AgentSlice> = (set, get) => ({
   // ── Legacy compat methods (delegate to active session) ──
 
   addChatMessage: (message: ChatMessage) => {
-    const { activeClaudeSessionId, addSessionChatMessage } = get();
-    if (activeClaudeSessionId) {
-      addSessionChatMessage(activeClaudeSessionId, message);
+    const { activeSessionId, addSessionChatMessage } = get();
+    if (activeSessionId) {
+      addSessionChatMessage(activeSessionId, message);
     }
   },
 
   addAgentEvent: (event: AgentEvent) => {
-    const { activeClaudeSessionId, addSessionAgentEvent } = get();
-    if (activeClaudeSessionId) {
-      addSessionAgentEvent(activeClaudeSessionId, event);
+    const { activeSessionId, addSessionAgentEvent } = get();
+    if (activeSessionId) {
+      addSessionAgentEvent(activeSessionId, event);
     }
   },
 
   appendToLastAssistant: (text: string) => {
-    const { activeClaudeSessionId, appendToSessionLastAssistant } = get();
-    if (activeClaudeSessionId) {
-      appendToSessionLastAssistant(activeClaudeSessionId, text);
+    const { activeSessionId, appendToSessionLastAssistant } = get();
+    if (activeSessionId) {
+      appendToSessionLastAssistant(activeSessionId, text);
     }
   },
 
   setWorking: (working: boolean) => {
-    const { activeClaudeSessionId, setSessionWorking } = get();
-    if (activeClaudeSessionId) {
-      setSessionWorking(activeClaudeSessionId, working);
+    const { activeSessionId, setSessionWorking } = get();
+    if (activeSessionId) {
+      setSessionWorking(activeSessionId, working);
     } else {
       set({ isWorking: working });
     }
   },
 
   setConversationId: (id: string | null) => {
-    const { activeClaudeSessionId, setSessionConversationId } = get();
-    if (activeClaudeSessionId) {
-      setSessionConversationId(activeClaudeSessionId, id);
+    const { activeSessionId, setSessionConversationId } = get();
+    if (activeSessionId) {
+      setSessionConversationId(activeSessionId, id);
     } else {
       set({ conversationId: id });
     }
   },
 
   setCurrentInvocationId: (id: string | null) => {
-    const { activeClaudeSessionId, setSessionInvocationId } = get();
-    if (activeClaudeSessionId) {
-      setSessionInvocationId(activeClaudeSessionId, id);
+    const { activeSessionId, setSessionInvocationId } = get();
+    if (activeSessionId) {
+      setSessionInvocationId(activeSessionId, id);
     } else {
       set({ currentInvocationId: id });
     }
   },
 
   setAgentError: (error: string | null) => {
-    const { activeClaudeSessionId, setSessionError } = get();
-    if (activeClaudeSessionId) {
-      setSessionError(activeClaudeSessionId, error);
+    const { activeSessionId, setSessionError } = get();
+    if (activeSessionId) {
+      setSessionError(activeSessionId, error);
     } else {
       set({ agentError: error });
     }
   },
 
   clearChat: () => {
-    const { activeClaudeSessionId, clearSessionChat } = get();
-    if (activeClaudeSessionId) {
-      clearSessionChat(activeClaudeSessionId);
+    const { activeSessionId, clearSessionChat } = get();
+    if (activeSessionId) {
+      clearSessionChat(activeSessionId);
     } else {
       set({
         chatMessages: [],
