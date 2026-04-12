@@ -552,6 +552,21 @@ export const commands = {
     invoke<void>("remove_agent_definition", { name }),
   getWorkspaceAgentDir: (workspacePath: string) =>
     invoke<string>("get_workspace_agent_dir", { workspacePath }),
+
+  // ── Workflow execution commands ──
+  startPipeline: (pipelineId: string) =>
+    invoke<string>("start_pipeline", { pipelineId }),
+
+  advanceGate: (pipelineRunId: string) =>
+    invoke<void>("advance_gate", { pipelineRunId }),
+
+  getPipelineRunStatus: (pipelineRunId: string) =>
+    invoke<{
+      pipeline_run_id: string;
+      status: string;
+      current_phase: { phase_run_id: string; phase_id: string; label: string; status: string; artifact_path: string | null; summary: string | null } | null;
+      completed_phases: { phase_run_id: string; phase_id: string; label: string; status: string; artifact_path: string | null; summary: string | null }[];
+    }>("get_pipeline_run_status", { pipelineRunId }),
 };
 
 // ── Dialog helpers ──

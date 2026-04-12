@@ -38,6 +38,31 @@ interface AgentEventPayload {
   error?: string;
 }
 
+/** Envelope for CLI adapter events */
+interface CliEventPayload {
+  type: "agent_event";
+  source: "cli-claude" | "cli-codex" | "workflow";
+  sessionId: string;
+  event: {
+    event_type: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+    timestamp: string;
+  };
+}
+
+/** Envelope for CLI status events */
+interface CliStatusPayload {
+  type: "status";
+  source: "cli-claude" | "cli-codex";
+  sessionId: string;
+  status: "working" | "done" | "cancelled";
+  invocation_id?: string;
+  exit_code?: number | null;
+}
+
+type AgentStreamPayload = AgentEventPayload | CliEventPayload | CliStatusPayload;
+
 // ── Singleton listener — prevents double-registration from React strict mode ──
 
 let listenerActive = false;
@@ -47,24 +72,111 @@ async function startListener() {
   if (listenerActive) return;
   listenerActive = true;
 
-  await listen<AgentEventPayload>("agent-stream", (event) => {
+  await listen<AgentStreamPayload>("agent-stream", (event) => {
     const data = event.payload;
     const store = useAppStore.getState();
 
+    // Handle CLI status events
+    if (data.type === "status" && "source" in data && (data as any).source?.startsWith("cli-")) {
+      const statusData = data as CliStatusPayload;
+      const sid = statusData.sessionId;
+      if (!sid) return;
+      const backend = statusData.source === "cli-claude" ? "claude" : "codex";
+      if (!store.agentSessions.has(sid)) {
+        store.createSessionLocal(sid, "CLI Session", backend as any);
+      }
+      if (statusData.status === "working") {
+        store.setSessionWorking(sid, true);
+      } else {
+        store.setSessionWorking(sid, false);
+      }
+      return;
+    }
+
+    // Handle CLI agent events
+    if (data.type === "agent_event") {
+      const cliData = data as CliEventPayload;
+      const sid = cliData.sessionId;
+      if (!sid) return;
+      const evt = cliData.event;
+      const backend = cliData.source === "cli-claude" ? "claude" : cliData.source === "cli-codex" ? "codex" : "sidecar";
+
+      if (!store.agentSessions.has(sid)) {
+        store.createSessionLocal(sid, "CLI Session", backend as any);
+      }
+
+      const eventType = evt.event_type;
+      const content = evt.content || "";
+      const meta = evt.metadata;
+
+      // Agent text (think events without tool metadata)
+      if (eventType === "think" && !meta?.tool) {
+        store.appendToSessionLastAssistant(sid, content);
+        return;
+      }
+
+      // Tool use / activity events
+      if (meta?.tool) {
+        const agentEvent = { timestamp: evt.timestamp, event_type: eventType as any, content, metadata: meta };
+        store.addSessionAgentEvent(sid, agentEvent);
+        store.upsertActivityLine(sid, agentEvent);
+        return;
+      }
+
+      // Result events
+      if (eventType === "result") {
+        store.setSessionWorking(sid, false);
+        store.finalizeActivityLine(sid);
+        store.insertRichCard(sid, "outcome", content, {
+          cost_usd: meta?.cost_usd,
+          input_tokens: meta?.input_tokens,
+          output_tokens: meta?.output_tokens,
+          duration_ms: meta?.duration_ms,
+        });
+        if (meta?.input_tokens || meta?.output_tokens) {
+          store.setSessionApiMetrics(sid, {
+            inputTokens: (meta.input_tokens as number) || 0,
+            outputTokens: (meta.output_tokens as number) || 0,
+            cacheCreationInputTokens: (meta.cache_creation_input_tokens as number) || 0,
+            cacheReadInputTokens: (meta.cache_read_input_tokens as number) || 0,
+            cost: (meta.cost_usd as number) || 0,
+            durationMs: (meta.duration_ms as number) || 0,
+            durationApiMs: (meta.duration_api_ms as number) || 0,
+          });
+        }
+        return;
+      }
+
+      // Error events
+      if (eventType === "error") {
+        store.setSessionError(sid, content);
+        store.insertRichCard(sid, "error", content, {});
+        return;
+      }
+
+      // Phase transition events
+      if (eventType === "phase_transition") {
+        store.insertRichCard(sid, "outcome", content, { ...meta, cardSubtype: "phase_transition" });
+        return;
+      }
+
+      return;
+    }
+
     if (data.type === "sidecar_ready") return;
 
-    const sid = data.sessionId;
+    const sid = (data as AgentEventPayload).sessionId;
     if (!sid) return;
 
-    const source = data.source ?? "sdk-sidecar";
+    const source = (data as AgentEventPayload).source ?? "sdk-sidecar";
 
     // Ensure session exists in store
     if (!store.agentSessions.has(sid)) {
       store.createSessionLocal(sid, "Agent Session", "sidecar");
     }
 
-    if (source === "sdk-sidecar" && data.type === "sdk_message" && data.message) {
-      const msg = data.message;
+    if (source === "sdk-sidecar" && data.type === "sdk_message" && (data as AgentEventPayload).message) {
+      const msg = (data as AgentEventPayload).message!
 
       if (msg.type === "assistant") {
         const assistantMsg = msg as SdkAssistantMessage;
@@ -136,7 +248,7 @@ async function startListener() {
     }
 
     if (data.type === "error") {
-      store.setSessionError(sid, data.error || "Unknown error");
+      store.setSessionError(sid, (data as AgentEventPayload).error || "Unknown error");
       store.setSessionWorking(sid, false);
     }
   });
