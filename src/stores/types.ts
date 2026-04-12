@@ -252,7 +252,11 @@ export type AgentEventType =
   | "agent_complete"
   | "task_create"
   | "task_update"
-  | "api_metrics";
+  | "api_metrics"
+  | "interaction_request"
+  | "visual_content"
+  | "artifact_produced"
+  | "phase_transition";
 
 export interface AgentEvent {
   timestamp: string;

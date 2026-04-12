@@ -19,7 +19,11 @@ const EVENT_CONFIG: Record<
   agent_complete: { icon: "\u25A0", color: "var(--color-v-accent)",  label: "Complete" },
   task_create:    { icon: "\u002B", color: "var(--color-v-cyan)",    label: "Task" },
   task_update:    { icon: "\u21BB", color: "var(--color-v-cyan)",    label: "Update" },
-  api_metrics:    { icon: "\u2261", color: "var(--color-v-dim)",     label: "Metrics" },
+  api_metrics:         { icon: "\u2261", color: "var(--color-v-dim)",     label: "Metrics" },
+  interaction_request: { icon: "\u003F", color: "var(--color-v-cyan)",   label: "Input" },
+  visual_content:      { icon: "\u25A1", color: "var(--color-v-accent)", label: "Visual" },
+  artifact_produced:   { icon: "\u25C6", color: "var(--color-v-green)",  label: "Artifact" },
+  phase_transition:    { icon: "\u27A1", color: "var(--color-v-dim)",    label: "Phase" },
 };
 
 function EventBadges({ event }: { event: AgentEvent }) {

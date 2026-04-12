@@ -15,6 +15,11 @@ pub enum AgentEventType {
     Error,
     Result,
     Raw,
+    // Workflow engine events
+    InteractionRequest,
+    VisualContent,
+    ArtifactProduced,
+    PhaseTransition,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
