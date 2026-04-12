@@ -14,4 +14,5 @@ pub mod project_commands;
 pub mod script_commands;
 pub mod shell_commands;
 pub mod token_commands;
+pub mod workflow_commands;
 pub mod workspace_commands;

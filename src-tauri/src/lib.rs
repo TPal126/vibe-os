@@ -25,6 +25,7 @@ use commands::shell_commands;
 use commands::pipeline_commands;
 use commands::project_commands;
 use commands::token_commands;
+use commands::workflow_commands;
 use commands::workspace_commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -219,6 +220,10 @@ pub fn run() {
             pipeline_commands::delete_pipeline,
             // Backend commands
             backends::list_frameworks,
+            // Workflow execution commands
+            workflow_commands::start_pipeline,
+            workflow_commands::advance_gate,
+            workflow_commands::get_pipeline_run_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
