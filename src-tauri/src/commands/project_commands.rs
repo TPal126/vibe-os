@@ -80,30 +80,30 @@ pub fn list_projects(state: State<'_, DbState>) -> Result<Vec<ProjectRow>, Strin
     Ok(projects)
 }
 
-/// Update a project's name, workspace_path, and/or summary.
+/// Update a project's name and/or summary.
 #[tauri::command]
 pub fn update_project(
     state: State<'_, DbState>,
     id: String,
-    name: String,
-    workspace_path: String,
+    name: Option<String>,
     summary: Option<String>,
 ) -> Result<(), String> {
     let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
-
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let summary_val = summary.unwrap_or_default();
 
-    let rows_affected = conn
-        .execute(
-            "UPDATE projects SET name = ?1, workspace_path = ?2, summary = ?3, updated_at = ?4
-             WHERE id = ?5",
-            rusqlite::params![name, workspace_path, summary_val, now, id],
+    if let Some(name) = name {
+        conn.execute(
+            "UPDATE projects SET name = ?1, updated_at = ?2 WHERE id = ?3",
+            rusqlite::params![name, now, id],
         )
-        .map_err(|e| format!("Failed to update project: {}", e))?;
-
-    if rows_affected == 0 {
-        return Err(format!("Project '{}' not found", id));
+        .map_err(|e| format!("Update name failed: {}", e))?;
+    }
+    if let Some(summary) = summary {
+        conn.execute(
+            "UPDATE projects SET summary = ?1, updated_at = ?2 WHERE id = ?3",
+            rusqlite::params![summary, now, id],
+        )
+        .map_err(|e| format!("Update summary failed: {}", e))?;
     }
 
     Ok(())
