@@ -15,6 +15,9 @@ import { InlinePreviewCard } from "../conversation/InlinePreviewCard";
 import { TestDetailCard } from "../conversation/TestDetailCard";
 import { TaskProgressCard } from "../conversation/TaskProgressCard";
 import { CodeBlockSummary } from "../conversation/CodeBlockSummary";
+import { PhaseIndicator } from "../conversation/PhaseIndicator";
+import { GatePromptCard } from "../conversation/GatePromptCard";
+import { InteractionCard } from "../conversation/InteractionCard";
 import type { ChatMessage } from "../../stores/types";
 
 function MessageBubble({ message }: { message: ChatMessage }) {
@@ -257,6 +260,7 @@ export function ClaudeChat() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <SessionTabs />
+      <PhaseIndicator />
 
       {showCliBanner && (
         <div className="shrink-0 mx-2 mt-2 rounded-lg border border-v-orange/30 bg-v-orange/5 px-3 py-2">
@@ -322,6 +326,10 @@ export function ClaudeChat() {
                     tasks={activeSession?.tasks ?? []}
                   />
                 );
+              case "gate-prompt":
+                return <GatePromptCard key={msg.id} message={msg} />;
+              case "interaction":
+                return <InteractionCard key={msg.id} message={msg} />;
               default:
                 return <MessageBubble key={msg.id} message={msg} />;
             }
