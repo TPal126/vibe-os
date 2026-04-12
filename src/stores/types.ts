@@ -292,7 +292,7 @@ export interface AgentTask {
 
 export type BuildStatus = "idle" | "building" | "running" | "failed";
 
-export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail" | "task-progress";
+export type CardType = "activity" | "outcome" | "error" | "decision" | "preview" | "test-detail" | "task-progress" | "gate-prompt" | "interaction";
 
 export interface ActivityEvent {
   type: AgentEventType;
@@ -581,6 +581,69 @@ export interface AgentDefinitionSlice {
   toggleAgentDefinition: (name: string) => void;
 }
 
+// ── Pipeline Builder Types ──
+
+export interface PipelinePhaseConfig {
+  id: string;
+  label: string;
+  phaseType: string;
+  backend: "claude" | "codex";
+  framework: string;
+  model: string;
+  customPrompt: string | null;
+  gateAfter: "gated" | "auto";
+}
+
+export interface PipelineRunState {
+  pipelineRunId: string;
+  status: string;
+  currentPhase: {
+    phaseRunId: string;
+    phaseId: string;
+    label: string;
+    status: string;
+  } | null;
+  completedPhases: {
+    phaseRunId: string;
+    phaseId: string;
+    label: string;
+    status: string;
+    artifactPath: string | null;
+    summary: string | null;
+  }[];
+}
+
+export interface FrameworkManifest {
+  id: string;
+  name: string;
+  supported_backends: string[];
+  supported_phases: string[];
+  features: { visual_companion: boolean; interactive_questions: boolean };
+  phase_skills: Record<string, string>;
+}
+
+export interface PipelineSlice {
+  builderPhases: PipelinePhaseConfig[];
+  selectedPhaseId: string | null;
+  frameworks: FrameworkManifest[];
+
+  addPhase: (phaseType: string, label: string) => void;
+  removePhase: (id: string) => void;
+  reorderPhases: (fromIndex: number, toIndex: number) => void;
+  updatePhase: (id: string, updates: Partial<PipelinePhaseConfig>) => void;
+  selectPhase: (id: string | null) => void;
+  toggleGate: (id: string) => void;
+  resetBuilder: () => void;
+  loadFrameworks: () => Promise<void>;
+  loadProjectPipeline: (projectId: string) => Promise<void>;
+
+  activePipelineRun: PipelineRunState | null;
+  startPipelineRun: (pipelineId: string) => Promise<void>;
+  advancePipelineGate: (pipelineRunId: string) => Promise<void>;
+  refreshPipelineRun: (pipelineRunId: string) => Promise<void>;
+  clearPipelineRun: () => void;
+}
+
 // ── Theme Types ──
 
 export type Theme = "light" | "dark";
@@ -610,7 +673,8 @@ export type AppState = SessionSlice &
   TokenSlice &
   ProjectSlice &
   ThemeSlice &
-  AgentDefinitionSlice;
+  AgentDefinitionSlice &
+  PipelineSlice;
 
 // ── Slice Creator Helper ──
 
