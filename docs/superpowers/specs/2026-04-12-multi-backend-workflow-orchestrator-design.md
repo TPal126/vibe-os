@@ -232,6 +232,8 @@ CREATE TABLE IF NOT EXISTS phase_run (
   status TEXT NOT NULL,              -- pending|running|awaiting_input|awaiting_gate|completed|failed
   artifact_path TEXT,
   summary TEXT,
+  baseline_sha TEXT,                 -- HEAD commit at phase start, for scoping diffs
+  baseline_worktree_path TEXT,       -- path to worktree if isolation was used
   started_at TEXT,
   completed_at TEXT
 );
@@ -335,20 +337,31 @@ Token-conscious: the artifact is the full picture, the summary is the bridge for
 
 ### Phase baseline strategy for execution artifacts
 
-A naive `git diff` after an execution phase would include unrelated dirty-worktree changes. The workflow engine must establish a clean baseline:
+A naive `git diff` after an execution phase would include unrelated dirty-worktree changes. The workflow engine must establish a clean baseline.
 
-1. **Before execution phase starts:** record the current git state as a baseline
-   - `git stash --include-untracked` if working tree is dirty (auto-restored after phase)
+**Default: worktree isolation**
+
+1. **Before execution phase starts:**
    - Record `HEAD` commit SHA as `phase_run.baseline_sha`
-2. **After execution phase completes:** generate diff against baseline
-   - `git diff {baseline_sha}..HEAD` captures only the execution phase's commits
-   - If the backend made uncommitted changes, `git diff {baseline_sha}` captures everything
-3. **Artifact generation:** `diff-summary.md` is generated from this scoped diff, not from the full working tree
-4. **Cleanup:** `git stash pop` to restore any pre-existing dirty state
+   - Create a temporary git worktree: `git worktree add .vibe-os/worktrees/{phase_run_id} -b vibe-phase/{phase_run_id}`
+   - Store path in `phase_run.baseline_worktree_path`
+   - Backend spawns with `working_dir` pointing to the worktree, not the main tree
+2. **After execution phase completes:**
+   - `git diff {baseline_sha}..HEAD` within the worktree captures only the phase's changes
+   - Generate `diff-summary.md` from this scoped diff
+3. **Merge back:** merge or cherry-pick the worktree branch into the main branch (user confirms via gate if gated, auto if auto)
+4. **Cleanup:** `git worktree remove .vibe-os/worktrees/{phase_run_id}`
+
+**Fallback: in-place with baseline SHA only**
+
+For repos where worktrees aren't practical (submodules, sparse checkouts, large monorepos):
+- Record `baseline_sha` only, run in the main tree
+- Diff is `git diff {baseline_sha}` — may include unrelated changes if the tree was dirty
+- Configurable per-phase: `isolation: "worktree" | "in-place"` (default `"worktree"`)
 
 **Edge cases:**
-- If the user explicitly wants a dirty worktree (WIP branch), the stash step is configurable per-phase (`clean_baseline: true | false`, default `true`)
-- If execution phase fails mid-way, baseline SHA is still recorded in `phase_run` for manual recovery
+- If execution phase fails mid-way, the worktree is preserved for manual recovery (not auto-cleaned). `baseline_worktree_path` in `phase_run` points to it.
+- If the main branch advances while a worktree phase is running, merge-back may require conflict resolution — surfaced to the user via the gate prompt.
 
 ### Event normalization
 
