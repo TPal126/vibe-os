@@ -119,14 +119,14 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
 
     update_session_status_in_db(&app, &session_id, "active");
 
-    // Emit a "working" event to signal the frontend
+    // Emit a "working" status envelope
     let _ = app.emit(
         "agent-stream",
         serde_json::json!({
             "type": "status",
+            "source": "cli-claude",
+            "sessionId": &session_id,
             "status": "working",
-            "invocation_id": &invocation_id,
-            "agent_session_id": &session_id,
         }),
     );
 
@@ -208,10 +208,48 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                         }
                     });
                 }
+
+                // Notify workflow engine of phase completion (fire-and-forget)
+                let app_for_workflow = app_handle.clone();
+                let sid_for_workflow = claude_sid_stdout.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Some(db) = app_for_workflow.try_state::<DbState>() {
+                        let phase_info: Option<(String, String)> = {
+                            if let Ok(conn) = db.lock() {
+                                conn.query_row(
+                                    "SELECT pr.id, pr.pipeline_run_id FROM phase_run pr \
+                                     WHERE pr.session_id = ?1 AND pr.status = 'running' LIMIT 1",
+                                    rusqlite::params![sid_for_workflow],
+                                    |row| Ok((row.get(0)?, row.get(1)?)),
+                                )
+                                .ok()
+                            } else {
+                                None
+                            }
+                        };
+
+                        if let Some((phase_run_id, pipeline_run_id)) = phase_info {
+                            let runner = crate::workflow::runner::WorkflowRunner::new(
+                                app_for_workflow,
+                            );
+                            let _ = runner
+                                .on_phase_complete(&pipeline_run_id, &phase_run_id)
+                                .await;
+                        }
+                    }
+                });
             }
 
             log_to_audit(&app_handle, &agent_event);
-            let _ = app_handle.emit("agent-stream", &agent_event);
+
+            // Emit in unified envelope format
+            let envelope = serde_json::json!({
+                "type": "agent_event",
+                "source": "cli-claude",
+                "sessionId": &claude_sid_stdout,
+                "event": &agent_event,
+            });
+            let _ = app_handle.emit("agent-stream", &envelope);
         }
 
         // Process terminated — emit done status
@@ -232,10 +270,11 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
             "agent-stream",
             serde_json::json!({
                 "type": "status",
+                "source": "cli-claude",
+                "sessionId": &claude_sid_stdout,
                 "status": "done",
-                "invocation_id": &inv_id,
-                "agent_session_id": &claude_sid_stdout,
                 "exit_code": exit_code,
+                "invocation_id": &inv_id,
             }),
         );
 
@@ -264,7 +303,13 @@ pub async fn start_claude(app: AppHandle, args: StartClaudeArgs) -> Result<Strin
                 metadata: None,
                 agent_session_id: Some(claude_sid_stderr.clone()),
             };
-            let _ = app_handle_err.emit("agent-stream", &error_event);
+            let envelope = serde_json::json!({
+                "type": "agent_event",
+                "source": "cli-claude",
+                "sessionId": &claude_sid_stderr,
+                "event": &error_event,
+            });
+            let _ = app_handle_err.emit("agent-stream", &envelope);
         }
     });
 
@@ -308,8 +353,9 @@ pub async fn cancel_claude(app: AppHandle, agent_session_id: String) -> Result<(
             "agent-stream",
             serde_json::json!({
                 "type": "status",
+                "source": "cli-claude",
+                "sessionId": &agent_session_id,
                 "status": "cancelled",
-                "agent_session_id": &agent_session_id,
             }),
         );
 
@@ -453,9 +499,9 @@ pub async fn attach_claude_code_session(
         "agent-stream",
         serde_json::json!({
             "type": "status",
+            "source": "cli-claude",
+            "sessionId": &agent_sid,
             "status": "working",
-            "invocation_id": &invocation_id,
-            "agent_session_id": &agent_sid,
         }),
     );
 
@@ -495,10 +541,48 @@ pub async fn attach_claude_code_session(
                         );
                     }
                 }
+
+                // Notify workflow engine of phase completion (fire-and-forget)
+                let app_for_workflow = app_handle.clone();
+                let sid_for_workflow = claude_sid_stdout.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Some(db) = app_for_workflow.try_state::<DbState>() {
+                        let phase_info: Option<(String, String)> = {
+                            if let Ok(conn) = db.lock() {
+                                conn.query_row(
+                                    "SELECT pr.id, pr.pipeline_run_id FROM phase_run pr \
+                                     WHERE pr.session_id = ?1 AND pr.status = 'running' LIMIT 1",
+                                    rusqlite::params![sid_for_workflow],
+                                    |row| Ok((row.get(0)?, row.get(1)?)),
+                                )
+                                .ok()
+                            } else {
+                                None
+                            }
+                        };
+
+                        if let Some((phase_run_id, pipeline_run_id)) = phase_info {
+                            let runner = crate::workflow::runner::WorkflowRunner::new(
+                                app_for_workflow,
+                            );
+                            let _ = runner
+                                .on_phase_complete(&pipeline_run_id, &phase_run_id)
+                                .await;
+                        }
+                    }
+                });
             }
 
             log_to_audit(&app_handle, &agent_event);
-            let _ = app_handle.emit("agent-stream", &agent_event);
+
+            // Emit in unified envelope format
+            let envelope = serde_json::json!({
+                "type": "agent_event",
+                "source": "cli-claude",
+                "sessionId": &claude_sid_stdout,
+                "event": &agent_event,
+            });
+            let _ = app_handle.emit("agent-stream", &envelope);
         }
 
         let exit_code = {
@@ -517,10 +601,11 @@ pub async fn attach_claude_code_session(
             "agent-stream",
             serde_json::json!({
                 "type": "status",
+                "source": "cli-claude",
+                "sessionId": &claude_sid_stdout,
                 "status": "done",
-                "invocation_id": &inv_id,
-                "agent_session_id": &claude_sid_stdout,
                 "exit_code": exit_code,
+                "invocation_id": &inv_id,
             }),
         );
 
@@ -549,7 +634,13 @@ pub async fn attach_claude_code_session(
                 metadata: None,
                 agent_session_id: Some(claude_sid_stderr.clone()),
             };
-            let _ = app_handle_err.emit("agent-stream", &error_event);
+            let envelope = serde_json::json!({
+                "type": "agent_event",
+                "source": "cli-claude",
+                "sessionId": &claude_sid_stderr,
+                "event": &error_event,
+            });
+            let _ = app_handle_err.emit("agent-stream", &envelope);
         }
     });
 
