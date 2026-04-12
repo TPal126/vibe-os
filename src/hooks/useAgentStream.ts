@@ -144,6 +144,11 @@ async function startListener() {
             durationApiMs: (meta.duration_api_ms as number) || 0,
           });
         }
+        // Refresh pipeline state if active
+        const runId = useAppStore.getState().activePipelineRun?.pipelineRunId;
+        if (runId) {
+          useAppStore.getState().refreshPipelineRun(runId);
+        }
         return;
       }
 
@@ -159,6 +164,11 @@ async function startListener() {
         // Gate events get the gate-prompt card type; others get outcome
         const isGate = meta?.gate === "awaiting";
         store.insertRichCard(sid, isGate ? "gate-prompt" : "outcome", content, meta || {});
+        // Refresh pipeline run state so PhaseIndicator stays current
+        const runId = (meta?.pipeline_run_id as string) || useAppStore.getState().activePipelineRun?.pipelineRunId;
+        if (runId) {
+          useAppStore.getState().refreshPipelineRun(runId);
+        }
         return;
       }
 
