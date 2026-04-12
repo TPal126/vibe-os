@@ -16,42 +16,38 @@ pub struct ProjectRow {
     pub updated_at: String,
 }
 
-/// Create a new project record.
-#[tauri::command]
-pub fn create_project(
-    state: State<'_, DbState>,
-    name: String,
-    workspace_path: String,
-    summary: Option<String>,
-) -> Result<ProjectRow, String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
+// ---------------------------------------------------------------------------
+// Pure DB helpers (no Tauri State — usable from integration tests)
+// ---------------------------------------------------------------------------
 
+pub fn create_project_db(
+    conn: &Connection,
+    name: &str,
+    workspace_path: &str,
+    summary: Option<&str>,
+) -> Result<ProjectRow, String> {
     let id = uuid::Uuid::new_v4().to_string();
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
-    let summary_val = summary.unwrap_or_default();
+    let summary_val = summary.unwrap_or("");
 
     conn.execute(
         "INSERT INTO projects (id, name, workspace_path, summary, created_at, updated_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
         rusqlite::params![id, name, workspace_path, summary_val, now],
     )
-    .map_err(|e| format!("Failed to create project: {}", e))?;
+    .map_err(|e| format!("Insert: {}", e))?;
 
     Ok(ProjectRow {
         id,
-        name,
-        workspace_path,
-        summary: summary_val,
+        name: name.into(),
+        workspace_path: workspace_path.into(),
+        summary: summary_val.into(),
         created_at: now.clone(),
         updated_at: now,
     })
 }
 
-/// List all projects ordered by name.
-#[tauri::command]
-pub fn list_projects(state: State<'_, DbState>) -> Result<Vec<ProjectRow>, String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
-
+pub fn list_projects_db(conn: &Connection) -> Result<Vec<ProjectRow>, String> {
     let mut stmt = conn
         .prepare(
             "SELECT id, name, workspace_path, summary, created_at, updated_at
@@ -80,15 +76,12 @@ pub fn list_projects(state: State<'_, DbState>) -> Result<Vec<ProjectRow>, Strin
     Ok(projects)
 }
 
-/// Update a project's name and/or summary.
-#[tauri::command]
-pub fn update_project(
-    state: State<'_, DbState>,
-    id: String,
-    name: Option<String>,
-    summary: Option<String>,
+pub fn update_project_db(
+    conn: &Connection,
+    id: &str,
+    name: Option<&str>,
+    summary: Option<&str>,
 ) -> Result<(), String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
     if let Some(name) = name {
@@ -109,12 +102,7 @@ pub fn update_project(
     Ok(())
 }
 
-/// Delete a project and cascade-delete all related pipeline data.
-/// Deletion order: phase_runs → pipeline_runs → pipeline_phases → pipelines → project.
-#[tauri::command]
-pub fn delete_project(state: State<'_, DbState>, id: String) -> Result<(), String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
-
+pub fn delete_project_db(conn: &Connection, id: &str) -> Result<(), String> {
     // Delete phase_runs for all pipeline_runs belonging to this project's pipelines
     conn.execute(
         "DELETE FROM phase_run WHERE pipeline_run_id IN (
@@ -161,4 +149,47 @@ pub fn delete_project(state: State<'_, DbState>, id: String) -> Result<(), Strin
     }
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Tauri commands (thin wrappers around DB helpers)
+// ---------------------------------------------------------------------------
+
+/// Create a new project record.
+#[tauri::command]
+pub fn create_project(
+    state: State<'_, DbState>,
+    name: String,
+    workspace_path: String,
+    summary: Option<String>,
+) -> Result<ProjectRow, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    create_project_db(&conn, &name, &workspace_path, summary.as_deref())
+}
+
+/// List all projects ordered by name.
+#[tauri::command]
+pub fn list_projects(state: State<'_, DbState>) -> Result<Vec<ProjectRow>, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    list_projects_db(&conn)
+}
+
+/// Update a project's name and/or summary.
+#[tauri::command]
+pub fn update_project(
+    state: State<'_, DbState>,
+    id: String,
+    name: Option<String>,
+    summary: Option<String>,
+) -> Result<(), String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    update_project_db(&conn, &id, name.as_deref(), summary.as_deref())
+}
+
+/// Delete a project and cascade-delete all related pipeline data.
+/// Deletion order: phase_runs → pipeline_runs → pipeline_phases → pipelines → project.
+#[tauri::command]
+pub fn delete_project(state: State<'_, DbState>, id: String) -> Result<(), String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    delete_project_db(&conn, &id)
 }

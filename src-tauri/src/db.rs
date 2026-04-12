@@ -33,7 +33,7 @@ pub fn initialize_db(db_path: &PathBuf) -> Result<Connection, String> {
 /// Run schema migrations using PRAGMA user_version to track state.
 /// Each migration block checks the current version and applies changes
 /// in a transaction if needed.
-fn run_migrations(conn: &Connection) -> Result<(), String> {
+pub(crate) fn run_migrations(conn: &Connection) -> Result<(), String> {
     let version: i32 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .map_err(|e| format!("Failed to read user_version: {}", e))?;

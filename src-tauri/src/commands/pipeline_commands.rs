@@ -47,14 +47,14 @@ pub struct CreatePipelineArgs {
     pub phases: Vec<CreatePhaseArgs>,
 }
 
-/// Create a pipeline and all its phases in order.
-#[tauri::command]
-pub fn create_pipeline(
-    state: State<'_, DbState>,
-    args: CreatePipelineArgs,
-) -> Result<PipelineRow, String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
+// ---------------------------------------------------------------------------
+// Pure DB helpers (no Tauri State — usable from integration tests)
+// ---------------------------------------------------------------------------
 
+pub fn create_pipeline_db(
+    conn: &Connection,
+    args: &CreatePipelineArgs,
+) -> Result<PipelineRow, String> {
     let pipeline_id = uuid::Uuid::new_v4().to_string();
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
 
@@ -89,21 +89,17 @@ pub fn create_pipeline(
 
     Ok(PipelineRow {
         id: pipeline_id,
-        project_id: args.project_id,
-        name: args.name,
+        project_id: args.project_id.clone(),
+        name: args.name.clone(),
         created_at: now.clone(),
         updated_at: now,
     })
 }
 
-/// Get the pipeline for a project (returns the first/only pipeline).
-#[tauri::command]
-pub fn get_project_pipeline(
-    state: State<'_, DbState>,
-    project_id: String,
+pub fn get_project_pipeline_db(
+    conn: &Connection,
+    project_id: &str,
 ) -> Result<Option<PipelineRow>, String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
-
     let result = conn.query_row(
         "SELECT id, project_id, name, created_at, updated_at
          FROM pipeline WHERE project_id = ?1 LIMIT 1",
@@ -126,14 +122,10 @@ pub fn get_project_pipeline(
     }
 }
 
-/// Get all phases for a pipeline, ordered by position.
-#[tauri::command]
-pub fn get_pipeline_phases(
-    state: State<'_, DbState>,
-    pipeline_id: String,
+pub fn get_pipeline_phases_db(
+    conn: &Connection,
+    pipeline_id: &str,
 ) -> Result<Vec<PipelinePhaseRow>, String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
-
     let mut stmt = conn
         .prepare(
             "SELECT id, pipeline_id, position, label, phase_type, backend, framework, model, custom_prompt, gate_after
@@ -166,15 +158,11 @@ pub fn get_pipeline_phases(
     Ok(phases)
 }
 
-/// Replace all phases for a pipeline by deleting existing ones and re-inserting.
-#[tauri::command]
-pub fn update_pipeline_phases(
-    state: State<'_, DbState>,
-    pipeline_id: String,
-    phases: Vec<CreatePhaseArgs>,
+pub fn update_pipeline_phases_db(
+    conn: &Connection,
+    pipeline_id: &str,
+    phases: &[CreatePhaseArgs],
 ) -> Result<Vec<PipelinePhaseRow>, String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
-
     // Delete all existing phases for this pipeline
     conn.execute(
         "DELETE FROM pipeline_phase WHERE pipeline_id = ?1",
@@ -215,7 +203,7 @@ pub fn update_pipeline_phases(
 
         inserted.push(PipelinePhaseRow {
             id: phase_id,
-            pipeline_id: pipeline_id.clone(),
+            pipeline_id: pipeline_id.to_string(),
             position: position as i64,
             label: phase.label.clone(),
             phase_type: phase.phase_type.clone(),
@@ -230,12 +218,7 @@ pub fn update_pipeline_phases(
     Ok(inserted)
 }
 
-/// Delete a pipeline and all its phases and runs.
-/// Deletion order: phase_runs → pipeline_runs → pipeline_phases → pipeline.
-#[tauri::command]
-pub fn delete_pipeline(state: State<'_, DbState>, pipeline_id: String) -> Result<(), String> {
-    let conn = state.lock().map_err(|e| format!("DB lock failed: {}", e))?;
-
+pub fn delete_pipeline_db(conn: &Connection, pipeline_id: &str) -> Result<(), String> {
     // Delete phase_runs for all runs of this pipeline
     conn.execute(
         "DELETE FROM phase_run WHERE pipeline_run_id IN (
@@ -272,4 +255,57 @@ pub fn delete_pipeline(state: State<'_, DbState>, pipeline_id: String) -> Result
     }
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Tauri commands (thin wrappers around DB helpers)
+// ---------------------------------------------------------------------------
+
+/// Create a pipeline and all its phases in order.
+#[tauri::command]
+pub fn create_pipeline(
+    state: State<'_, DbState>,
+    args: CreatePipelineArgs,
+) -> Result<PipelineRow, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    create_pipeline_db(&conn, &args)
+}
+
+/// Get the pipeline for a project (returns the first/only pipeline).
+#[tauri::command]
+pub fn get_project_pipeline(
+    state: State<'_, DbState>,
+    project_id: String,
+) -> Result<Option<PipelineRow>, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    get_project_pipeline_db(&conn, &project_id)
+}
+
+/// Get all phases for a pipeline, ordered by position.
+#[tauri::command]
+pub fn get_pipeline_phases(
+    state: State<'_, DbState>,
+    pipeline_id: String,
+) -> Result<Vec<PipelinePhaseRow>, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    get_pipeline_phases_db(&conn, &pipeline_id)
+}
+
+/// Replace all phases for a pipeline by deleting existing ones and re-inserting.
+#[tauri::command]
+pub fn update_pipeline_phases(
+    state: State<'_, DbState>,
+    pipeline_id: String,
+    phases: Vec<CreatePhaseArgs>,
+) -> Result<Vec<PipelinePhaseRow>, String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    update_pipeline_phases_db(&conn, &pipeline_id, &phases)
+}
+
+/// Delete a pipeline and all its phases and runs.
+/// Deletion order: phase_runs → pipeline_runs → pipeline_phases → pipeline.
+#[tauri::command]
+pub fn delete_pipeline(state: State<'_, DbState>, pipeline_id: String) -> Result<(), String> {
+    let conn = state.lock().map_err(|e| format!("DB lock: {}", e))?;
+    delete_pipeline_db(&conn, &pipeline_id)
 }
