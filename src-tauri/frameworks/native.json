@@ -1,0 +1,11 @@
+{
+  "id": "native",
+  "name": "Native",
+  "supported_backends": ["claude", "codex"],
+  "supported_phases": ["ideation", "planning", "execution", "verification", "review", "custom"],
+  "features": {
+    "visual_companion": false,
+    "interactive_questions": false
+  },
+  "phase_skills": {}
+}

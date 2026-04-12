@@ -1,0 +1,17 @@
+{
+  "id": "superpowers",
+  "name": "Superpowers",
+  "supported_backends": ["claude"],
+  "supported_phases": ["ideation", "planning", "execution", "verification", "review"],
+  "features": {
+    "visual_companion": true,
+    "interactive_questions": true
+  },
+  "phase_skills": {
+    "ideation": "superpowers:brainstorming",
+    "planning": "superpowers:writing-plans",
+    "execution": "superpowers:executing-plans",
+    "verification": "superpowers:verification-before-completion",
+    "review": "superpowers:requesting-code-review"
+  }
+}

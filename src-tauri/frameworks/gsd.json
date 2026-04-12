@@ -1,0 +1,16 @@
+{
+  "id": "gsd",
+  "name": "GSD",
+  "supported_backends": ["claude"],
+  "supported_phases": ["ideation", "planning", "execution", "verification"],
+  "features": {
+    "visual_companion": false,
+    "interactive_questions": true
+  },
+  "phase_skills": {
+    "ideation": "gsd:discuss-phase",
+    "planning": "gsd:plan-phase",
+    "execution": "gsd:execute-phase",
+    "verification": "gsd:verify-work"
+  }
+}
