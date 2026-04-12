@@ -20,6 +20,8 @@ use commands::file_commands;
 use commands::graph_commands;
 use commands::script_commands;
 use commands::shell_commands;
+use commands::pipeline_commands;
+use commands::project_commands;
 use commands::token_commands;
 use commands::workspace_commands;
 
@@ -199,6 +201,17 @@ pub fn run() {
             agent_commands_v2::cancel_agent,
             agent_commands_v2::get_sidecar_status,
             agent_commands_v2::detect_available_clis,
+            // Project commands
+            project_commands::create_project,
+            project_commands::list_projects,
+            project_commands::update_project,
+            project_commands::delete_project,
+            // Pipeline commands
+            pipeline_commands::create_pipeline,
+            pipeline_commands::get_project_pipeline,
+            pipeline_commands::get_pipeline_phases,
+            pipeline_commands::update_pipeline_phases,
+            pipeline_commands::delete_pipeline,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

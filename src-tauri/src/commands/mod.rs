@@ -9,6 +9,8 @@ pub mod decision_commands;
 pub mod events_commands;
 pub mod file_commands;
 pub mod graph_commands;
+pub mod pipeline_commands;
+pub mod project_commands;
 pub mod script_commands;
 pub mod shell_commands;
 pub mod token_commands;
