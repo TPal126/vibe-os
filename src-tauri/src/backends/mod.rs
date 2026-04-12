@@ -1,6 +1,9 @@
 pub mod claude;
 pub mod codex;
 
+#[cfg(any(test, feature = "test-fake"))]
+pub mod fake;
+
 use std::collections::HashMap;
 use std::process::Child;
 use std::sync::Arc;
