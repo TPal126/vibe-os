@@ -115,6 +115,9 @@ export interface PipelineSlice {
   resetBuilder: () => void;
   loadFrameworks: () => Promise<void>;
 
+  // Pipeline hydration (for reopening existing projects)
+  loadProjectPipeline: (projectId: string) => Promise<void>;
+
   // Active run tracking
   activePipelineRun: PipelineRunState | null;
   startPipelineRun: (pipelineId: string) => Promise<void>;
@@ -311,6 +314,31 @@ export const createPipelineSlice: SliceCreator<PipelineSlice> = (set, get) => ({
   },
 
   clearPipelineRun: () => set({ activePipelineRun: null }),
+
+  // Pipeline hydration — loads existing pipeline for a project into builder state
+  loadProjectPipeline: async (projectId) => {
+    try {
+      const pipeline = await commands.getProjectPipeline(projectId);
+      if (!pipeline) {
+        set({ builderPhases: [], selectedPhaseId: null });
+        return;
+      }
+      const phases = await commands.getPipelinePhases(pipeline.id);
+      const builderPhases: PipelinePhaseConfig[] = phases.map((p) => ({
+        id: p.id,
+        label: p.label,
+        phaseType: p.phase_type,
+        backend: p.backend as "claude" | "codex",
+        framework: p.framework,
+        model: p.model,
+        customPrompt: p.custom_prompt,
+        gateAfter: p.gate_after as "gated" | "auto",
+      }));
+      set({ builderPhases, selectedPhaseId: null });
+    } catch (err) {
+      console.warn("[vibe-os] Failed to load project pipeline:", err);
+    }
+  },
 });
 ```
 
@@ -829,39 +857,160 @@ git commit -m "feat: add WorkflowBuilder with PhasePalette, PipelineCanvas, and 
 
 ## Milestone C: Integrate Builder Into Project Setup
 
-### Task 7: Add workflow builder step to ProjectSetupView
+### Task 7: Restructure ProjectSetupView with two-step flow + pipeline creation
 
 **Files:**
 - Modify: `src/components/home/ProjectSetupView.tsx`
+- Modify: `src/stores/slices/projectSlice.ts`
 
-- [ ] **Step 1: Add a two-step flow**
+**Key design decisions addressing review findings:**
+- **Finding 1 (race condition):** `addProject` is fire-and-forget. Instead of relying on it, ProjectSetupView calls `commands.createProject()` directly to get the project ID, then calls `commands.createPipeline()` with that ID. The projectSlice's `addProject` is no longer used for the creation path — the setup view does the full sequence synchronously.
+- **Finding 3 (layout/UX):** Step 1 is the existing name/description/resources layout. Step 2 is **full-width** workflow builder (hides the resource catalog sidebar). Enter key on step 1 advances to step 2, not create. "Back" returns to step 1 preserving all state. "Create Project" only appears on step 2.
 
-Read the current `ProjectSetupView.tsx` fully. Add state to track which step the user is on: step 1 = name/description/resources (existing), step 2 = workflow builder (new). Add a "Next" button after step 1 that advances to step 2. The "Create Project" button moves to step 2.
+- [ ] **Step 1: Add step state and restructure layout**
 
-In step 2, render the `<WorkflowBuilder />` component. Below it, show "Back" and "Create Project" buttons. The create handler should:
+Read the current `ProjectSetupView.tsx` fully. Add:
+- `const [step, setStep] = useState<1 | 2>(1);`
+- Disable the `onKeyDown` Enter handler when `step === 1` from triggering `handleCreate` — instead make Enter advance to step 2
+- Rename the current "Create Project" button to "Next: Configure Pipeline" on step 1
+- On step 2: full-width layout with `<WorkflowBuilder />` and "Back" / "Create Project" buttons
+- Add `useEffect` cleanup: `return () => resetBuilder();`
 
-1. Call existing workspace/session creation logic
-2. Call `commands.createPipeline(...)` with the `builderPhases` from the store, converting `PipelinePhaseConfig[]` to the Rust command's expected format
-3. Reset the builder state
+- [ ] **Step 2: Rewrite handleCreate to use direct commands**
 
-Read the current `handleCreate` function carefully and extend it — don't replace the existing logic, add the pipeline creation after the project is created.
+Replace the `handleCreate` function to:
+1. Create workspace (existing logic)
+2. Call `commands.createProject(safeName, workspace.path)` directly — this returns `{ id, ... }`
+3. Create session (existing logic)
+4. Call `commands.createPipeline({ project_id: projectRow.id, name: "Default", phases: builderPhases.map(...) })` using the returned project ID
+5. Update local store state with the new project (add to projects array, set active)
+6. Call `resetBuilder()`
 
-Add a `useEffect` cleanup that calls `resetBuilder()` when the component unmounts.
+This eliminates the race — `createProject` returns the row synchronously before `createPipeline` uses its ID.
 
-- [ ] **Step 2: Verify the full flow works**
+```typescript
+const handleCreate = async () => {
+  setSubmitting(true);
+  setError(null);
+  try {
+    await createWorkspace(safeName);
+    const workspace = useAppStore.getState().activeWorkspace;
+    if (!workspace) throw new Error("Workspace creation failed");
+
+    // Create project in SQLite — get ID back directly
+    const projectRow = await commands.createProject(safeName, workspace.path);
+
+    // Create pipeline with builder phases
+    const { builderPhases, resetBuilder } = useAppStore.getState();
+    if (builderPhases.length > 0) {
+      await commands.createPipeline({
+        project_id: projectRow.id,
+        name: "Default",
+        phases: builderPhases.map((p) => ({
+          label: p.label,
+          phase_type: p.phaseType,
+          backend: p.backend,
+          framework: p.framework,
+          model: p.model,
+          custom_prompt: p.customPrompt,
+          gate_after: p.gateAfter,
+        })),
+      });
+    }
+
+    // Create session and update store
+    const sessionId = crypto.randomUUID();
+    createSessionLocal(sessionId, safeName);
+
+    // Add project to local store state
+    useAppStore.setState((state) => ({
+      projects: [...state.projects, {
+        id: projectRow.id,
+        name: projectRow.name,
+        workspacePath: projectRow.workspace_path,
+        activeSessionId: sessionId,
+        summary: description,
+        createdAt: projectRow.created_at,
+        linkedRepoIds: [...checkedRepoIds],
+        linkedSkillIds: [...checkedSkillIds],
+        linkedAgentNames: [...checkedAgentNames],
+      }],
+      activeProjectId: projectRow.id,
+      currentView: "conversation" as const,
+    }));
+
+    resetBuilder();
+    setActiveSessionId(sessionId);
+  } catch (err) {
+    setError(String(err));
+    setSubmitting(false);
+  }
+};
+```
+
+- [ ] **Step 3: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add src/components/home/ProjectSetupView.tsx
-git commit -m "feat: integrate WorkflowBuilder into project setup as step 2"
+git commit -m "feat: restructure ProjectSetupView with two-step flow and direct pipeline creation"
 ```
 
 ---
 
 ## Milestone D: Conversation View Components
+
+### Task 7.5: Wire useAgentStream to emit gate-prompt and interaction card types
+
+**Files:**
+- Modify: `src/hooks/useAgentStream.ts`
+
+Currently, `useAgentStream` maps `phase_transition` events to `"outcome"` cards with `cardSubtype: "phase_transition"` (line ~157). The new `GatePromptCard` and `InteractionCard` components won't render unless the stream hook emits the correct card types.
+
+- [ ] **Step 1: Update phase_transition handling**
+
+In `src/hooks/useAgentStream.ts`, find the `phase_transition` handling block inside the `agent_event` handler and change:
+
+```typescript
+// OLD:
+if (eventType === "phase_transition") {
+  store.insertRichCard(sid, "outcome", content, { ...meta, cardSubtype: "phase_transition" });
+  return;
+}
+
+// NEW:
+if (eventType === "phase_transition") {
+  // Gate events get the gate-prompt card type; others get outcome
+  const isGate = meta?.gate === "awaiting";
+  store.insertRichCard(sid, isGate ? "gate-prompt" : "outcome", content, meta || {});
+  return;
+}
+```
+
+- [ ] **Step 2: Add interaction_request handling**
+
+Add a new block for `interaction_request` events (framework questions):
+
+```typescript
+if (eventType === "interaction_request") {
+  store.insertRichCard(sid, "interaction", content, meta || {});
+  return;
+}
+```
+
+- [ ] **Step 3: Verify TypeScript compiles**
+
+Run: `npx tsc --noEmit`
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/hooks/useAgentStream.ts
+git commit -m "feat: wire gate-prompt and interaction card types in useAgentStream"
+```
 
 ### Task 8: PhaseIndicator component
 
@@ -896,7 +1045,7 @@ export function PhaseIndicator() {
     <div className="flex items-center gap-1 px-4 py-1.5 bg-v-surface/50 border-b border-v-border">
       <span className="text-[10px] text-v-dim mr-2">Pipeline:</span>
       {allPhases.map((phase, i) => {
-        const isCompleted = phase.status === "completed" || phase.status === "gate_passed";
+        const isCompleted = phase.status === "completed";
         const isRunning = phase.status === "running";
         const isGated = phase.status === "awaiting_gate";
 
@@ -1104,6 +1253,42 @@ case "interaction":
 ```bash
 git add src/components/conversation/InteractionCard.tsx src/components/panels/ClaudeChat.tsx
 git commit -m "feat: add InteractionCard for framework question/answer in chat"
+```
+
+---
+
+### Task 10.5: Pipeline hydration on project open
+
+**Files:**
+- Modify: `src/components/home/HomeScreen.tsx`
+
+When reopening an existing project, load its pipeline so the conversation view can show the PhaseIndicator and track runs.
+
+- [ ] **Step 1: Call loadProjectPipeline on project open**
+
+In `HomeScreen.tsx`, update `handleOpenProject` to also call `loadProjectPipeline`:
+
+```typescript
+const handleOpenProject = async (project: { id: string; workspacePath: string; activeSessionId: string }) => {
+  openProject(project.id);
+  setActiveSessionId(project.activeSessionId);
+  // Hydrate pipeline state for this project
+  useAppStore.getState().loadProjectPipeline(project.id);
+  try {
+    await openWorkspace(project.workspacePath);
+  } catch (err) {
+    console.warn("Workspace load failed, chat still works:", err);
+  }
+};
+```
+
+This ensures `builderPhases` and any active pipeline run are populated from SQLite when reopening a project, rather than only working at creation time.
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add src/components/home/HomeScreen.tsx
+git commit -m "feat: hydrate pipeline state when reopening project"
 ```
 
 ---
