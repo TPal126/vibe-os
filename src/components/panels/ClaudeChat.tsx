@@ -363,15 +363,25 @@ export function ClaudeChat() {
 
                       // Send the answer to the backend
                       const session = sessions.get(activeId);
+                      const project = store.projects.find(
+                        (p) => p.id === store.activeProjectId,
+                      );
+                      const workingDir = project?.workspacePath || ".";
+
                       if (session?.conversationId) {
-                        const project = store.projects.find(
-                          (p) => p.id === store.activeProjectId,
-                        );
+                        // Resume existing conversation
                         commands.sendMessage({
                           message: answer,
                           conversationId: session.conversationId,
-                          workingDir: project?.workspacePath || ".",
+                          workingDir,
                           agentSessionId: activeId,
+                        }).catch(console.error);
+                      } else {
+                        // No conversation yet — start a fresh invocation with the answer
+                        commands.startClaude({
+                          working_dir: workingDir,
+                          message: answer,
+                          agent_session_id: activeId,
                         }).catch(console.error);
                       }
                     }}
