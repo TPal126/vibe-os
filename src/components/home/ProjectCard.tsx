@@ -1,10 +1,10 @@
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
-import type { Project, ClaudeSessionState, BuildStatus } from "../../stores/types";
+import type { Project, AgentSessionState, BuildStatus } from "../../stores/types";
 import { PreviewThumbnail } from "./PreviewThumbnail";
 
 interface ProjectCardProps {
   project: Project;
-  session: ClaudeSessionState | undefined;
+  session: AgentSessionState | undefined;
   onClick: () => void;
 }
 
@@ -18,7 +18,7 @@ const statusConfig = {
 
 type DisplayStatus = keyof typeof statusConfig;
 
-function deriveDisplayStatus(session: ClaudeSessionState | undefined): DisplayStatus {
+function deriveDisplayStatus(session: AgentSessionState | undefined): DisplayStatus {
   if (!session) return "idle";
   if (session.status !== "idle") return session.status;
   // Derive "done" when idle but last event was a successful result

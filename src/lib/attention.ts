@@ -1,4 +1,4 @@
-import type { Project, ClaudeSessionState } from "../stores/types";
+import type { Project, AgentSessionState } from "../stores/types";
 
 export interface AttentionItem {
   projectId: string;
@@ -11,11 +11,11 @@ export interface AttentionItem {
 
 export function getAttentionItems(
   projects: Project[],
-  sessions: Map<string, ClaudeSessionState>,
+  sessions: Map<string, AgentSessionState>,
 ): AttentionItem[] {
   const items: AttentionItem[] = [];
   for (const project of projects) {
-    const session = sessions.get(project.claudeSessionId);
+    const session = sessions.get(project.activeSessionId);
     if (!session) continue;
     if (session.status === "needs-input" || session.status === "error") {
       items.push({

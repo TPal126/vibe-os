@@ -4,10 +4,10 @@ import { useShallow } from "zustand/react/shallow";
 import { commands } from "../../lib/tauri";
 import { Dot } from "../shared/Dot";
 import { Plus, X } from "lucide-react";
-import type { ClaudeSessionState } from "../../stores/types";
+import type { AgentSessionState } from "../../stores/types";
 
 function statusDotColor(
-  status: ClaudeSessionState["status"],
+  status: AgentSessionState["status"],
 ): string {
   switch (status) {
     case "working":
@@ -21,30 +21,30 @@ function statusDotColor(
   }
 }
 
-function statusPulse(status: ClaudeSessionState["status"]): boolean {
+function statusPulse(status: AgentSessionState["status"]): boolean {
   return status === "working" || status === "needs-input";
 }
 
 export function SessionTabs() {
   const {
-    claudeSessions,
-    activeClaudeSessionId,
-    setActiveClaudeSessionId,
-    createClaudeSessionLocal,
-    removeClaudeSession,
+    agentSessions,
+    activeAgentSessionId,
+    setActiveSessionId,
+    createSessionLocal,
+    removeSession,
     activeSessionId,
   } = useAppStore(
     useShallow((s) => ({
-      claudeSessions: s.claudeSessions,
-      activeClaudeSessionId: s.activeClaudeSessionId,
-      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
-      createClaudeSessionLocal: s.createClaudeSessionLocal,
-      removeClaudeSession: s.removeClaudeSession,
+      agentSessions: s.agentSessions,
+      activeAgentSessionId: s.activeSessionId,
+      setActiveSessionId: s.setActiveSessionId,
+      createSessionLocal: s.createSessionLocal,
+      removeSession: s.removeSession,
       activeSessionId: s.activeSession?.id ?? null,
     })),
   );
 
-  const sessions = Array.from(claudeSessions.values());
+  const sessions = Array.from(agentSessions.values());
 
   const handleNewSession = useCallback(async () => {
     try {
@@ -55,16 +55,16 @@ export function SessionTabs() {
       }
       const name = `Session ${sessions.length + 1}`;
       const result = await commands.createClaudeSession(appSessionId, name);
-      createClaudeSessionLocal(result.id, result.name ?? name);
-      setActiveClaudeSessionId(result.id);
+      createSessionLocal(result.id, result.name ?? name);
+      setActiveSessionId(result.id);
     } catch (err) {
-      console.error("Failed to create Claude session:", err);
+      console.error("Failed to create agent session:", err);
     }
   }, [
     activeSessionId,
     sessions.length,
-    createClaudeSessionLocal,
-    setActiveClaudeSessionId,
+    createSessionLocal,
+    setActiveSessionId,
   ]);
 
   const handleClose = useCallback(
@@ -75,9 +75,9 @@ export function SessionTabs() {
       } catch {
         // Session may already be closed on backend
       }
-      removeClaudeSession(sessionId);
+      removeSession(sessionId);
     },
-    [removeClaudeSession],
+    [removeSession],
   );
 
   // Empty state
@@ -98,11 +98,11 @@ export function SessionTabs() {
   return (
     <div className="flex items-center border-b border-v-border bg-v-bg overflow-x-auto">
       {sessions.map((session) => {
-        const isActive = session.id === activeClaudeSessionId;
+        const isActive = session.id === activeAgentSessionId;
         return (
           <button
             key={session.id}
-            onClick={() => setActiveClaudeSessionId(session.id)}
+            onClick={() => setActiveSessionId(session.id)}
             className={`group flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] shrink-0 border-b-2 transition-colors ${
               isActive
                 ? "font-semibold text-v-textHi border-v-accent bg-v-surface/50"

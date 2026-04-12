@@ -9,7 +9,7 @@ interface StatusEvent {
   status: "working" | "done" | "cancelled";
   invocation_id: string;
   exit_code?: number;
-  claude_session_id?: string;
+  agent_session_id?: string;
 }
 
 /**
@@ -83,12 +83,12 @@ export function isInputRequest(payload: unknown): boolean {
 }
 
 /**
- * Extract claude_session_id from a stream payload (AgentEvent or StatusEvent).
+ * Extract agent_session_id from a stream payload (AgentEvent or StatusEvent).
  */
 export function getSessionId(payload: unknown): string | undefined {
   if (typeof payload !== "object" || payload === null) return undefined;
   const p = payload as Record<string, unknown>;
-  if (typeof p.claude_session_id === "string") return p.claude_session_id;
+  if (typeof p.agent_session_id === "string") return p.agent_session_id;
   return undefined;
 }
 

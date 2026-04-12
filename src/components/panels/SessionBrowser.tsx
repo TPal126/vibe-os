@@ -35,10 +35,10 @@ function statusColor(status: string): string {
 }
 
 export function SessionBrowser() {
-  const { createClaudeSessionLocal, setActiveClaudeSessionId } = useAppStore(
+  const { createSessionLocal, setActiveSessionId } = useAppStore(
     useShallow((s) => ({
-      createClaudeSessionLocal: s.createClaudeSessionLocal,
-      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      createSessionLocal: s.createSessionLocal,
+      setActiveSessionId: s.setActiveSessionId,
     })),
   );
 
@@ -70,11 +70,11 @@ export function SessionBrowser() {
   const handleAttach = async (session: ClaudeCodeSessionInfo) => {
     setAttachingId(session.id);
     try {
-      const claudeSessionId = crypto.randomUUID();
+      const agentSessionId = crypto.randomUUID();
       const dirName = session.working_dir.split(/[/\\]/).pop() || "attached";
-      createClaudeSessionLocal(claudeSessionId, `${dirName} (attached)`);
-      setActiveClaudeSessionId(claudeSessionId);
-      await commands.attachClaudeCodeSession(session.id, claudeSessionId);
+      createSessionLocal(agentSessionId, `${dirName} (attached)`);
+      setActiveSessionId(agentSessionId);
+      await commands.attachClaudeCodeSession(session.id, agentSessionId);
     } catch (err) {
       setError(`Attach failed: ${String(err)}`);
     } finally {

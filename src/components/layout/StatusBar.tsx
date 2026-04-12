@@ -15,14 +15,14 @@ export function StatusBar() {
     pythonRunning,
     activeSession,
     activeWorkspace,
-    claudeSessions,
+    agentSessions,
     composedPrompt,
   } = useAppStore(
     useShallow((s) => ({
       pythonRunning: s.pythonRunning,
       activeSession: s.activeSession,
       activeWorkspace: s.activeWorkspace,
-      claudeSessions: s.claudeSessions,
+      agentSessions: s.agentSessions,
       composedPrompt: s.composedPrompt,
     })),
   );
@@ -31,7 +31,7 @@ export function StatusBar() {
 
   // Derive multi-session status
   const sessionStatus = useMemo(() => {
-    const sessions = Array.from(claudeSessions.values());
+    const sessions = Array.from(agentSessions.values());
     const total = sessions.length;
     const working = sessions.filter((s) => s.isWorking).length;
     const needsInput = sessions.filter((s) => s.needsInput).length;
@@ -64,7 +64,7 @@ export function StatusBar() {
     }
 
     return { label, color, dotColor, pulse: working > 0 };
-  }, [claudeSessions]);
+  }, [agentSessions]);
 
   // Live decision count -- filter agentEvents for "decision" type
   const decisionCount = useAppStore((s) =>

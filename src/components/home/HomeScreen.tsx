@@ -2,34 +2,34 @@ import { useAppStore } from "../../stores";
 import { useShallow } from "zustand/react/shallow";
 import { EnhancedProjectCard } from "./EnhancedProjectCard";
 import { NewProjectCard } from "./NewProjectCard";
-import type { ClaudeSessionState } from "../../stores/types";
+import type { AgentSessionState } from "../../stores/types";
 
 export function HomeScreen() {
   const {
     projects,
-    claudeSessions,
+    agentSessions,
     openProject,
     removeProject,
     clearAllProjects,
-    setActiveClaudeSessionId,
+    setActiveSessionId,
     openWorkspace,
     goToSetup,
   } = useAppStore(
     useShallow((s) => ({
       projects: s.projects,
-      claudeSessions: s.claudeSessions,
+      agentSessions: s.agentSessions,
       openProject: s.openProject,
       removeProject: s.removeProject,
       clearAllProjects: s.clearAllProjects,
-      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      setActiveSessionId: s.setActiveSessionId,
       openWorkspace: s.openWorkspace,
       goToSetup: s.goToSetup,
     })),
   );
 
-  const handleOpenProject = async (project: { id: string; workspacePath: string; claudeSessionId: string }) => {
+  const handleOpenProject = async (project: { id: string; workspacePath: string; activeSessionId: string }) => {
     openProject(project.id);
-    setActiveClaudeSessionId(project.claudeSessionId);
+    setActiveSessionId(project.activeSessionId);
     try {
       await openWorkspace(project.workspacePath);
     } catch (err) {
@@ -61,8 +61,8 @@ export function HomeScreen() {
     <div className="flex-1 flex flex-col items-center justify-center p-8">
       <div className="grid grid-cols-3 gap-4 max-w-[720px] w-full">
         {projects.map((project) => {
-          const projectSessions = new Map<string, ClaudeSessionState>();
-          const primarySession = claudeSessions.get(project.claudeSessionId);
+          const projectSessions = new Map<string, AgentSessionState>();
+          const primarySession = agentSessions.get(project.activeSessionId);
           if (primarySession) {
             projectSessions.set(primarySession.id, primarySession);
           }
@@ -74,7 +74,7 @@ export function HomeScreen() {
               sessions={projectSessions}
               onOpen={() => handleOpenProject(project)}
               onOpenSession={(sessionId) => {
-                setActiveClaudeSessionId(sessionId);
+                setActiveSessionId(sessionId);
                 openProject(project.id);
               }}
               onDelete={() => removeProject(project.id)}

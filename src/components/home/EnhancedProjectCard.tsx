@@ -1,15 +1,15 @@
 import { Plus, X } from "lucide-react";
-import type { Project, ClaudeSessionState } from "../../stores/types";
+import type { Project, AgentSessionState } from "../../stores/types";
 
 interface EnhancedProjectCardProps {
   project: Project;
-  sessions: Map<string, ClaudeSessionState>;
+  sessions: Map<string, AgentSessionState>;
   onOpen: () => void;
   onOpenSession: (sessionId: string) => void;
   onDelete: () => void;
 }
 
-const statusDotColor: Record<ClaudeSessionState["status"], string> = {
+const statusDotColor: Record<AgentSessionState["status"], string> = {
   working: "bg-v-green",
   "needs-input": "bg-v-orange",
   error: "bg-v-red",

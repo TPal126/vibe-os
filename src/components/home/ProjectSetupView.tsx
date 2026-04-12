@@ -11,8 +11,8 @@ export function ProjectSetupView() {
     goHome,
     addProject,
     createWorkspace,
-    createClaudeSessionLocal,
-    setActiveClaudeSessionId,
+    createSessionLocal,
+    setActiveSessionId,
     toggleRepo,
     addRepoLocal,
     addRepoGithub,
@@ -22,8 +22,8 @@ export function ProjectSetupView() {
       goHome: s.goHome,
       addProject: s.addProject,
       createWorkspace: s.createWorkspace,
-      createClaudeSessionLocal: s.createClaudeSessionLocal,
-      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      createSessionLocal: s.createSessionLocal,
+      setActiveSessionId: s.setActiveSessionId,
       toggleRepo: s.toggleRepo,
       addRepoLocal: s.addRepoLocal,
       addRepoGithub: s.addRepoGithub,
@@ -82,7 +82,7 @@ export function ProjectSetupView() {
       if (!workspace) throw new Error("Workspace creation failed");
 
       const sessionId = crypto.randomUUID();
-      createClaudeSessionLocal(sessionId, trimmed);
+      createSessionLocal(sessionId, trimmed);
 
       // Create project
       addProject(trimmed, workspace.path, sessionId);
@@ -109,7 +109,7 @@ export function ProjectSetupView() {
         saveProjects();
       }
 
-      setActiveClaudeSessionId(sessionId);
+      setActiveSessionId(sessionId);
     } catch (err) {
       setError(String(err));
       setSubmitting(false);

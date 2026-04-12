@@ -25,9 +25,9 @@ export function TitleBar() {
     goHome,
     activeProjectId,
     projects,
-    claudeSessions,
+    agentSessions,
     openProject,
-    setActiveClaudeSessionId,
+    setActiveSessionId,
     openWorkspace,
   } = useAppStore(
     useShallow((s) => ({
@@ -38,9 +38,9 @@ export function TitleBar() {
       goHome: s.goHome,
       activeProjectId: s.activeProjectId,
       projects: s.projects,
-      claudeSessions: s.claudeSessions,
+      agentSessions: s.agentSessions,
       openProject: s.openProject,
-      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      setActiveSessionId: s.setActiveSessionId,
       openWorkspace: s.openWorkspace,
     })),
   );
@@ -59,7 +59,7 @@ export function TitleBar() {
   const isHome = currentView === "home";
 
   // Attention badge
-  const attentionItems = getAttentionItems(projects, claudeSessions);
+  const attentionItems = getAttentionItems(projects, agentSessions);
   const attentionCount = attentionItems.length;
   const [cycleIndex, setCycleIndex] = useState(0);
 
@@ -74,7 +74,7 @@ export function TitleBar() {
 
     // Navigate to the flagged project
     openProject(item.projectId);
-    setActiveClaudeSessionId(item.sessionId);
+    setActiveSessionId(item.sessionId);
 
     // Load workspace in background
     const project = projects.find((p) => p.id === item.projectId);
@@ -83,7 +83,7 @@ export function TitleBar() {
     }
 
     setCycleIndex(idx + 1);
-  }, [attentionItems, cycleIndex, openProject, setActiveClaudeSessionId, projects, openWorkspace]);
+  }, [attentionItems, cycleIndex, openProject, setActiveSessionId, projects, openWorkspace]);
 
   return (
     <div

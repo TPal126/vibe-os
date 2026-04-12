@@ -63,32 +63,32 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
 export function ClaudeChat() {
   const {
-    claudeSessions,
-    activeClaudeSessionId,
+    agentSessions,
+    activeAgentSessionId,
     composedPrompt,
     addSessionChatMessage,
-    createClaudeSessionLocal,
-    setActiveClaudeSessionId,
+    createSessionLocal,
+    setActiveSessionId,
     activeSessionId,
-    claudeCliAvailable,
-    validateClaudeCli,
+    cliAvailable,
+    validateCli,
   } = useAppStore(
     useShallow((s) => ({
-      claudeSessions: s.claudeSessions,
-      activeClaudeSessionId: s.activeClaudeSessionId,
+      agentSessions: s.agentSessions,
+      activeAgentSessionId: s.activeSessionId,
       composedPrompt: s.composedPrompt,
       addSessionChatMessage: s.addSessionChatMessage,
-      createClaudeSessionLocal: s.createClaudeSessionLocal,
-      setActiveClaudeSessionId: s.setActiveClaudeSessionId,
+      createSessionLocal: s.createSessionLocal,
+      setActiveSessionId: s.setActiveSessionId,
       activeSessionId: s.activeSession?.id ?? null,
-      claudeCliAvailable: s.claudeCliAvailable,
-      validateClaudeCli: s.validateClaudeCli,
+      cliAvailable: s.cliAvailable,
+      validateCli: s.validateCli,
     }))
   );
 
   // Derive state from active session
-  const activeSession = activeClaudeSessionId
-    ? claudeSessions.get(activeClaudeSessionId)
+  const activeSession = activeAgentSessionId
+    ? agentSessions.get(activeAgentSessionId)
     : undefined;
   const chatMessages = activeSession?.chatMessages ?? [];
   const isWorking = activeSession?.isWorking ?? false;
@@ -101,7 +101,7 @@ export function ClaudeChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const attentionScrollDone = useRef(false);
-  const showCliBanner = claudeCliAvailable === false && !bannerDismissed;
+  const showCliBanner = cliAvailable["claude"] === false && !bannerDismissed;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -126,25 +126,25 @@ export function ClaudeChat() {
   // Reset scroll flag when switching sessions
   useEffect(() => {
     attentionScrollDone.current = false;
-  }, [activeClaudeSessionId]);
+  }, [activeAgentSessionId]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || isWorking || !activeSessionId) return;
 
     // Clear attention when user engages
-    if (activeClaudeSessionId) {
-      useAppStore.getState().clearSessionAttention(activeClaudeSessionId);
+    if (activeAgentSessionId) {
+      useAppStore.getState().clearSessionAttention(activeAgentSessionId);
     }
 
-    // Auto-create a claude session if none exists
-    let sessionId = activeClaudeSessionId;
+    // Auto-create an agent session if none exists
+    let sessionId = activeAgentSessionId;
     if (!sessionId) {
       try {
         const name = "Session 1";
         const result = await commands.createClaudeSession(activeSessionId, name);
-        createClaudeSessionLocal(result.id, result.name ?? name);
-        setActiveClaudeSessionId(result.id);
+        createSessionLocal(result.id, result.name ?? name);
+        setActiveSessionId(result.id);
         sessionId = result.id;
       } catch (err) {
         console.error("Failed to auto-create session:", err);
@@ -184,7 +184,7 @@ export function ClaudeChat() {
           message: text,
           conversationId: conversationId,
           workingDir: workingDir,
-          claudeSessionId: sessionId,
+          agentSessionId: sessionId,
         });
       } else {
         await commands.startClaude({
@@ -192,7 +192,7 @@ export function ClaudeChat() {
           message: text,
           system_prompt: composedPrompt?.full || undefined,
           conversation_id: undefined,
-          claude_session_id: sessionId,
+          agent_session_id: sessionId,
         });
       }
     } catch (err) {
@@ -207,29 +207,29 @@ export function ClaudeChat() {
     input,
     isWorking,
     activeSessionId,
-    activeClaudeSessionId,
+    activeAgentSessionId,
     conversationId,
     composedPrompt,
     addSessionChatMessage,
-    createClaudeSessionLocal,
-    setActiveClaudeSessionId,
+    createSessionLocal,
+    setActiveSessionId,
   ]);
 
   const handleCancel = useCallback(async () => {
-    if (activeClaudeSessionId) {
+    if (activeAgentSessionId) {
       try {
         const sidecarStatus = await agentCommands.getSidecarStatus().catch(() => "stopped" as const);
         if (sidecarStatus === "ready") {
-          await agentCommands.cancelAgent(activeClaudeSessionId);
+          await agentCommands.cancelAgent(activeAgentSessionId);
           return;
         }
         // Fall back to CLI cancel
-        await commands.cancelClaude(activeClaudeSessionId);
+        await commands.cancelClaude(activeAgentSessionId);
       } catch (err) {
         console.error("Failed to cancel:", err);
       }
     }
-  }, [activeClaudeSessionId]);
+  }, [activeAgentSessionId]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -241,18 +241,18 @@ export function ClaudeChat() {
     [handleSend]
   );
 
-  const hasActiveSession = !!activeClaudeSessionId;
+  const hasActiveSession = !!activeAgentSessionId;
 
   const handleRetryValidation = useCallback(async () => {
     setRetrying(true);
     try {
-      await validateClaudeCli();
+      await validateCli();
       // If validation succeeds, dismiss the banner
       setBannerDismissed(true);
     } finally {
       setRetrying(false);
     }
-  }, [validateClaudeCli]);
+  }, [validateCli]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

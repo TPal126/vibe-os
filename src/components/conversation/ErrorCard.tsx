@@ -25,7 +25,7 @@ export const ErrorCard = React.memo(function ErrorCard({
 
   const onRetry = useCallback(() => {
     const store = useAppStore.getState();
-    const session = store.claudeSessions.get(data.sessionId);
+    const session = store.agentSessions.get(data.sessionId);
     if (!session) return;
 
     // Find last user message
@@ -42,7 +42,7 @@ export const ErrorCard = React.memo(function ErrorCard({
           message: lastUserMsg.content,
           conversationId,
           workingDir: ".",
-          claudeSessionId: session.id,
+          agentSessionId: session.id,
         })
         .catch(console.error);
     }
@@ -50,7 +50,7 @@ export const ErrorCard = React.memo(function ErrorCard({
 
   // Read live state for disable logic
   const isRetryDisabled = useAppStore((s) => {
-    const session = s.claudeSessions.get(data.sessionId);
+    const session = s.agentSessions.get(data.sessionId);
     if (!session) return true;
     if (session.isWorking) return true;
     const hasUserMsg = session.chatMessages.some((m) => m.role === "user");

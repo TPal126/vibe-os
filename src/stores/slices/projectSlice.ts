@@ -9,7 +9,7 @@ export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
   activeProjectId: null,
   currentView: "home",
 
-  addProject: (name, workspacePath, claudeSessionId) => {
+  addProject: (name, workspacePath, sessionId) => {
     const { projects } = get();
     if (projects.length >= MAX_PROJECTS) return;
 
@@ -17,7 +17,7 @@ export const createProjectSlice: SliceCreator<ProjectSlice> = (set, get) => ({
       id: crypto.randomUUID(),
       name,
       workspacePath,
-      claudeSessionId,
+      activeSessionId: sessionId,
       summary: "",
       createdAt: new Date().toISOString(),
       linkedRepoIds: [],

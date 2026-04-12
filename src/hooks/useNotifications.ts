@@ -18,7 +18,7 @@ export function useNotifications() {
 
   useEffect(() => {
     const unsub = useAppStore.subscribe((state) => {
-      const items = getAttentionItems(state.projects, state.claudeSessions);
+      const items = getAttentionItems(state.projects, state.agentSessions);
 
       // Find newly flagged items (not in previous snapshot)
       const prevIds = new Set(prevItemsRef.current.map((i) => i.sessionId));

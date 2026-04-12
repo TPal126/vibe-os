@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 import { EnhancedProjectCard } from "./EnhancedProjectCard";
-import type { Project, ClaudeSessionState } from "../../stores/types";
+import type { Project, AgentSessionState } from "../../stores/types";
 
 afterEach(cleanup);
 
@@ -10,7 +10,7 @@ const mockProject: Project = {
   id: "proj-1",
   name: "my-saas-app",
   workspacePath: "/tmp/test",
-  claudeSessionId: "cs-1",
+  activeSessionId: "cs-1",
   summary: "A test project",
   createdAt: "2026-03-30T00:00:00Z",
   linkedRepoIds: [],
@@ -18,9 +18,9 @@ const mockProject: Project = {
   linkedAgentNames: [],
 };
 
-const mockSessions: Map<string, ClaudeSessionState> = new Map([
+const mockSessions: Map<string, AgentSessionState> = new Map([
   ["cs-1", {
-    id: "cs-1", name: "Auth refactor", chatMessages: [], agentEvents: [],
+    id: "cs-1", name: "Auth refactor", backend: "claude" as const, chatMessages: [], agentEvents: [],
     isWorking: true, conversationId: null, currentInvocationId: null,
     agentError: null, needsInput: false, attentionPreview: null,
     attentionMessageId: null, status: "working", createdAt: "2026-03-30T00:00:00Z",
@@ -28,7 +28,7 @@ const mockSessions: Map<string, ClaudeSessionState> = new Map([
     buildStatus: "idle", buildStatusText: null, apiMetrics: null, tasks: [],
   }],
   ["cs-2", {
-    id: "cs-2", name: "Dashboard UI", chatMessages: [], agentEvents: [],
+    id: "cs-2", name: "Dashboard UI", backend: "claude" as const, chatMessages: [], agentEvents: [],
     isWorking: false, conversationId: null, currentInvocationId: null,
     agentError: null, needsInput: false, attentionPreview: null,
     attentionMessageId: null, status: "idle", createdAt: "2026-03-30T00:00:00Z",

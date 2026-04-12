@@ -8,13 +8,13 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
-import type { ClaudeTask } from "../../stores/types";
+import type { AgentTask } from "../../stores/types";
 
 interface TaskProgressCardProps {
-  tasks: ClaudeTask[];
+  tasks: AgentTask[];
 }
 
-const statusIcon: Record<ClaudeTask["status"], React.ReactNode> = {
+const statusIcon: Record<AgentTask["status"], React.ReactNode> = {
   pending: <Circle size={12} className="text-v-dim" />,
   in_progress: <Loader2 size={12} className="text-v-accent animate-spin" />,
   completed: <CheckCircle2 size={12} className="text-v-green" />,

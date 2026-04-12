@@ -168,9 +168,9 @@ describe("isAssistantText", () => {
 // ── getSessionId ──
 
 describe("getSessionId", () => {
-  it("extracts claude_session_id from events", () => {
+  it("extracts agent_session_id from events", () => {
     expect(
-      getSessionId({ claude_session_id: "session-123", event_type: "think" }),
+      getSessionId({ agent_session_id: "session-123", event_type: "think" }),
     ).toBe("session-123");
   });
 
@@ -179,7 +179,7 @@ describe("getSessionId", () => {
       getSessionId({
         type: "status",
         status: "done",
-        claude_session_id: "session-456",
+        agent_session_id: "session-456",
       }),
     ).toBe("session-456");
   });
