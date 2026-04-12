@@ -15,7 +15,25 @@ Two clean layers with separate concerns:
 1. **Backend Adapter Layer** — thin trait for spawn/stream/cancel per CLI backend
 2. **Workflow Engine** — pipeline orchestration, context handoff, framework interaction routing, gate management
 
-Framework compatibility is data-driven (JSON manifests), not hardcoded. Adding new framework+backend combos is a config change.
+Framework compatibility is data-driven (JSON manifests) for UI filtering and skill dispatch. Adding new framework+backend combos requires both a manifest update and adapter/integration work — the manifest drives what the UI shows, but backend enablement involves adapter code, prompt translation, stdin round-trip handling, and event parsing specific to that backend.
+
+## Prerequisite: Agent Session Abstraction
+
+Before implementing the adapter/workflow layers, the codebase needs a backend-agnostic session abstraction. Today the app is Claude-shaped throughout:
+
+- **Rust:** `event_stream.rs` serializes `claude_session_id` on every event. `claude_commands.rs` owns process state as `ClaudeProcesses`.
+- **Frontend types:** `ClaudeSessionState`, `claudeSessions`, `claudeCliAvailable`, `activeClaudeSessionId` in `AgentSlice` (types `src/stores/types.ts:311-348`).
+- **Two competing stream paths:** `useClaudeStream` (disabled, CLI-based) and `useAgentStream` (active, SDK sidecar-based with `SdkAssistantMessage`/`SdkResultMessage` types). The spec's event normalization must account for *three* event shapes (Claude CLI stream-json, SDK sidecar agent-event, Codex CLI), not two.
+
+**Required migration (before adapter work):**
+
+1. Rename `ClaudeSessionState` → `AgentSessionState` with new field `backend: "claude" | "codex" | "sidecar"`
+2. Rename `claudeSessions` → `agentSessions`, `activeClaudeSessionId` → `activeSessionId`, etc. across store types and slices
+3. Rename `claude_session_id` → `agent_session_id` in Rust `AgentEvent` struct
+4. Unify the Tauri event channel: both CLI adapters and the SDK sidecar emit on `"agent-stream"` with a discriminated `source` field
+5. `useAgentStream` becomes the single listener that dispatches based on `source` (cli-claude, cli-codex, sdk-sidecar)
+
+This is a prerequisite, not a parallel workstream — the adapter layer sits on top of this abstraction.
 
 ## Section 1: Backend Adapter Layer
 
@@ -154,22 +172,38 @@ Part of project creation flow. When a user creates a new project on the Home vie
 
 ## Section 4: Data Model
 
-### SQLite tables (new migration)
+### Project ownership
+
+Today, projects live in Zustand state only (`Project` type with `claudeSessionId`, persisted via store). There is no SQLite `projects` table — the current DB (user_version = 8) has `sessions`, `settings`, `audit_log`, `decisions`, `claude_sessions`, `token_budgets`, `events`, and `repos`.
+
+**Decision:** Add a `projects` table to SQLite as part of this work. Pipelines belong to projects. This also fixes the existing fragility of projects being Zustand-only state.
+
+### SQLite tables (migration v9)
 
 ```sql
--- Each project has one pipeline
-CREATE TABLE pipeline (
+-- Projects (new — currently Zustand-only)
+CREATE TABLE IF NOT EXISTS projects (
   id TEXT PRIMARY KEY,
-  project_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  workspace_path TEXT NOT NULL,
+  summary TEXT DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+-- Each project has one pipeline
+CREATE TABLE IF NOT EXISTS pipeline (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(id),
   name TEXT DEFAULT 'Default',
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
 
 -- Ordered phases within a pipeline
-CREATE TABLE pipeline_phase (
+CREATE TABLE IF NOT EXISTS pipeline_phase (
   id TEXT PRIMARY KEY,
-  pipeline_id TEXT NOT NULL,
+  pipeline_id TEXT NOT NULL REFERENCES pipeline(id),
   position INTEGER NOT NULL,
   label TEXT NOT NULL,
   phase_type TEXT NOT NULL,          -- ideation|planning|execution|verification|review|custom
@@ -180,19 +214,34 @@ CREATE TABLE pipeline_phase (
   gate_after TEXT DEFAULT 'gated'    -- "gated" | "auto"
 );
 
--- Phase execution state
-CREATE TABLE phase_run (
+-- A single execution of a pipeline (groups phase_runs)
+CREATE TABLE IF NOT EXISTS pipeline_run (
   id TEXT PRIMARY KEY,
-  pipeline_id TEXT NOT NULL,
-  phase_id TEXT NOT NULL,
+  pipeline_id TEXT NOT NULL REFERENCES pipeline(id),
+  status TEXT NOT NULL,              -- pending|running|paused|completed|failed
+  started_at TEXT NOT NULL,
+  completed_at TEXT
+);
+
+-- Phase execution state (belongs to a pipeline_run)
+CREATE TABLE IF NOT EXISTS phase_run (
+  id TEXT PRIMARY KEY,
+  pipeline_run_id TEXT NOT NULL REFERENCES pipeline_run(id),
+  phase_id TEXT NOT NULL REFERENCES pipeline_phase(id),
   session_id TEXT NOT NULL,
-  status TEXT NOT NULL,              -- pending|running|awaiting_input|completed|failed
+  status TEXT NOT NULL,              -- pending|running|awaiting_input|awaiting_gate|completed|failed
   artifact_path TEXT,
   summary TEXT,
   started_at TEXT,
   completed_at TEXT
 );
 ```
+
+**What `pipeline_run` gives us:**
+- Multiple executions of the same pipeline are cleanly separated
+- Artifacts stored under `.vibe-os/artifacts/{pipeline_run_id}/` now have an actual FK
+- Resuming a halted run = find the `pipeline_run` with status `paused`, locate its last completed `phase_run`, continue from the next phase
+- Phase summaries/artifacts are grouped under one attempt, not scattered
 
 ### Framework manifests (`src-tauri/frameworks/*.json`)
 
@@ -255,7 +304,7 @@ Each framework declares its capabilities as data:
 - **UI filtering:** `supported_backends` determines which frameworks are selectable when a backend is chosen
 - **Skill dispatch:** `phase_skills` maps phase type → skill name for the workflow engine to invoke
 - **UI preparation:** `features` tells vibe-os whether to prepare companion server, interaction card rendering
-- **Extensibility:** Adding Codex support for a framework = add `"codex"` to `supported_backends` and map skills
+- **Extensibility:** Adding Codex support for a framework requires: (1) add `"codex"` to `supported_backends` and map phase_skills in the manifest, (2) implement prompt translation / stdin interaction for that framework in the Codex adapter, (3) handle any framework-specific event patterns in the interaction router. The manifest drives the UI; the adapter code drives the behavior.
 
 ## Section 5: Context Handoff & Event Normalization
 
@@ -266,7 +315,7 @@ Each phase produces two outputs when it completes:
 1. **Artifact** — concrete output file stored in `.vibe-os/artifacts/{pipeline_run_id}/`:
    - Ideation → `spec.md` (design document)
    - Planning → `plan.md` (implementation plan)
-   - Execution → `diff-summary.md` (auto-generated from git diff of changes)
+   - Execution → `diff-summary.md` (see baseline strategy below)
    - Verification → `verification-report.md` (pass/fail, issues found)
    - Review → `review-notes.md` (feedback, requested changes)
    - Custom → `output.md` (whatever the phase produced)
@@ -284,6 +333,23 @@ The next phase receives as `framework_context`:
 
 Token-conscious: the artifact is the full picture, the summary is the bridge for context-limited models.
 
+### Phase baseline strategy for execution artifacts
+
+A naive `git diff` after an execution phase would include unrelated dirty-worktree changes. The workflow engine must establish a clean baseline:
+
+1. **Before execution phase starts:** record the current git state as a baseline
+   - `git stash --include-untracked` if working tree is dirty (auto-restored after phase)
+   - Record `HEAD` commit SHA as `phase_run.baseline_sha`
+2. **After execution phase completes:** generate diff against baseline
+   - `git diff {baseline_sha}..HEAD` captures only the execution phase's commits
+   - If the backend made uncommitted changes, `git diff {baseline_sha}` captures everything
+3. **Artifact generation:** `diff-summary.md` is generated from this scoped diff, not from the full working tree
+4. **Cleanup:** `git stash pop` to restore any pre-existing dirty state
+
+**Edge cases:**
+- If the user explicitly wants a dirty worktree (WIP branch), the stash step is configurable per-phase (`clean_baseline: true | false`, default `true`)
+- If execution phase fails mid-way, baseline SHA is still recorded in `phase_run` for manual recovery
+
 ### Event normalization
 
 Both adapters translate their CLI-specific output into the same `AgentEvent` enum:
@@ -298,10 +364,16 @@ Both adapters translate their CLI-specific output into the same `AgentEvent` enu
 
 ### Frontend migration
 
-- `useClaudeStream.ts` → renamed to `useAgentStream.ts`
-- Listens to `"agent-stream"` instead of `"claude-stream"`
-- Event handling logic is identical — both backends emit normalized `AgentEvent`s
-- `agentSlice.ts` — `ClaudeSessionState` renamed to `AgentSessionState`, adds `backend: "claude" | "codex"` field
+The current frontend has two stream paths: `useClaudeStream` (disabled, listens to `"claude-stream"` for CLI stream-json) and `useAgentStream` (active, listens to `"agent-event"` for SDK sidecar traffic with `SdkAssistantMessage`/`SdkResultMessage` types). These are different event shapes.
+
+**Unified approach:**
+- Single `useAgentStream.ts` hook listens to `"agent-stream"` (unified channel)
+- Events carry a `source` discriminator: `"cli-claude"` | `"cli-codex"` | `"sdk-sidecar"`
+- Each source has its own normalization path within the hook, but all produce the same store mutations (`addSessionChatMessage`, `addSessionAgentEvent`, etc.)
+- `useClaudeStream.ts` is deleted (already disabled)
+- The existing `useAgentStream.ts` is refactored to handle all three sources
+- `agentSlice.ts` — `ClaudeSessionState` → `AgentSessionState`, `claudeSessions` → `agentSessions`, adds `backend: "claude" | "codex" | "sidecar"` field
+- All `claude`-prefixed store accessors renamed (see Prerequisite section)
 
 ## File Change Summary
 
@@ -334,13 +406,16 @@ Both adapters translate their CLI-specific output into the same `AgentEvent` enu
 - `src/components/conversation/InteractionCard.tsx`
 - `src/components/conversation/PhaseIndicator.tsx`
 
-### Refactored frontend files (~4)
-- `src/hooks/useClaudeStream.ts` → `src/hooks/useAgentStream.ts`
-- `src/stores/slices/agentSlice.ts` — `ClaudeSessionState` → `AgentSessionState`, add `backend` field
-- `src/stores/types.ts` — new types for pipeline, phase, workflow state
-- `src/lib/tauri.ts` — add workflow command wrappers
-
 ### New SQLite migration
-- Migration v7: `pipeline`, `pipeline_phase`, `phase_run` tables
+- Migration v9 (current DB is at v8): `projects`, `pipeline`, `pipeline_phase`, `pipeline_run`, `phase_run` tables
+- Includes data migration: existing Zustand `Project` entries migrated into `projects` table
 
-**Total: ~20 new files, ~7 refactored files**
+### Refactored frontend files (~6)
+- `src/hooks/useAgentStream.ts` — refactored to handle three sources (cli-claude, cli-codex, sdk-sidecar)
+- `src/hooks/useClaudeStream.ts` — deleted (already disabled)
+- `src/stores/slices/agentSlice.ts` — `ClaudeSessionState` → `AgentSessionState`, `claudeSessions` → `agentSessions`, all `claude`-prefixed accessors renamed
+- `src/stores/slices/projectSlice.ts` — projects backed by SQLite instead of Zustand-only, `claudeSessionId` → `activeSessionId`
+- `src/stores/types.ts` — new types for pipeline, phase, workflow state; renamed session types
+- `src/lib/tauri.ts` — add workflow + project command wrappers
+
+**Total: ~22 new files, ~10 refactored files**
