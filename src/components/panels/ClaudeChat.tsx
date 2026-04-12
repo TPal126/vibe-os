@@ -329,7 +329,54 @@ export function ClaudeChat() {
               case "gate-prompt":
                 return <GatePromptCard key={msg.id} message={msg} />;
               case "interaction":
-                return <InteractionCard key={msg.id} message={msg} />;
+                return (
+                  <InteractionCard
+                    key={msg.id}
+                    message={msg}
+                    onRespond={(answer) => {
+                      const store = useAppStore.getState();
+                      const sessions = store.agentSessions;
+                      const activeId = store.activeSessionId;
+                      if (!activeId) return;
+
+                      // Add user's answer as a chat message
+                      store.addSessionChatMessage(activeId, {
+                        id: crypto.randomUUID(),
+                        role: "user",
+                        content: answer,
+                        timestamp: new Date().toISOString(),
+                      });
+
+                      // Mark card as answered by updating its cardData
+                      useAppStore.setState((state) => {
+                        const session = state.agentSessions.get(activeId);
+                        if (!session) return {};
+                        const messages = session.chatMessages.map((m) =>
+                          m.id === msg.id
+                            ? { ...m, cardData: { ...m.cardData, answered: true } }
+                            : m,
+                        );
+                        const next = new Map(state.agentSessions);
+                        next.set(activeId, { ...session, chatMessages: messages });
+                        return { agentSessions: next };
+                      });
+
+                      // Send the answer to the backend
+                      const session = sessions.get(activeId);
+                      if (session?.conversationId) {
+                        const project = store.projects.find(
+                          (p) => p.id === store.activeProjectId,
+                        );
+                        commands.sendMessage({
+                          message: answer,
+                          conversationId: session.conversationId,
+                          workingDir: project?.workspacePath || ".",
+                          agentSessionId: activeId,
+                        }).catch(console.error);
+                      }
+                    }}
+                  />
+                );
               default:
                 return <MessageBubble key={msg.id} message={msg} />;
             }
