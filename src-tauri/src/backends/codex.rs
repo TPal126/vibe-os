@@ -1,7 +1,9 @@
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
+use std::sync::Mutex;
 
 use chrono::Utc;
+use rusqlite::Connection;
 use tauri::{AppHandle, Emitter, Manager};
 
 use crate::services::codex_event_stream;
@@ -161,6 +163,38 @@ impl BackendAdapter for CodexAdapter {
 
                 let agent_event = codex_event_stream::parse_event(&line)
                     .with_session_id(&sid_stdout);
+
+                // Notify workflow engine of phase completion on Result events
+                if agent_event.event_type == AgentEventType::Result {
+                    let app_for_workflow = app_handle.clone();
+                    let sid_for_workflow = sid_stdout.clone();
+                    tauri::async_runtime::spawn(async move {
+                        if let Some(db) = app_for_workflow.try_state::<Mutex<Connection>>() {
+                            let phase_info: Option<(String, String)> = {
+                                if let Ok(conn) = db.lock() {
+                                    conn.query_row(
+                                        "SELECT pr.id, pr.pipeline_run_id FROM phase_run pr \
+                                         WHERE pr.session_id = ?1 AND pr.status = 'running' LIMIT 1",
+                                        rusqlite::params![sid_for_workflow],
+                                        |row| Ok((row.get(0)?, row.get(1)?)),
+                                    )
+                                    .ok()
+                                } else {
+                                    None
+                                }
+                            };
+
+                            if let Some((phase_run_id, pipeline_run_id)) = phase_info {
+                                let runner = crate::workflow::runner::WorkflowRunner::new(
+                                    app_for_workflow,
+                                );
+                                let _ = runner
+                                    .on_phase_complete(&pipeline_run_id, &phase_run_id)
+                                    .await;
+                            }
+                        }
+                    });
+                }
 
                 // Emit in unified envelope format
                 let envelope = serde_json::json!({
