@@ -1,10 +1,44 @@
+pub mod claude;
+pub mod codex;
+
 use std::collections::HashMap;
+use std::process::Child;
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
+use tauri::AppHandle;
+use tokio::sync::Mutex as TokioMutex;
+
+/// Backend-agnostic arguments for spawning a CLI process.
+#[derive(Debug, Clone)]
+pub struct SpawnArgs {
+    pub working_dir: String,
+    pub message: String,
+    pub system_prompt: Option<String>,
+    pub session_id: String,
+    pub model: Option<String>,
+    pub framework_context: Option<String>,
+    pub resume_id: Option<String>,
+}
+
+/// Managed state for active CLI processes across all backends.
+pub type AgentProcesses = Arc<TokioMutex<HashMap<String, Child>>>;
+
+/// Info about an installed CLI.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CliInfo {
+    pub name: String,
+    pub version: String,
+}
 
 /// Trait for CLI backend adapters (Claude, Codex, etc.)
 /// Implementations in separate files — added in Plan 2.
 pub trait BackendAdapter: Send + Sync {
     fn name(&self) -> &str;
+    fn validate(&self) -> Result<CliInfo, String>;
+    fn spawn(&self, args: SpawnArgs, app: &AppHandle) -> Result<String, String>;
+    fn send_input(&self, session_id: &str, input: &str, app: &AppHandle) -> Result<(), String>;
+    fn cancel(&self, session_id: &str, app: &AppHandle) -> Result<(), String>;
     fn supported_models(&self) -> Vec<ModelInfo>;
 }
 
