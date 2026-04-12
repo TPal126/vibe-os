@@ -1,0 +1,10 @@
+{
+  "type": "agent_event",
+  "source": "cli-claude",
+  "sessionId": "test-session-1",
+  "event": {
+    "event_type": "think",
+    "content": "Let me analyze that for you.",
+    "timestamp": "2026-04-12T00:00:00Z"
+  }
+}

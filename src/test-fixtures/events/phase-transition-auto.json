@@ -1,0 +1,13 @@
+{
+  "type": "agent_event",
+  "source": "workflow",
+  "sessionId": "test-session-1",
+  "event": {
+    "event_type": "phase_transition",
+    "content": "Phase 'Ideation' complete. Advancing to Planning.",
+    "metadata": {
+      "pipeline_run_id": "run-1"
+    },
+    "timestamp": "2026-04-12T00:00:30Z"
+  }
+}

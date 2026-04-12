@@ -1,0 +1,14 @@
+{
+  "type": "agent_event",
+  "source": "cli-claude",
+  "sessionId": "test-session-1",
+  "event": {
+    "event_type": "file_modify",
+    "content": "Editing src/main.ts",
+    "metadata": {
+      "tool": "Edit",
+      "path": "src/main.ts"
+    },
+    "timestamp": "2026-04-12T00:00:03Z"
+  }
+}

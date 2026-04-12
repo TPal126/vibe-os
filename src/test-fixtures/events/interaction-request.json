@@ -1,0 +1,14 @@
+{
+  "type": "agent_event",
+  "source": "cli-claude",
+  "sessionId": "test-session-1",
+  "event": {
+    "event_type": "interaction_request",
+    "content": "What technology stack would you like to use?",
+    "metadata": {
+      "options": ["React + TypeScript", "Vue + TypeScript", "Svelte"],
+      "inputType": "choice"
+    },
+    "timestamp": "2026-04-12T00:00:10Z"
+  }
+}

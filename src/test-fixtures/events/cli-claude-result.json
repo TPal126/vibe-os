@@ -1,0 +1,19 @@
+{
+  "type": "agent_event",
+  "source": "cli-claude",
+  "sessionId": "test-session-1",
+  "event": {
+    "event_type": "result",
+    "content": "Task completed successfully.",
+    "metadata": {
+      "input_tokens": 1500,
+      "output_tokens": 200,
+      "cache_creation_input_tokens": 500,
+      "cache_read_input_tokens": 1000,
+      "cost_usd": 0.025,
+      "duration_ms": 3500,
+      "duration_api_ms": 3200
+    },
+    "timestamp": "2026-04-12T00:00:05Z"
+  }
+}

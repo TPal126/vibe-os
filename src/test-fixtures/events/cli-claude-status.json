@@ -1,0 +1,6 @@
+{
+  "type": "status",
+  "source": "cli-claude",
+  "sessionId": "test-session-1",
+  "status": "working"
+}

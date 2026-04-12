@@ -1,0 +1,20 @@
+{
+  "type": "agent_event",
+  "source": "cli-codex",
+  "sessionId": "test-session-2",
+  "event": {
+    "event_type": "result",
+    "content": "",
+    "metadata": {
+      "input_tokens": 10884,
+      "output_tokens": 5,
+      "cached_input_tokens": 9600,
+      "cache_creation_input_tokens": null,
+      "cache_read_input_tokens": 9600,
+      "cost_usd": null,
+      "duration_ms": null,
+      "duration_api_ms": null
+    },
+    "timestamp": "2026-04-12T00:00:05Z"
+  }
+}
