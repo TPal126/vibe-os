@@ -19,6 +19,7 @@ import { createTokenSlice } from "./slices/tokenSlice";
 import { createProjectSlice } from "./slices/projectSlice";
 import { createThemeSlice } from "./slices/themeSlice";
 import { createAgentDefinitionSlice } from "./slices/agentDefinitionSlice";
+import { createPipelineSlice } from "./slices/pipelineSlice";
 import { tauriSqliteStorage } from "./storage";
 import type { AppState } from "./types";
 
@@ -44,6 +45,7 @@ export const useAppStore = create<AppState>()(
       ...createProjectSlice(...a),
       ...createThemeSlice(...a),
       ...createAgentDefinitionSlice(...a),
+      ...createPipelineSlice(...a),
     }),
     {
       name: "vibe-os-store",
