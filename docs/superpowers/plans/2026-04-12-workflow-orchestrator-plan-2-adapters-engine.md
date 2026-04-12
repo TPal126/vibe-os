@@ -30,10 +30,10 @@
 ## File Map
 
 ### Rust — Modified
-- `src-tauri/src/backends/mod.rs` — Expand BackendAdapter trait with full spawn/cancel/validate methods, add SpawnArgs, add AgentProcesses type
+- `src-tauri/src/backends/mod.rs` — Expand BackendAdapter trait with full spawn/cancel/validate methods, add SpawnArgs, AgentProcesses type
 - `src-tauri/src/services/event_stream.rs` — Add new AgentEventType variants (InteractionRequest, VisualContent, ArtifactProduced, PhaseTransition)
-- `src-tauri/src/commands/claude_commands.rs` — Change all `"claude-stream"` emits to `"agent-stream"`, extract reusable process management
-- `src-tauri/src/lib.rs` — Register new commands
+- `src-tauri/src/commands/claude_commands.rs` — Change all `"claude-stream"` emits to `"agent-stream"` with envelope format
+- `src-tauri/src/lib.rs` — Register new commands, register `AgentProcesses` managed state
 - `src-tauri/src/commands/mod.rs` — Export new workflow_commands module
 
 ### Rust — Created
@@ -51,29 +51,41 @@
 
 ---
 
-## Milestone A: Fix Event Channel + Expand Core Types
+## Milestone A: Fix Emit Channel + Expand Core Types + Register Managed State
 
-### Task 1: Fix claude_commands.rs emit channel
+**Plan 1 baseline:** `agent_session_id` in Rust, `AgentSessionState`/`agentSessions`/`activeSessionId` in frontend, `useAgentStream` listening on `"agent-stream"` with `source` field — all done. However, `claude_commands.rs` still emits on `"claude-stream"`, which breaks the CLI path. Fix that first.
+
+### Task 1: Fix claude_commands.rs emit channel + register AgentProcesses
 
 **Files:**
 - Modify: `src-tauri/src/commands/claude_commands.rs`
-
-Plan 1 unified the frontend to listen on `"agent-stream"` but didn't update the Rust Claude CLI emitter. All 9 occurrences of `"claude-stream"` in this file must change to `"agent-stream"`.
+- Modify: `src-tauri/src/lib.rs`
 
 - [ ] **Step 1: Replace all "claude-stream" with "agent-stream"**
 
-In `src-tauri/src/commands/claude_commands.rs`, find and replace all 9 occurrences of `"claude-stream"` with `"agent-stream"`. They are on approximately lines 124, 214, 232, 267, 308, 453, 501, 517, 552.
+In `src-tauri/src/commands/claude_commands.rs`, find and replace all 9 occurrences of `"claude-stream"` with `"agent-stream"`.
 
-- [ ] **Step 2: Build to verify**
+- [ ] **Step 2: Register AgentProcesses managed state in lib.rs**
+
+In `src-tauri/src/lib.rs`, inside the `.setup(|app| { ... })` block, add after the existing `app.manage(...)` calls:
+
+```rust
+// Register backend process registry (used by adapters + workflow engine)
+app.manage(crate::backends::AgentProcesses::default());
+```
+
+This ensures `app.state::<AgentProcesses>()` works at runtime when adapters need it.
+
+- [ ] **Step 3: Build to verify**
 
 Run: `cargo build -p vibe-os`
 Expected: Compiles.
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src-tauri/src/commands/claude_commands.rs
-git commit -m "fix: change claude_commands emit channel from claude-stream to agent-stream"
+git add src-tauri/src/commands/claude_commands.rs src-tauri/src/lib.rs
+git commit -m "fix: change emit channel to agent-stream, register AgentProcesses state"
 ```
 
 ### Task 2: Add new AgentEventType variants
@@ -340,19 +352,9 @@ fn classify_item(event_type: &str, item: CodexItem) -> AgentEvent {
                 }
             }
         }
-        "file_edit" | "file_write" => {
-            let path = item.text.as_deref().unwrap_or("unknown");
-            let evt_type = if item_type == "file_write" {
-                AgentEventType::FileCreate
-            } else {
-                AgentEventType::FileModify
-            };
-            make_event(
-                evt_type,
-                format!("{} {}", if item_type == "file_write" { "Creating" } else { "Editing" }, path),
-                Some(serde_json::json!({ "tool": if item_type == "file_write" { "Write" } else { "Edit" }, "path": path })),
-            )
-        }
+        // NOTE: Codex CLI (as of captured fixtures) only emits "agent_message" and
+        // "command_execution" item types. If future versions emit file-specific item
+        // types, add handlers here backed by captured fixture data.
         _ => {
             let text = item.text.unwrap_or_default();
             make_event(AgentEventType::Raw, text, None)
@@ -585,7 +587,25 @@ The ClaudeAdapter wraps the existing spawn/parse/emit logic from `claude_command
 
 - [ ] **Step 1: Create claude.rs**
 
-Create `src-tauri/src/backends/claude.rs` that implements `BackendAdapter` for a `ClaudeAdapter` struct. The `spawn` method should replicate the core logic from `claude_commands::start_claude` — build CLI args, spawn `claude -p --output-format stream-json --verbose`, read stdout via `event_stream::parse_event`, emit on `"agent-stream"`, handle stderr. Use `AgentProcesses` (from mod.rs) for process management instead of `ClaudeProcesses`.
+Create `src-tauri/src/backends/claude.rs` that implements `BackendAdapter` for a `ClaudeAdapter` struct. The `spawn` method should replicate the core logic from `claude_commands::start_claude` — build CLI args, spawn `claude -p --output-format stream-json --verbose`, read stdout via `event_stream::parse_event`, handle stderr. Use `AgentProcesses` (from mod.rs) for process management instead of `ClaudeProcesses`.
+
+**IMPORTANT: Event envelope format.** All emits to `"agent-stream"` must use the unified envelope, not raw AgentEvents:
+```rust
+// For agent events:
+app.emit("agent-stream", serde_json::json!({
+    "type": "agent_event",
+    "source": "cli-claude",
+    "sessionId": &session_id,
+    "event": &agent_event,
+}));
+// For status events:
+app.emit("agent-stream", serde_json::json!({
+    "type": "status",
+    "source": "cli-claude",
+    "sessionId": &session_id,
+    "status": "working", // or "done" or "cancelled"
+}));
+```
 
 The `validate` method runs `claude --version`. The `cancel` method kills the process by session_id. `supported_models` returns Claude model options.
 
@@ -619,9 +639,11 @@ Same pattern as ClaudeAdapter but for Codex CLI. Spawns `codex exec --json -m {m
 Create `src-tauri/src/backends/codex.rs`. The `CodexAdapter` struct implements `BackendAdapter`:
 
 - `validate` runs `codex --version`
-- `spawn` builds args for `codex exec --json`, optionally with `-m {model}`, pipes the message via the prompt argument, spawns the process, reads stdout line by line through `codex_event_stream::parse_event`, emits on `"agent-stream"`, handles stderr
+- `spawn` builds args for `codex exec --json`, optionally with `-m {model}`, pipes the message via the prompt argument, spawns the process, reads stdout line by line through `codex_event_stream::parse_event`, handles stderr
 - `cancel` kills process by session_id
 - `supported_models` returns Codex model options (o3, gpt-4.1, o4-mini, etc.)
+
+**IMPORTANT: Event envelope format.** Same as ClaudeAdapter — all emits use the unified envelope with `"source": "cli-codex"`. See Task 5 for the exact format.
 
 The system_prompt from SpawnArgs should be prepended to the message for Codex (Codex doesn't have a separate `--system-prompt` flag — it's part of the prompt text).
 
@@ -652,86 +674,47 @@ git commit -m "feat: implement CodexAdapter for Codex CLI integration"
 - Create: `src-tauri/src/workflow/runner.rs`
 - Modify: `src-tauri/src/workflow/mod.rs`
 
-- [ ] **Step 1: Create runner.rs**
+**IMPORTANT: All methods must have real implementations, not `todo!()` stubs.** Each method queries the SQLite tables from Plan 1 (pipeline, pipeline_phase, pipeline_run, phase_run) and performs real orchestration. The runner accesses `DbState` and `AgentProcesses` via `self.app.state::<T>()`.
 
-Create `src-tauri/src/workflow/runner.rs` with a `WorkflowRunner` struct:
+- [ ] **Step 1: Create runner.rs with full implementations**
+
+Create `src-tauri/src/workflow/runner.rs` with a `WorkflowRunner` struct. Every method must be fully implemented:
+
+**`start_pipeline(pipeline_id)`:**
+1. Query `pipeline_phase` for all phases ordered by `position` where `pipeline_id` matches
+2. If no phases, return error
+3. Insert a `pipeline_run` row with `status = "running"`, return its id
+4. Call `self.start_phase()` with the first phase and no previous context
+
+**`start_phase(pipeline_run_id, phase_id, previous_context)`:**
+1. Query `pipeline_phase` for this phase's config (backend, framework, model, custom_prompt)
+2. Load framework manifest via `crate::backends::load_manifests()` to get the phase skill
+3. Build `SpawnArgs` with: working_dir from the project's workspace_path, message composed from framework skill + previous_context, model from phase config
+4. Insert a `phase_run` row with `status = "running"`
+5. Look up the right adapter by backend name ("claude" → ClaudeAdapter, "codex" → CodexAdapter)
+6. Call `adapter.spawn(args, &self.app)`
+7. Return the `phase_run_id`
+
+**`on_phase_complete(pipeline_run_id, phase_run_id)`:**
+1. Update `phase_run` status to `"completed"`, set `completed_at`
+2. Query the phase's `gate_after` setting
+3. Query whether there's a next phase (by position)
+4. If `gate_after = "auto"` and next phase exists → call `start_phase` for next phase
+5. If `gate_after = "gated"` → update status to `"awaiting_gate"`, emit a `PhaseTransition` AgentEvent on `"agent-stream"`
+6. If no next phase → update `pipeline_run` status to `"completed"`
+
+**`advance_gate(pipeline_run_id)`:**
+1. Find the `phase_run` with `status = "awaiting_gate"` for this pipeline_run
+2. Update its status to `"completed"`
+3. Find the next phase by position
+4. Call `start_phase` with context from the completed phase's summary/artifact
+
+**`get_run_status(pipeline_run_id)`:**
+1. Query `pipeline_run` for status
+2. Query all `phase_run` rows for this run, join with `pipeline_phase` for labels
+3. Return `PipelineRunStatus` with current and completed phases
 
 ```rust
-use tauri::AppHandle;
-use crate::backends::{BackendAdapter, SpawnArgs, AgentProcesses};
-use crate::services::event_stream::{AgentEvent, AgentEventType};
-use super::context::ArtifactStore;
-
-pub struct WorkflowRunner {
-    app: AppHandle,
-}
-
-impl WorkflowRunner {
-    pub fn new(app: AppHandle) -> Self {
-        Self { app }
-    }
-
-    /// Start a pipeline run. Creates a pipeline_run row, then begins the first phase.
-    pub async fn start_pipeline(&self, pipeline_id: &str) -> Result<String, String> {
-        // 1. Load pipeline phases from SQLite (ordered by position)
-        // 2. Create pipeline_run row with status "running"
-        // 3. Start first phase
-        // Return pipeline_run_id
-        todo!()
-    }
-
-    /// Start a specific phase within a pipeline run.
-    async fn start_phase(
-        &self,
-        pipeline_run_id: &str,
-        phase_id: &str,
-        previous_context: Option<String>,
-    ) -> Result<String, String> {
-        // 1. Load phase config (backend, framework, model)
-        // 2. Build SpawnArgs with framework_context from previous phase
-        // 3. Look up the right BackendAdapter
-        // 4. Create phase_run row
-        // 5. Call adapter.spawn()
-        // 6. Return phase_run_id
-        todo!()
-    }
-
-    /// Called when a phase completes (detected via Result event).
-    /// Stores artifact, generates summary, checks gate, advances if auto.
-    pub async fn on_phase_complete(
-        &self,
-        pipeline_run_id: &str,
-        phase_run_id: &str,
-    ) -> Result<(), String> {
-        // 1. Update phase_run status to "completed"
-        // 2. Store artifact (delegate to context.rs)
-        // 3. Check gate_after on the phase
-        //    - "auto" → start next phase
-        //    - "gated" → emit PhaseTransition event, update phase_run status to "awaiting_gate"
-        // 4. If no more phases, update pipeline_run status to "completed"
-        todo!()
-    }
-
-    /// User confirms gate — advance to next phase.
-    pub async fn advance_gate(
-        &self,
-        pipeline_run_id: &str,
-    ) -> Result<(), String> {
-        // 1. Find the phase_run with status "awaiting_gate"
-        // 2. Update its status to "completed"
-        // 3. Start next phase
-        todo!()
-    }
-
-    /// Get current status of a pipeline run.
-    pub async fn get_run_status(
-        &self,
-        pipeline_run_id: &str,
-    ) -> Result<PipelineRunStatus, String> {
-        todo!()
-    }
-}
-
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct PipelineRunStatus {
     pub pipeline_run_id: String,
@@ -750,10 +733,6 @@ pub struct PhaseRunInfo {
     pub summary: Option<String>,
 }
 ```
-
-Note: The `todo!()` stubs are intentional — each method will be implemented by reading from the SQLite tables created in Plan 1 (pipeline, pipeline_phase, pipeline_run, phase_run). The implementer should fill in each method body with real SQLite queries and adapter dispatch logic.
-
-The runner needs access to `DbState` (the SQLite mutex) and `AgentProcesses`. These are accessed via `self.app.state::<T>()`.
 
 - [ ] **Step 2: Update workflow/mod.rs**
 
@@ -940,41 +919,109 @@ git commit -m "feat: add workflow Tauri commands (start_pipeline, advance_gate, 
 
 ## Milestone E: Frontend Integration
 
-### Task 10: Add CLI source handling to useAgentStream
+### Task 10: Define unified event envelope and add CLI source handling
 
 **Files:**
 - Modify: `src/hooks/useAgentStream.ts`
 - Modify: `src/lib/tauri.ts`
 
-- [ ] **Step 1: Add CLI event handling in useAgentStream**
+**Design decision:** All sources must use a single `AgentStreamPayload` envelope. The current sidecar uses `{ type: "sdk_message" | ..., sessionId, message }`. CLI adapters will use `{ type: "agent_event", source, sessionId, event }`. Both shapes share the same top-level `type` discriminator — no casting or `as unknown`.
 
-In `src/hooks/useAgentStream.ts`, after the existing `source === "sdk-sidecar"` block, add handlers for CLI sources. CLI events arrive as normalized `AgentEvent` objects (not SDK messages):
+- [ ] **Step 1: Define the unified envelope type**
+
+In `src/hooks/useAgentStream.ts`, replace the existing `AgentEventPayload` interface:
 
 ```typescript
-if (source === "cli-claude" || source === "cli-codex") {
-  // CLI adapters emit normalized AgentEvent objects directly
-  const agentEvent = data as unknown as {
+/** Envelope for CLI adapter events */
+interface CliEventPayload {
+  type: "agent_event";
+  source: "cli-claude" | "cli-codex";
+  sessionId: string;
+  event: {
     event_type: string;
     content: string;
     metadata?: Record<string, unknown>;
-    agent_session_id?: string;
     timestamp: string;
   };
+}
 
-  const eventType = agentEvent.event_type;
-  const content = agentEvent.content || "";
-  const meta = agentEvent.metadata;
+/** Envelope for CLI status events (working/done/cancelled) */
+interface CliStatusPayload {
+  type: "status";
+  source: "cli-claude" | "cli-codex";
+  sessionId: string;
+  status: "working" | "done" | "cancelled";
+  invocation_id?: string;
+  exit_code?: number | null;
+}
 
-  // Status events (working/done/cancelled)
-  if ((data as any).type === "status") {
-    const statusData = data as any;
-    if (statusData.status === "working") {
-      store.setSessionWorking(sid, true);
-    } else if (statusData.status === "done" || statusData.status === "cancelled") {
-      store.setSessionWorking(sid, false);
-    }
-    return;
+/** Existing sidecar envelope (unchanged) */
+interface SidecarPayload {
+  type: "sdk_message" | "sidecar_ready" | "session_ended" | "error";
+  source?: "sdk-sidecar";
+  sessionId?: string;
+  message?: SdkAssistantMessage | SdkResultMessage | Record<string, unknown>;
+  error?: string;
+}
+
+type AgentStreamPayload = CliEventPayload | CliStatusPayload | SidecarPayload;
+```
+
+**IMPORTANT:** The Rust adapters must also emit this envelope shape. In each adapter's emit calls, wrap the AgentEvent in the envelope:
+
+```rust
+// In adapter emit code (Rust side):
+app.emit("agent-stream", serde_json::json!({
+    "type": "agent_event",
+    "source": "cli-claude",  // or "cli-codex"
+    "sessionId": &session_id,
+    "event": &agent_event,
+}));
+```
+
+And for status events:
+```rust
+app.emit("agent-stream", serde_json::json!({
+    "type": "status",
+    "source": "cli-claude",
+    "sessionId": &session_id,
+    "status": "working",
+}));
+```
+
+- [ ] **Step 2: Add CLI event dispatch in the listener**
+
+After the existing sidecar handling block, add:
+
+```typescript
+if (data.type === "status" && "source" in data) {
+  const statusData = data as CliStatusPayload;
+  const sid = statusData.sessionId;
+  if (!store.agentSessions.has(sid)) {
+    const backend = statusData.source === "cli-claude" ? "claude" : "codex";
+    store.createSessionLocal(sid, "CLI Session", backend as any);
   }
+  if (statusData.status === "working") {
+    store.setSessionWorking(sid, true);
+  } else {
+    store.setSessionWorking(sid, false);
+  }
+  return;
+}
+
+if (data.type === "agent_event") {
+  const cliData = data as CliEventPayload;
+  const sid = cliData.sessionId;
+  const evt = cliData.event;
+  const backend = cliData.source === "cli-claude" ? "claude" : "codex";
+
+  if (!store.agentSessions.has(sid)) {
+    store.createSessionLocal(sid, "CLI Session", backend as any);
+  }
+
+  const eventType = evt.event_type;
+  const content = evt.content || "";
+  const meta = evt.metadata;
 
   // Agent text (think events without tool metadata)
   if (eventType === "think" && !meta?.tool) {
@@ -984,18 +1031,9 @@ if (source === "cli-claude" || source === "cli-codex") {
 
   // Tool use / activity events
   if (meta?.tool) {
-    store.addSessionAgentEvent(sid, {
-      timestamp: agentEvent.timestamp,
-      event_type: eventType as any,
-      content,
-      metadata: meta,
-    });
-    store.upsertActivityLine(sid, {
-      timestamp: agentEvent.timestamp,
-      event_type: eventType as any,
-      content,
-      metadata: meta,
-    });
+    const agentEvent = { timestamp: evt.timestamp, event_type: eventType as any, content, metadata: meta };
+    store.addSessionAgentEvent(sid, agentEvent);
+    store.upsertActivityLine(sid, agentEvent);
     return;
   }
 
@@ -1009,8 +1047,6 @@ if (source === "cli-claude" || source === "cli-codex") {
       output_tokens: meta?.output_tokens,
       duration_ms: meta?.duration_ms,
     });
-
-    // Extract API metrics
     if (meta?.input_tokens || meta?.output_tokens) {
       store.setSessionApiMetrics(sid, {
         inputTokens: (meta.input_tokens as number) || 0,
@@ -1032,16 +1068,15 @@ if (source === "cli-claude" || source === "cli-codex") {
     return;
   }
 
-  // Phase transition events (from workflow engine)
+  // Phase transition events
   if (eventType === "phase_transition") {
-    store.insertRichCard(sid, "outcome", content, {
-      ...meta,
-      cardSubtype: "phase_transition",
-    });
+    store.insertRichCard(sid, "outcome", content, { ...meta, cardSubtype: "phase_transition" });
     return;
   }
 }
 ```
+
+**NOTE:** The adapters (Tasks 5 and 6) must emit using the envelope format above, not raw AgentEvents. Update the adapter task descriptions accordingly — the `app.emit("agent-stream", &agent_event)` pattern must become `app.emit("agent-stream", envelope_json)`.
 
 - [ ] **Step 2: Add workflow command wrappers to tauri.ts**
 
