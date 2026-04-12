@@ -240,5 +240,99 @@ fn run_migrations(conn: &Connection) -> Result<(), String> {
         }
     }
 
+    if version < 9 {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE IF NOT EXISTS projects (
+                 id TEXT PRIMARY KEY,
+                 name TEXT NOT NULL,
+                 workspace_path TEXT NOT NULL,
+                 summary TEXT DEFAULT '',
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS pipeline (
+                 id TEXT PRIMARY KEY,
+                 project_id TEXT NOT NULL REFERENCES projects(id),
+                 name TEXT NOT NULL DEFAULT 'Default',
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL
+             );
+             CREATE TABLE IF NOT EXISTS pipeline_phase (
+                 id TEXT PRIMARY KEY,
+                 pipeline_id TEXT NOT NULL REFERENCES pipeline(id),
+                 position INTEGER NOT NULL,
+                 label TEXT NOT NULL,
+                 phase_type TEXT NOT NULL,
+                 backend TEXT NOT NULL,
+                 framework TEXT NOT NULL,
+                 model TEXT NOT NULL,
+                 custom_prompt TEXT,
+                 gate_after TEXT NOT NULL DEFAULT 'gated'
+             );
+             CREATE TABLE IF NOT EXISTS pipeline_run (
+                 id TEXT PRIMARY KEY,
+                 pipeline_id TEXT NOT NULL REFERENCES pipeline(id),
+                 status TEXT NOT NULL,
+                 started_at TEXT NOT NULL,
+                 completed_at TEXT
+             );
+             CREATE TABLE IF NOT EXISTS phase_run (
+                 id TEXT PRIMARY KEY,
+                 pipeline_run_id TEXT NOT NULL REFERENCES pipeline_run(id),
+                 phase_id TEXT NOT NULL REFERENCES pipeline_phase(id),
+                 session_id TEXT NOT NULL,
+                 status TEXT NOT NULL,
+                 artifact_path TEXT,
+                 summary TEXT,
+                 baseline_sha TEXT,
+                 baseline_worktree_path TEXT,
+                 started_at TEXT,
+                 completed_at TEXT
+             );
+             CREATE INDEX IF NOT EXISTS idx_pipeline_project
+                 ON pipeline(project_id);
+             CREATE INDEX IF NOT EXISTS idx_pipeline_phase_pipeline
+                 ON pipeline_phase(pipeline_id);
+             CREATE INDEX IF NOT EXISTS idx_pipeline_run_pipeline
+                 ON pipeline_run(pipeline_id);
+             CREATE INDEX IF NOT EXISTS idx_phase_run_pipeline_run
+                 ON phase_run(pipeline_run_id);
+             PRAGMA user_version = 9;
+             COMMIT;",
+        )
+        .map_err(|e| format!("Migration v9 failed: {}", e))?;
+
+        // Migrate existing projects from settings JSON into projects table
+        let maybe_json: Option<String> = conn
+            .query_row(
+                "SELECT value FROM settings WHERE key = 'projects_list'",
+                [],
+                |row| row.get(0),
+            )
+            .ok();
+
+        if let Some(json_str) = maybe_json {
+            if let Ok(projects) = serde_json::from_str::<Vec<serde_json::Value>>(&json_str) {
+                let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
+                for project in projects {
+                    let id = project.get("id").and_then(|v| v.as_str()).unwrap_or("");
+                    let name = project.get("name").and_then(|v| v.as_str()).unwrap_or("");
+                    let workspace_path = project.get("workspacePath").and_then(|v| v.as_str()).unwrap_or("");
+                    let summary = project.get("summary").and_then(|v| v.as_str()).unwrap_or("");
+
+                    if !id.is_empty() && !name.is_empty() {
+                        conn.execute(
+                            "INSERT OR IGNORE INTO projects (id, name, workspace_path, summary, created_at, updated_at)
+                             VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
+                            rusqlite::params![id, name, workspace_path, summary, now],
+                        ).ok();
+                    }
+                }
+            }
+            conn.execute("DELETE FROM settings WHERE key = 'projects_list'", []).ok();
+        }
+    }
+
     Ok(())
 }
