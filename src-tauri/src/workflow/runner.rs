@@ -368,13 +368,13 @@ impl WorkflowRunner {
                 )
                 .map_err(|_| "No next phase found to advance to".to_string())?;
 
-            // 4. Update the awaiting phase_run to "gate_passed"
+            // 4. Update the awaiting phase_run to "completed" (gate passed)
             let now = Utc::now().to_rfc3339();
             conn.execute(
-                "UPDATE phase_run SET status = 'gate_passed', completed_at = ?1 WHERE id = ?2",
+                "UPDATE phase_run SET status = 'completed', completed_at = ?1 WHERE id = ?2",
                 params![now, awaiting_phase_run_id],
             )
-            .map_err(|e| format!("Update phase_run gate_passed: {}", e))?;
+            .map_err(|e| format!("Update phase_run completed (gate passed): {}", e))?;
 
             (next_phase_id, label, summary, artifact_path)
         }; // conn and db dropped here
