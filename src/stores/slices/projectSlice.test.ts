@@ -94,6 +94,28 @@ describe("projectSlice", () => {
     });
   });
 
+  describe("error handling", () => {
+    it("does not leave partial state when createProject rejects", async () => {
+      const { commands: mockCmds } = await import("../../lib/tauri");
+      (mockCmds.createProject as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+        new Error("DB write failed"),
+      );
+
+      store.getState().addProject("fail-project", "/path/fail", "cs-fail");
+
+      // Give time for the async rejection to settle
+      await new Promise((r) => setTimeout(r, 50));
+
+      const state = store.getState();
+      // No project should have been added
+      expect(state.projects).toHaveLength(0);
+      // View should still be "home" (initial state), NOT "conversation"
+      expect(state.currentView).toBe("home");
+      // activeProjectId should still be null
+      expect(state.activeProjectId).toBeNull();
+    });
+  });
+
   describe("navigation", () => {
     it("openProject sets active and switches to conversation view", async () => {
       await addProjectAndWait(store, "my-api", "/path/ws", "cs-1");
