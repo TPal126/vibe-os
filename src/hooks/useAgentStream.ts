@@ -87,6 +87,16 @@ function applyMutations(mutations: StoreMutation[], store: ReturnType<typeof use
 
 let listenerActive = false;
 const processedIds = new Set<string>();
+// Cap to prevent unbounded memory growth. When exceeded, clear and start fresh.
+// This is safe because duplicates only arrive in short bursts (React strict mode / retransmit).
+const PROCESSED_IDS_CAP = 10_000;
+
+function trackProcessedId(uuid: string): void {
+  if (processedIds.size >= PROCESSED_IDS_CAP) {
+    processedIds.clear();
+  }
+  processedIds.add(uuid);
+}
 
 async function startListener() {
   if (listenerActive) return;
@@ -137,7 +147,7 @@ async function startListener() {
         // Deduplicate by UUID
         if (uuid) {
           if (processedIds.has(uuid)) return;
-          processedIds.add(uuid);
+          trackProcessedId(uuid);
         }
 
         const textParts = assistantMsg.message.content
@@ -175,7 +185,7 @@ async function startListener() {
 
         if (uuid) {
           if (processedIds.has(uuid)) return;
-          processedIds.add(uuid);
+          trackProcessedId(uuid);
         }
 
         store.setSessionWorking(sid, false);

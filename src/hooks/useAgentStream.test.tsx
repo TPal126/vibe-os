@@ -247,4 +247,62 @@ describe("useAgentStream", () => {
       expect.objectContaining({ cost_usd: 0.042, num_turns: 3 }),
     );
   });
+
+  it("processes all events even after many unique UUIDs (processedIds does not block new events)", async () => {
+    await mountHook();
+
+    // Pre-create session so events are accepted
+    mockStore.agentSessions.set("bulk-session", { id: "bulk-session" });
+
+    // Fire 100 unique SDK assistant events
+    for (let i = 0; i < 100; i++) {
+      await act(async () => {
+        fireEvent({
+          type: "sdk_message",
+          source: "sdk-sidecar",
+          sessionId: "bulk-session",
+          message: {
+            type: "assistant",
+            uuid: `uuid-${i}`,
+            session_id: "bulk-session",
+            message: {
+              content: [{ type: "text", text: `Message ${i}` }],
+              model: "claude-opus-4",
+              stop_reason: "end_turn",
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          },
+        });
+      });
+    }
+
+    // All 100 events should have been processed (each creates a chat message)
+    expect(mockStore.addSessionChatMessage).toHaveBeenCalledTimes(100);
+
+    // Duplicates should be ignored — fire the same UUIDs again
+    const countBefore = mockStore.addSessionChatMessage.mock.calls.length;
+    for (let i = 0; i < 10; i++) {
+      await act(async () => {
+        fireEvent({
+          type: "sdk_message",
+          source: "sdk-sidecar",
+          sessionId: "bulk-session",
+          message: {
+            type: "assistant",
+            uuid: `uuid-${i}`,
+            session_id: "bulk-session",
+            message: {
+              content: [{ type: "text", text: `Dup ${i}` }],
+              model: "claude-opus-4",
+              stop_reason: "end_turn",
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          },
+        });
+      });
+    }
+
+    // No additional messages — duplicates were filtered
+    expect(mockStore.addSessionChatMessage).toHaveBeenCalledTimes(countBefore);
+  });
 });
