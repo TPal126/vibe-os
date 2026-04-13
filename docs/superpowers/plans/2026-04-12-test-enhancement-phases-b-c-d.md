@@ -216,11 +216,9 @@ The test should:
 8. Fire a phase_transition gated event → assert gate-prompt card appears
 9. Fire an interaction_request event → assert interaction card appears
 
-Since rendering full ClaudeChat is complex (many dependencies), the implementer can either:
-- Mock enough of ClaudeChat's dependencies to render it
-- OR render a thin wrapper that reads from the store and renders cards (testing the hook + store integration, with card rendering tested separately in Phase A component tests)
+The test MUST render the real `<ClaudeChat />` component, not a thin wrapper. Mock its child dependencies that aren't relevant (Monaco editor, SessionBrowser, etc.) as simple stubs, but ClaudeChat's own card-type switch and message rendering must execute. This is the only way to catch card-rendering regressions in the actual component.
 
-The critical thing: events flow through the REAL `listen` callback → REAL `useAgentStream` hook → REAL store → assert correct state.
+The full chain under test: REAL `listen` callback → REAL `useAgentStream` hook → REAL store mutations → REAL ClaudeChat re-render → assert correct card elements in the DOM.
 
 - [ ] **Step 2: Run and commit**
 
@@ -242,11 +240,13 @@ Tests the ClaudeChat InteractionCard answer path: clicking an answer calls eithe
 
 - [ ] **Step 1: Create test**
 
+The test MUST render `<ClaudeChat />` — the onRespond handler that branches between `sendMessage` and `startClaude` lives in ClaudeChat's card-type switch (lines ~332-377), not in InteractionCard. Rendering InteractionCard alone would miss the routing logic entirely.
+
 Two scenarios:
-1. **With conversationId:** Set up a session with `conversationId: "conv-123"`. Insert an interaction card into the session. Render the InteractionCard (or ClaudeChat). Click an option. Assert `commands.sendMessage` was called with the answer and conversationId.
+1. **With conversationId:** Set up a session with `conversationId: "conv-123"` in the store. Insert an interaction card message into the session's chatMessages. Render `<ClaudeChat />`. Find the InteractionCard's choice button in the DOM and click it. Assert `commands.sendMessage` was called with the answer and conversationId.
 2. **Without conversationId:** Set up a session with `conversationId: null`. Same flow. Assert `commands.startClaude` was called with the answer as message.
 
-The implementer should read `src/components/panels/ClaudeChat.tsx` lines ~332-377 to understand the onRespond handler, then write tests that exercise both branches.
+The implementer should read `src/components/panels/ClaudeChat.tsx` lines ~332-377 to understand the onRespond handler, then write tests that exercise both branches. Mock heavy ClaudeChat children (Monaco, SessionBrowser) as stubs, but the card rendering switch must execute.
 
 - [ ] **Step 2: Run and commit**
 
