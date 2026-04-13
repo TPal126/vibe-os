@@ -95,22 +95,27 @@ export function ProjectSetupView() {
       // Create project in SQLite directly — get ID back
       const projectRow = await commands.createProject(safeName, workspace.path);
 
-      // Create pipeline from builder phases
+      // Create pipeline from builder phases (non-blocking — failure should not prevent project creation)
       const { builderPhases, resetBuilder } = useAppStore.getState();
       if (builderPhases.length > 0) {
-        await commands.createPipeline({
-          project_id: projectRow.id,
-          name: "Default",
-          phases: builderPhases.map((p) => ({
-            label: p.label,
-            phase_type: p.phaseType,
-            backend: p.backend,
-            framework: p.framework,
-            model: p.model,
-            custom_prompt: p.customPrompt,
-            gate_after: p.gateAfter,
-          })),
-        });
+        try {
+          await commands.createPipeline({
+            project_id: projectRow.id,
+            name: "Default",
+            phases: builderPhases.map((p) => ({
+              label: p.label,
+              phase_type: p.phaseType,
+              backend: p.backend,
+              framework: p.framework,
+              model: p.model,
+              custom_prompt: p.customPrompt,
+              gate_after: p.gateAfter,
+            })),
+          });
+        } catch (pipelineErr) {
+          console.error("[vibe-os] Pipeline creation failed (project still created):", pipelineErr);
+          setError(`Project created but pipeline failed: ${pipelineErr}`);
+        }
       }
 
       // Create session

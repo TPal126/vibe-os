@@ -364,5 +364,58 @@ describe("ProjectSetupView integration", () => {
         has_claude_md: false, repo_count: 0, skill_count: 0,
       });
     });
+
+    it("still creates project and resets builder when createPipeline rejects", async () => {
+      // Setup: workspace + project creation succeed, but pipeline creation fails
+      mockCommands.createWorkspace.mockResolvedValue({
+        name: "pipeline-fail", path: "/tmp/pipeline-fail",
+        has_claude_md: false, repo_count: 0, skill_count: 0,
+      });
+      mockCommands.readFile.mockResolvedValue("");
+      mockCommands.saveSetting.mockResolvedValue(undefined);
+      mockCommands.watchWorkspaceClaudeMd.mockResolvedValue(undefined);
+      mockCommands.readWorkspaceTree.mockResolvedValue([]);
+      mockCommands.getAllRepos.mockResolvedValue([]);
+      mockCommands.discoverSkills.mockResolvedValue([]);
+      mockCommands.createProject.mockResolvedValue({
+        id: "proj-99", name: "pipeline-fail", workspace_path: "/tmp/pipeline-fail",
+        summary: "", created_at: "2026-04-12T00:00:00Z", updated_at: "2026-04-12T00:00:00Z",
+      });
+      // Pipeline creation REJECTS
+      mockCommands.createPipeline.mockRejectedValue(new Error("pipeline DB error"));
+
+      // Pre-populate builder phases so createPipeline is actually called
+      useAppStore.setState({
+        builderPhases: [{
+          id: "phase-1", label: "Ideation", phaseType: "ideation",
+          backend: "claude" as const, framework: "native", model: "claude-opus-4",
+          customPrompt: null, gateAfter: "auto" as const,
+        }],
+      });
+
+      render(<ProjectSetupView />);
+
+      // Step 1: type name
+      fireEvent.change(screen.getByPlaceholderText("my-project"), { target: { value: "pipeline-fail" } });
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByRole("button", { name: /next: configure pipeline/i }));
+
+      // Click Create Project
+      fireEvent.click(screen.getByRole("button", { name: /create project/i }));
+
+      // Wait for the project to be created despite pipeline failure
+      await waitFor(() => {
+        const state = useAppStore.getState();
+        expect(state.activeProjectId).toBe("proj-99");
+        expect(state.currentView).toBe("conversation");
+      });
+
+      // Builder should be reset (no stale phases)
+      await waitFor(() => {
+        const state = useAppStore.getState();
+        expect(state.builderPhases).toHaveLength(0);
+      });
+    });
   });
 });
