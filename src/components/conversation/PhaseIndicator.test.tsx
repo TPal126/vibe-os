@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { PhaseIndicator } from "./PhaseIndicator";
 
 const mockStore: Record<string, any> = {
@@ -37,10 +37,20 @@ describe("PhaseIndicator", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("shows Run Pipeline button when project has pipeline but no run", () => {
+  it("shows Run Pipeline button and starts on click", async () => {
     mockStore.activeProjectId = "proj-1";
     render(<PhaseIndicator />);
-    // The button appears after an async check, so this validates the initial render
+
+    // The component renders the button immediately (the pipeline check happens
+    // inside the click handler, not on mount)
+    const button = await screen.findByText("Run Pipeline");
+    expect(button).toBeDefined();
+
+    fireEvent.click(button);
+    // startPipelineRun is called after getProjectPipeline resolves with { id: "pipeline-1" }
+    await vi.waitFor(() => {
+      expect(mockStore.startPipelineRun).toHaveBeenCalled();
+    });
   });
 
   it("shows phase progress when run is active", () => {
