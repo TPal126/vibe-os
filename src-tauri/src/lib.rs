@@ -2,12 +2,12 @@ use std::sync::{Arc, Mutex};
 use tauri::Manager;
 use tokio::sync::Mutex as TokioMutex;
 
-mod backends;
-mod commands;
-mod db;
+pub mod backends;
+pub mod commands;
+pub mod db;
 mod graph;
 mod services;
-mod workflow;
+pub mod workflow;
 
 use commands::agent_commands;
 use commands::agent_commands_v2;
