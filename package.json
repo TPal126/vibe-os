@@ -15,6 +15,7 @@
     "test:ci": "vitest run && cd src-tauri && cargo test --lib && cargo test --tests",
     "test:workflow": "vitest run --reporter=verbose src/**/*pipeline*.test.* src/**/*Stream*.test.* src/**/*Phase*.test.* src/**/*Gate*.test.* src/**/*Interaction*.test.*",
     "test:rust": "cd src-tauri && cargo test --lib",
+    "test:integration": "vitest run --reporter=verbose src/integration/",
     "test:all": "vitest run && cd src-tauri && cargo test --lib",
     "tauri": "tauri"
   },
