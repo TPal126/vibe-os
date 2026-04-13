@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/VIBE_OS-v0.5.0-5b7cfa?style=for-the-badge&labelColor=08090d" alt="VIBE OS v0.5.0" />
+  <img src="https://img.shields.io/badge/VIBE_OS-v0.6.0-5b7cfa?style=for-the-badge&labelColor=08090d" alt="VIBE OS v0.6.0" />
   <img src="https://img.shields.io/badge/Tauri-v2-24C8D8?style=for-the-badge&logo=tauri&logoColor=white&labelColor=08090d" alt="Tauri v2" />
   <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white&labelColor=08090d" alt="React 18" />
   <img src="https://img.shields.io/badge/Rust-1.89+-DEA584?style=for-the-badge&logo=rust&logoColor=white&labelColor=08090d" alt="Rust" />
@@ -16,9 +16,9 @@
 <p align="center">
   <strong>See every decision. Direct every action. Audit everything.</strong>
   <br />
-  A desktop IDE that turns Claude Code into a transparent, graph-aware coding partner.<br />
-  Native agent loop on the Claude Agent SDK with custom MCP tools, knowledge-graph context injection,<br />
-  and an append-only audit trail of every choice your agent makes.
+  A desktop IDE that turns AI coding agents into transparent, graph-aware coding partners.<br />
+  Multi-backend workflow orchestration (Claude + Codex) with visual pipeline builder, custom MCP tools,<br />
+  knowledge-graph context injection, and an append-only audit trail of every choice your agents make.
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@
 
 AI coding tools are black boxes. You paste a prompt, hope for the best, and get back code you didn't watch being written. You can't see what context the model used, what decisions it made, or why it chose one approach over another. And every tool forces you to pay for API access on top of whatever subscription you already have.
 
-**VIBE OS makes AI-assisted development visible, auditable, and directable — on top of your existing Claude Code subscription.**
+**VIBE OS makes AI-assisted development visible, auditable, and directable — orchestrating multiple backends on top of your existing subscriptions.**
 
 ---
 
@@ -67,7 +67,7 @@ npm install
 # Build the Node agent sidecar (bundles the Claude Agent SDK)
 cd agent-sidecar && npm install && npm run build && cd ..
 
-# Run tests (164 tests across Rust + TypeScript)
+# Run tests (205+ tests across Rust + TypeScript)
 npm run test:all
 
 # Launch in development mode
@@ -83,18 +83,21 @@ First launch creates `~/.vibe-os/vibe-os.db`, copies starter skill files to `~/.
 
 ## What It Does
 
-VIBE OS is a **reasoning-first desktop IDE** that owns the orchestration layer on top of Claude Code. Rather than wrapping the CLI, it runs a native agent loop via the **Claude Agent SDK** in a Tauri sidecar, injects graph-aware context before every query, and exposes a set of custom MCP tools that let Claude read and write the knowledge graph directly.
+VIBE OS is a **reasoning-first desktop IDE** that owns the orchestration layer on top of multiple AI backends. It runs a native agent loop via the **Claude Agent SDK** in a Tauri sidecar, supports **multi-backend workflow pipelines** (Claude + Codex), injects graph-aware context before every query, and exposes custom MCP tools that let agents read and write the knowledge graph directly.
 
+- **Multi-Backend Workflow Orchestration** — visual pipeline builder with phase sequencing, gated transitions, and artifact handoff across Claude and Codex backends
 - **Native Agent SDK Loop** — `@anthropic-ai/claude-agent-sdk` running in a Node sidecar, not CLI stdout parsing
+- **Backend Adapters** — pluggable `BackendAdapter` trait with Claude, Codex, and test-fake implementations
 - **Graph-Native Context** — SurrealDB knowledge graph queried and injected into every system prompt
-- **VIBE OS MCP Tools** — 6 custom tools let Claude access provenance, impact analysis, architecture topology, and record its own decisions
+- **VIBE OS MCP Tools** — 6 custom tools let agents access provenance, impact analysis, architecture topology, and record their own decisions
 - **Multi-Project Home** — project cards with resource summaries, delete support, up to 20 concurrent projects
-- **Project Setup Flow** — unified resource catalog (repos, skills, agents) with checkbox composition and drag-drop repo adding
+- **Project Setup Flow** — two-step project creation with unified resource catalog and inline pipeline builder
+- **Pipeline Builder UI** — drag-and-drop phase palette, backend/framework/model configuration per phase, gated vs. auto transitions
 - **Unified Events Timeline** — single append-only log with both actions and decisions, kind-tagged, exportable
 - **Auto-Detected CLIs** — `git`, `gh`, `aws`, `docker`, `kubectl`, `node`, `npm`, `python`, `cargo`, etc. surfaced in system prompt and title bar
 - **Light + Dark Themes** — CSS-variable driven, toggle in title bar, persists across sessions
-- **Multi-Session Agents** — run multiple Claude sessions simultaneously with attention routing
-- **Agent Capture** — save Claude-spawned subagents as reusable `.md` definitions in `~/.vibe-os/agents/`
+- **Multi-Session Agents** — run multiple agent sessions simultaneously with attention routing
+- **Agent Capture** — save agent-spawned subagents as reusable `.md` definitions in `~/.vibe-os/agents/`
 - **Knowledge Graph Visualizer** — D3 force-directed view of repos, modules, functions, decisions, and sessions
 
 ---
@@ -107,7 +110,7 @@ VIBE OS is a **reasoning-first desktop IDE** that owns the orchestration layer o
 +-----------------------------------------------------+
 |                    Frontend                          |
 |   React 18 . TypeScript 5.5 . Zustand . Tailwind    |
-|   Monaco . D3.js . Vite 6 . Lucide icons            |
+|   Monaco . D3.js . Vite 6 . @dnd-kit . Lucide      |
 +-----------------------------------------------------+
                           |
                    Tauri IPC Bridge
@@ -115,27 +118,27 @@ VIBE OS is a **reasoning-first desktop IDE** that owns the orchestration layer o
 +-----------------------------------------------------+
 |                  Rust Backend                         |
 |   SQLite (WAL) . SurrealDB (embedded)               |
-|   Graph context assembly . Tool handler dispatch     |
+|   BackendAdapter trait (Claude / Codex / Fake)       |
+|   WorkflowEngine . ArtifactStore . Graph context     |
 |   Sidecar lifecycle + stdin/stdout bridge            |
 +-----------------------------------------------------+
-                          |
-              stdin/stdout JSON lines
-                          |
-+-----------------------------------------------------+
-|              Node Agent Sidecar                       |
-|   @anthropic-ai/claude-agent-sdk                    |
-|   SDK query() async generator + streamInput()       |
-|   VIBE OS MCP server with 6 custom tools            |
-+-----------------------------------------------------+
-                          |
-                          v
-                  Claude Code binary
-              (auth + model execution)
+                    |             |
+         stdin/stdout JSON    CLI spawn
+                    |             |
++---------------------+   +-------------------+
+| Node Agent Sidecar  |   |  Codex CLI        |
+| claude-agent-sdk    |   |  JSONL events     |
+| VIBE OS MCP server  |   +-------------------+
++---------------------+
+          |
+          v
+   Claude Code binary
 ```
 
 **Why this architecture:**
 
 - **No API key cost** — the SDK uses your Claude Code subscription, not direct Anthropic API access
+- **Multi-backend** — pluggable `BackendAdapter` trait lets the workflow engine dispatch phases to different AI backends (Claude, Codex) in a single pipeline
 - **Typed messages** — SDK emits structured `SDKAssistantMessage` / `SDKResultMessage` events directly, no stdout parsing gymnastics
 - **Graph context injection** — Rust assembles provenance and session history from SurrealDB before each query and appends it to the system prompt
 - **Custom tools** — the sidecar exposes a VIBE OS MCP server whose tools call back into Rust for graph queries
@@ -188,37 +191,35 @@ Each card shows name, active session count, resource summary chips, and a delete
 
 ### Project Setup (click "+ New Project")
 
+Two-step flow: **Step 1** — name, description, and resource catalog (repos, skills, agents with checkbox composition and drag-drop repo adding). **Step 2** — visual pipeline builder.
+
 ```
-+-------------------------------------+-------------------------------+
-|  NEW PROJECT                        |  RESOURCE CATALOG             |
-|                                     |  Check resources to include   |
-|  Project name                       |                               |
-|  +-------------------------------+  |  v Repos (3)    Browse GitHub |
-|  |                               |  |  +-------------------------+ |
-|  +-------------------------------+  |  | Drop folders here       | |
-|                                     |  +-------------------------+ |
-|  Description (optional)             |  [x] vibe-os                 |
-|  +-------------------------------+  |      Local . main . ts       |
-|  |                               |  |  [ ] game-tickets-app        |
-|  +-------------------------------+  |      GitHub . main . python  |
-|                                     |                               |
-|                                     |  v Skills (2)   1.2k tokens  |
-|                                     |  [x] rust-patterns           |
-|                                     |      core . 340 tokens       |
-|                                     |  [ ] data-viz                |
-|                                     |      viz . 520 tokens        |
-|  [Cancel]     [Create Project]      |                               |
-|                                     |  v Agents (2)                |
-|                                     |  [ ] test-runner             |
-|                                     |  [ ] code-reviewer           |
-+-------------------------------------+-------------------------------+
++-----------------------------------------------------------------------+
+|  PIPELINE BUILDER                                                     |
+|                                                                       |
+|  +-------------+     +------------------------------------------+     |
+|  | PHASES      |     |  PIPELINE CANVAS                         |     |
+|  |             |     |                                          |     |
+|  | [Ideation]  |     |  +----------+  gate  +----------+       |     |
+|  | [Planning]  |     |  | Planning |------->| Execution|       |     |
+|  | [Execution] |     |  | Claude   |        | Codex    |       |     |
+|  | [Verify]    |     |  +----------+  auto  +----------+       |     |
+|  | [Review]    |     |                                          |     |
+|  | [Custom]    |     +------------------------------------------+     |
+|  +-------------+                                                      |
+|                       +------------------------------------------+    |
+|                       | PHASE CONFIG                             |    |
+|                       | Backend: [Claude v] Framework: [React v] |    |
+|                       | Model: [Sonnet v]   Prompt: [...]        |    |
+|                       +------------------------------------------+    |
++-----------------------------------------------------------------------+
 ```
 
-Browse a local folder (multi-select), paste GitHub URLs (batch), or drop folders onto the zone. Anything added joins a global catalog that's checkable on any future project.
+Drag phases from the palette onto the canvas, configure backend/framework/model per phase, and toggle gated vs. auto transitions between phases.
 
 ### Conversation View
 
-Click a project and you get the quadrant layout: full chat on the left with inline activity cards, knowledge graph visualizer on the right, resource controls and audit trail in the bottom quadrants. Rich cards render inline: file modifications, test results with pass/fail breakdowns, architectural decisions, preview URLs, outcome summaries with cost and token counts.
+Click a project and you get the quadrant layout: full chat on the left with inline activity cards, knowledge graph visualizer on the right, resource controls and audit trail in the bottom quadrants. Rich cards render inline: file modifications, test results with pass/fail breakdowns, architectural decisions, preview URLs, outcome summaries with cost and token counts. Pipeline runs show a `PhaseIndicator` header with current phase and progress, `GatePromptCard` for human-gated transitions, and `InteractionCard` for framework question/answer flows.
 
 <p align="center">
   <img src="docs/screenshots/quadrant-layout.png" alt="VIBE OS quadrant layout" width="100%" />
@@ -228,39 +229,43 @@ Click a project and you get the quadrant layout: full chat on the left with inli
 
 ## Features in Depth
 
-### 1. Native Agent Loop via Claude Agent SDK
+### 1. Multi-Backend Workflow Pipelines
+
+Define multi-phase development workflows with a visual drag-and-drop builder. Each phase can target a different backend (Claude or Codex), a specific framework, and a model. Phases connect via **gated** transitions (human approval required) or **auto** transitions (proceed on success). The `WorkflowEngine` in Rust dispatches each phase to the appropriate `BackendAdapter`, the `ArtifactStore` passes context between phases, and inline conversation cards (`PhaseIndicator`, `GatePromptCard`, `InteractionCard`) let you monitor and control the pipeline from the chat view.
+
+### 2. Native Agent Loop via Claude Agent SDK
 
 VIBE OS runs `@anthropic-ai/claude-agent-sdk` in a Node sidecar process managed by Tauri's shell plugin. Messages flow through typed `SDKMessage` events — no CLI stdout parsing, no event classification heuristics. The sidecar manages session lifecycles (multi-turn via `streamInput()`, cancel via `query.close()`, resume across restarts) and exposes the VIBE OS MCP server so custom tools are available to Claude on every call.
 
-### 2. Graph-Native Context Injection
+### 3. Graph-Native Context Injection
 
 SurrealDB stores a knowledge graph of your code (repos, modules, functions, classes) connected to every decision, action, test, and skill your sessions produce. Before each agent call, Rust queries the graph for provenance on referenced files, recent session history, and architecture context, then injects it as a `# VIBE OS Context` section in the system prompt. Token-budgeted so graph context doesn't crowd out skills and repo summaries.
 
-### 3. Unified Resource Catalog
+### 4. Unified Resource Catalog
 
 Repos, skills, and agents live in a single scrollable panel with collapsible sections and checkboxes. Everything you've ever added persists globally — check items to include them in a project, uncheck to remove from context without deleting. Repo adding supports three paths: native folder picker (multi-select), GitHub URL batch paste, and drag-and-drop from the OS file explorer.
 
-### 4. Agent Capture
+### 5. Agent Capture
 
 When Claude spawns a subagent during a session, an inline card appears with a "Save Agent" button. Click it to edit the agent's name, description, system prompt, and tool permissions, then save it as a `.md` file in `~/.vibe-os/agents/` (with a copy to `.claude/agents/` for native Claude Code discovery). Captured agents appear in the resource catalog and can be reused on any future project.
 
-### 5. Unified Events Timeline
+### 6. Unified Events Timeline
 
 A single `events` table stores both actions and decisions with a `kind` field. Actions track file creates, test runs, repo toggles — the low-level breadcrumbs. Decisions add rationale, confidence scores, impact category, and reversibility. The `vibe_record_decision` MCP tool lets Claude record its own reasoning inline, which then becomes provenance context for future sessions. Everything is append-only and exportable to JSON or CSV.
 
-### 6. Auto-Detected CLIs
+### 7. Auto-Detected CLIs
 
 On sidecar startup, VIBE OS scans PATH for common developer CLIs (`git`, `gh`, `aws`, `docker`, `kubectl`, `node`, `npm`, `python`, `cargo`, `pip`, `terraform`, `gcloud`). Detected tools are listed in the agent's system prompt so Claude knows what's available, and a count badge in the title bar shows the running tally with a tooltip listing every version. No configuration, no install flow — if it's on PATH, the agent can use it.
 
-### 7. Multi-Session Agents with Attention Routing
+### 8. Multi-Session Agents with Attention Routing
 
 Each project can have multiple Claude sessions running simultaneously, each with independent conversation history via the SDK. Background sessions that need input trigger OS desktop notifications and surface through pulsing badges in the title bar and project cards. Switch sessions via the tab strip; sessions survive navigation and app restarts through the SDK's native session persistence.
 
-### 8. Light + Dark Themes
+### 9. Light + Dark Themes
 
 A small pill toggle in the title bar switches between themes instantly via CSS variable overrides — zero component changes required. The preference persists to SQLite and loads before first render to avoid flash. Every color (backgrounds, borders, text, accents, status colors) is re-mapped for the light palette with adjusted contrast.
 
-### 9. Knowledge Graph Visualizer
+### 10. Knowledge Graph Visualizer
 
 An interactive D3 force-directed graph of the knowledge base: nodes for repos, modules, functions, classes, decisions, sessions, and tests, with edges for imports, calls, inheritance, session provenance, and decision impact. Filter by node type, search by name, click-to-inspect for details. Auto-updates as the agent works.
 
@@ -268,16 +273,16 @@ An interactive D3 force-directed graph of the knowledge base: nodes for repos, m
 
 ## Testing
 
-VIBE OS has **164 tests** across the stack:
+VIBE OS has **205+ tests** across the stack:
 
 ```bash
 # Run all tests (TypeScript + Rust)
 npm run test:all
 
-# TypeScript only (Vitest) — 104 tests
+# TypeScript only (Vitest) — 153 tests
 npm run test
 
-# Rust only (Cargo) — 60 tests
+# Rust only (Cargo) — ~52 tests
 npm run test:rust
 
 # Watch mode
@@ -288,10 +293,11 @@ npm run test:watch
 
 | Area | Tests | What's Tested |
 |---|---|---|
-| **TypeScript (Vitest)** | 104 | Event parser, agent slice, project slice, layout slice, token slice, repo slice, component rendering, resource catalog wiring |
-| **Rust SQLite** | ~20 | Decisions, events, audit, sessions, workspaces, token budgets, migrations |
-| **Rust SurrealDB** | ~25 | Node CRUD, edge creation, population pipeline, provenance queries, impact queries, session reports |
-| **Rust event stream** | ~15 | Stream parsing, event classification, serialization fixtures |
+| **TypeScript (Vitest)** | 153 | Event parser, event normalization, agent slice, project slice, pipeline slice, layout slice, token slice, repo slice, component rendering (PhaseIndicator, GatePromptCard, InteractionCard), useAgentStream hook, resource catalog wiring |
+| **Rust SQLite** | ~20 | Decisions, events, audit, sessions, workspaces, token budgets, pipeline persistence, migrations |
+| **Rust SurrealDB** | ~17 | Node CRUD, edge creation, population pipeline, provenance queries, impact queries, session reports |
+| **Rust workflow** | ~8 | Workflow runner integration, pipeline progression, gate management, backend adapters |
+| **Rust event stream** | ~7 | Stream parsing, event classification, Codex JSONL parsing, serialization fixtures |
 
 Tests use real captured agent output as fixtures, not assumed formats.
 
@@ -304,9 +310,10 @@ Tests use real captured agent output as fixtures, not assumed formats.
 - **React 18** + **TypeScript 5.5** (strict mode)
 - **Vite 6** for dev server + production bundling
 - **Tailwind CSS 4** with CSS-variable-driven theme system
-- **Zustand 5** state management (19 composed slices)
+- **Zustand 5** state management (20 composed slices)
 - **Monaco Editor** for the escape-hatch code editor
 - **D3.js** for the knowledge graph visualizer
+- **@dnd-kit** for drag-and-drop pipeline builder
 - **Lucide** icons
 
 ### Backend
@@ -329,7 +336,7 @@ Tests use real captured agent output as fixtures, not assumed formats.
 
 ## State Management
 
-Zustand store with **19 slices**, persisted to SQLite via a custom storage adapter:
+Zustand store with **20 slices**, persisted to SQLite via a custom storage adapter:
 
 | Slice | Responsibility |
 |---|---|
@@ -350,6 +357,7 @@ Zustand store with **19 slices**, persisted to SQLite via a custom storage adapt
 | `workspaceSlice` | Workspace CRUD, file tree, CLAUDE.md watcher |
 | `layoutSlice` | Drawer state, editor panel, quadrant tabs, pinned panes |
 | `dashboardSlice` | Session goal |
+| `pipelineSlice` | Pipeline builder state, phase CRUD, run tracking, gate advancement |
 | `tokenSlice` | Token budgets per skill/repo/session with warnings |
 | `themeSlice` | Light/dark theme state + persistence |
 
@@ -361,6 +369,11 @@ Zustand store with **19 slices**, persisted to SQLite via a custom storage adapt
 src-tauri/src/
   lib.rs                    # Tauri builder, command registration, state init
   db.rs                     # SQLite init with WAL mode, migrations via user_version
+  backends/
+    mod.rs                  # BackendAdapter trait, AgentProcesses registry
+    claude.rs               # ClaudeAdapter — wraps Claude CLI with stream-json output
+    codex.rs                # CodexAdapter — wraps Codex CLI with JSONL events
+    fake.rs                 # FakeAdapter — test double for workflow engine tests
   commands/
     agent_commands_v2.rs    # SDK sidecar management, start/send/cancel agent
     agent_commands.rs       # Agent definition CRUD (.md file management)
@@ -368,6 +381,9 @@ src-tauri/src/
     context_commands.rs     # Prompt composition, skill discovery, skill sync
     db_commands.rs          # Session CRUD, settings, claude sessions
     events_commands.rs      # Unified events (actions + decisions)
+    pipeline_commands.rs    # Pipeline CRUD, phase management
+    project_commands.rs     # Project CRUD (SQLite-backed)
+    workflow_commands.rs    # Start pipeline, advance gate, get run status
     decision_commands.rs    # Legacy decision ops
     audit_commands.rs       # Legacy audit ops
     file_commands.rs        # File read/write with audit logging
@@ -377,6 +393,9 @@ src-tauri/src/
     architecture_commands.rs # Architecture analysis
     script_commands.rs      # Script tracking, skill generation
     shell_commands.rs       # Shell command spawning
+  workflow/
+    runner.rs               # WorkflowRunner + WorkflowEngine — phase sequencing, gate management
+    context.rs              # ArtifactStore — phase context handoff
   graph/
     schema.rs               # SCHEMALESS tables + indexes
     nodes.rs / edges.rs     # CRUD primitives
@@ -389,7 +408,7 @@ src-tauri/src/
     event_stream.rs         # Legacy CLI stream parser
 ```
 
-91 Tauri commands total, registered in `lib.rs`'s `invoke_handler!`.
+105 Tauri commands total, registered in `lib.rs`'s `invoke_handler!`.
 
 ---
 
@@ -417,12 +436,16 @@ The sidecar is built with esbuild into a single self-contained `dist/main.mjs` (
 - `claude_sessions` — per-project Claude session metadata
 - `events` — unified action + decision timeline (append-only)
 - `audit_log`, `decisions` — legacy tables kept for backward compat
-- `settings` — key/value persistence (theme, projects list, global repos, token budgets)
+- `projects` — SQLite-backed project CRUD (replaces settings-based storage)
+- `pipelines` — workflow pipeline definitions per project
+- `pipeline_phases` — ordered phases within a pipeline (backend, framework, model, gate config)
+- `phase_runs` — execution state for each phase in a pipeline run
+- `settings` — key/value persistence (theme, global repos, token budgets)
 - `token_budgets` — per-scope budget enforcement
 - `workspaces` — workspace metadata
 - `repos` — unified repo registry (replaces old global/workspace split)
 
-Schema migrations via `PRAGMA user_version` (currently v8).
+Schema migrations via `PRAGMA user_version` (currently v9).
 
 **SurrealDB** (embedded, `kv-surrealkv`) at `~/.vibe-os/graph/` for the knowledge graph:
 - **Node tables**: `repo`, `module`, `fn_def`, `class`, `ticket`, `skill`, `event`, `session`, `prompt`, `test`
@@ -503,10 +526,10 @@ MIT
 
 ## Disclaimer
 
-**VIBE OS is an independent open-source project and is not affiliated with, endorsed by, or sponsored by Anthropic.** It builds on top of the publicly available [`@anthropic-ai/claude-agent-sdk`](https://github.com/anthropics/claude-agent-sdk-typescript) and requires users to have their own Claude Code installation and subscription. "Claude" and "Claude Code" are trademarks of Anthropic, PBC.
+**VIBE OS is an independent open-source project and is not affiliated with, endorsed by, or sponsored by Anthropic or OpenAI.** It builds on top of the publicly available [`@anthropic-ai/claude-agent-sdk`](https://github.com/anthropics/claude-agent-sdk-typescript) and integrates with the Codex CLI. Users must have their own Claude Code and/or Codex installations and subscriptions. "Claude" and "Claude Code" are trademarks of Anthropic, PBC. "Codex" is a trademark of OpenAI.
 
 ---
 
 <p align="center">
-  <sub>Built with Tauri v2, React 18, and Rust. Powered by the Claude Agent SDK.</sub>
+  <sub>Built with Tauri v2, React 18, and Rust. Multi-backend workflow orchestration powered by the Claude Agent SDK.</sub>
 </p>
