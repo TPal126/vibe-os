@@ -12,6 +12,12 @@ import phaseTransitionAuto from "../test-fixtures/events/phase-transition-auto.j
 import interactionRequest from "../test-fixtures/events/interaction-request.json";
 import cliClaudeTool from "../test-fixtures/events/cli-claude-tool.json";
 
+// NOTE: The malformed.json fixture (`{ "type": "definitely_not_valid", "garbage": true }`)
+// is intentionally not passed directly to normalizeCliStatus / normalizeCliEvent because
+// those functions only receive payloads that already passed the type discriminant check in
+// useAgentStream. Malformed-payload coverage lives in useAgentStream.test.tsx where the
+// full dispatch path (including the hook's guard) is exercised.
+
 describe("normalizeCliStatus", () => {
   it("creates session and sets working=true for 'working' status", () => {
     const mutations = normalizeCliStatus(cliClaudeStatus as CliStatusPayload);
@@ -142,6 +148,19 @@ describe("normalizeCliEvent", () => {
 
   it("always includes createSession as first mutation", () => {
     const mutations = normalizeCliEvent(cliClaudeThink as CliEventPayload, null);
+    expect(mutations[0].type).toBe("createSession");
+  });
+
+  it("returns only createSession for unknown event_type (graceful fallthrough)", () => {
+    const payload: CliEventPayload = {
+      type: "agent_event",
+      source: "cli-claude",
+      sessionId: "s1",
+      event: { event_type: "unknown_future_type", content: "some content", timestamp: "2026-04-12T00:00:00Z" },
+    };
+    const mutations = normalizeCliEvent(payload, null);
+    // Only the session-guard createSession is emitted — no crash, no spurious cards
+    expect(mutations).toHaveLength(1);
     expect(mutations[0].type).toBe("createSession");
   });
 });
