@@ -2,61 +2,56 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add frontend integration tests for multi-component flows (project creation, pipeline hydration, workflow event sync), hardening tests for persistence/failure/cancellation, and formalize the real CLI smoke process.
+**Goal:** Add rendered-component integration tests for real user flows (ProjectSetupView creation, HomeScreen reopen, ClaudeChat card rendering with live useAgentStream), hardening tests for errors/cancellation/malformed events, and formalize the real CLI smoke process.
 
-**Architecture:** Integration tests use Vitest + @testing-library/react with mounted components against mocked Tauri IPC. They test realistic user flows spanning multiple components and store slices. No Playwright/Tauri E2E harness in this phase — that infrastructure is deferred until the app has stable visual surfaces worth snapshot-testing.
+**Architecture:** Integration tests render REAL components via @testing-library/react and interact via fireEvent/userEvent. Tauri IPC is mocked at the `../../lib/tauri` level. The useAgentStream hook's `listen` callback is captured from the mocked `@tauri-apps/api/event` and events are fired through it to test the full listener → store → UI chain.
 
-**Tech Stack:** Vitest 4, @testing-library/react, jsdom, existing Tauri mock layer from test-setup.ts
+**Tech Stack:** Vitest 4, @testing-library/react, jsdom, existing Tauri mock layer
 
-**Sequencing:** Follows Phase A. Phases B+C+D in one plan.
+**Sequencing:** Follows Phase A. All three phases in one plan.
 
 ---
 
 ## File Map
 
 ### Created
-- `src/integration/project-workflow-flow.test.tsx` — Project creation → pipeline → conversation flow
-- `src/integration/project-reopen-hydration.test.tsx` — Project reopen with pipeline hydration
-- `src/integration/workflow-event-ui-sync.test.tsx` — Event stream → card rendering → state sync
-- `src/integration/error-cancellation.test.tsx` — Error, failure, and cancellation handling
-- `src/stores/slices/pipelineSlice.persistence.test.ts` — Hardened persistence edge cases
-- `docs/testing/real-cli-smoke-procedure.md` — Formalized real CLI smoke test procedure
+- `src/integration/test-utils.ts` — Shared mock commands factory + event fire helper
+- `src/integration/project-setup-flow.test.tsx` — Rendered ProjectSetupView: name → next → builder → create
+- `src/integration/project-reopen.test.tsx` — Rendered HomeScreen: loadProjects → openProject → session creation
+- `src/integration/chat-workflow-cards.test.tsx` — Rendered ClaudeChat: fire events through useAgentStream → assert cards render
+- `src/integration/interaction-response.test.tsx` — Rendered ClaudeChat InteractionCard: click answer → assert sendMessage/startClaude called
+- `src/integration/error-malformed-cancellation.test.tsx` — Hardening: errors, malformed payloads, cancellation through real hook
+- `src/stores/slices/pipelineSlice.persistence.test.ts` — Pipeline state edge cases
+- `docs/testing/real-cli-smoke-procedure.md` — Formalized real CLI smoke procedure
 
 ### Modified
-- `vitest.config.ts` — Add integration test include pattern
 - `package.json` — Add `test:integration` script
 
 ---
 
-## Phase B: Frontend Integration Tests
+## Phase B: Rendered Component Integration Tests
 
 ### Task 1: Integration test infrastructure
 
 **Files:**
-- Modify: `vitest.config.ts`
-- Modify: `package.json`
 - Create: `src/integration/test-utils.ts`
+- Modify: `package.json`
 
-- [ ] **Step 1: Add integration test pattern and script**
-
-In `vitest.config.ts`, the `include` pattern already covers `src/**/*.test.ts` and `src/**/*.test.tsx` which includes `src/integration/`. No change needed.
+- [ ] **Step 1: Add script**
 
 Add to `package.json` scripts:
 ```json
 "test:integration": "vitest run --reporter=verbose src/integration/"
 ```
 
-- [ ] **Step 2: Create shared test utilities**
+- [ ] **Step 2: Create test-utils.ts**
 
-Create `src/integration/test-utils.ts` — helpers for integration tests:
+Create `src/integration/test-utils.ts` with a `createMockCommands()` factory that returns a full mock commands object with sensible defaults (all `vi.fn().mockResolvedValue(...)`) covering every command in `src/lib/tauri.ts`. Also add a `captureAgentStreamListener()` helper that extracts the listener callback from the mocked `listen`:
 
 ```typescript
 import { vi } from "vitest";
+import { listen } from "@tauri-apps/api/event";
 
-/**
- * Create a mock Tauri commands object with sensible defaults.
- * Individual tests override specific commands.
- */
 export function createMockCommands() {
   return {
     createProject: vi.fn().mockResolvedValue({
@@ -91,6 +86,7 @@ export function createMockCommands() {
     cancelClaude: vi.fn().mockResolvedValue(undefined),
     getSetting: vi.fn().mockResolvedValue(null),
     saveSetting: vi.fn().mockResolvedValue(undefined),
+    deleteSetting: vi.fn().mockResolvedValue(undefined),
     createSession: vi.fn().mockResolvedValue({ id: "sess-1", startedAt: "2026-04-12T00:00:00Z" }),
     endSession: vi.fn().mockResolvedValue(undefined),
     getActiveSession: vi.fn().mockResolvedValue(null),
@@ -98,23 +94,34 @@ export function createMockCommands() {
     getAllRepos: vi.fn().mockResolvedValue([]),
     discoverSkills: vi.fn().mockResolvedValue([]),
     composePrompt: vi.fn().mockResolvedValue({ system: "", task: "", skills: "", repo: "", full: "", total_tokens: 0 }),
+    syncSkillsToClaude: vi.fn().mockResolvedValue([]),
+    readFile: vi.fn().mockResolvedValue(""),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    logAction: vi.fn().mockResolvedValue(undefined),
+    getAuditLog: vi.fn().mockResolvedValue([]),
     createWorkspace: vi.fn().mockResolvedValue(undefined),
+    openWorkspace: vi.fn().mockResolvedValue(undefined),
+    saveRepo: vi.fn().mockResolvedValue({}),
+    listClaudeCodeSessions: vi.fn().mockResolvedValue([]),
+    createClaudeSession: vi.fn().mockResolvedValue({}),
+    listClaudeSessions: vi.fn().mockResolvedValue([]),
+    recordDecision: vi.fn().mockResolvedValue({}),
+    getSessionDecisions: vi.fn().mockResolvedValue([]),
+    logEvent: vi.fn().mockResolvedValue({}),
+    getSessionEvents: vi.fn().mockResolvedValue([]),
   };
 }
 
 /**
- * Fire a simulated Tauri event through the listener.
- * Captures the listener callback from the mocked `listen` and invokes it.
+ * Get the agent-stream listener callback from the mocked listen function.
+ * Returns a function you can call with a payload to simulate events.
  */
-export async function fireAgentStreamEvent(payload: unknown) {
-  const { listen } = await import("@tauri-apps/api/event");
+export function getAgentStreamFirer(): (payload: unknown) => void {
   const mockListen = listen as ReturnType<typeof vi.fn>;
-  const calls = mockListen.mock.calls;
-  // Find the agent-stream listener
-  const agentStreamCall = calls.find((c: any[]) => c[0] === "agent-stream");
-  if (agentStreamCall) {
-    await agentStreamCall[1]({ payload });
-  }
+  const call = mockListen.mock.calls.find((c: any[]) => c[0] === "agent-stream");
+  if (!call) throw new Error("No agent-stream listener registered. Did useAgentStream mount?");
+  const callback = call[1];
+  return (payload: unknown) => callback({ payload });
 }
 ```
 
@@ -125,667 +132,172 @@ git add src/integration/test-utils.ts package.json
 git commit -m "chore: add integration test utilities and npm script"
 ```
 
-### Task 2: Project-workflow flow integration test
+### Task 2: Rendered ProjectSetupView flow test
 
 **Files:**
-- Create: `src/integration/project-workflow-flow.test.tsx`
+- Create: `src/integration/project-setup-flow.test.tsx`
 
-Tests the complete flow: pipelineSlice builder → create project → create pipeline → store state.
+This test renders the REAL ProjectSetupView component, types into inputs, clicks buttons, and asserts Tauri commands are called.
 
-- [ ] **Step 1: Create test file**
+- [ ] **Step 1: Create test**
 
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useAppStore } from "../stores";
-import { createMockCommands } from "./test-utils";
+The test needs to mock several child components that ProjectSetupView renders (ResourceCatalog, RepoBrowseModal, RepoGithubModal, WorkflowBuilder) since those have their own complex dependency trees. Mock them as simple divs. Also mock the store selectors for workspace creation.
 
-const mockCommands = createMockCommands();
+Read `src/components/home/ProjectSetupView.tsx` to understand what it imports and renders. The implementer should:
 
-vi.mock("../lib/tauri", () => ({ commands: mockCommands }));
+1. Mock `../../lib/tauri` with `createMockCommands()`
+2. Mock heavy child components (ResourceCatalog, WorkflowBuilder, modals) as simple stubs
+3. Set up the store's `activeWorkspace` to simulate workspace creation
+4. Render `<ProjectSetupView />`
+5. Type a project name, click "Next: Configure Pipeline"
+6. Assert step 2 renders (WorkflowBuilder stub visible)
+7. Click "Create Project"
+8. Assert `commands.createProject` was called with the right name
+9. Assert `commands.createPipeline` was called if builderPhases were present
 
-describe("Project + Workflow creation flow", () => {
-  beforeEach(() => {
-    // Reset store to initial state
-    useAppStore.setState({
-      projects: [],
-      activeProjectId: null,
-      currentView: "home",
-      builderPhases: [],
-      selectedPhaseId: null,
-      frameworks: [],
-      activePipelineRun: null,
-    });
-    vi.clearAllMocks();
-  });
-
-  it("creates project with pipeline phases via store actions", async () => {
-    const store = useAppStore.getState();
-
-    // 1. Add phases to builder
-    store.addPhase("ideation", "Ideation");
-    store.addPhase("execution", "Execution");
-    expect(useAppStore.getState().builderPhases).toHaveLength(2);
-
-    // 2. Configure a phase
-    const phaseId = useAppStore.getState().builderPhases[0].id;
-    store.updatePhase(phaseId, { backend: "codex", model: "gpt-4.1" });
-    expect(useAppStore.getState().builderPhases[0].backend).toBe("codex");
-    // Framework should have reset to native
-    expect(useAppStore.getState().builderPhases[0].framework).toBe("native");
-
-    // 3. Toggle gate
-    store.toggleGate(phaseId);
-    expect(useAppStore.getState().builderPhases[0].gateAfter).toBe("auto");
-
-    // 4. Simulate what ProjectSetupView.handleCreate does
-    const projectRow = await mockCommands.createProject("test-project", "/tmp/test");
-    const phases = useAppStore.getState().builderPhases;
-
-    await mockCommands.createPipeline({
-      project_id: projectRow.id,
-      name: "Default",
-      phases: phases.map((p) => ({
-        label: p.label,
-        phase_type: p.phaseType,
-        backend: p.backend,
-        framework: p.framework,
-        model: p.model,
-        custom_prompt: p.customPrompt,
-        gate_after: p.gateAfter,
-      })),
-    });
-
-    // 5. Assert Tauri commands were called correctly
-    expect(mockCommands.createProject).toHaveBeenCalledWith("test-project", "/tmp/test");
-    expect(mockCommands.createPipeline).toHaveBeenCalledWith(expect.objectContaining({
-      project_id: "proj-1",
-      phases: expect.arrayContaining([
-        expect.objectContaining({ label: "Ideation", backend: "codex", gate_after: "auto" }),
-        expect.objectContaining({ label: "Execution", backend: "claude" }),
-      ]),
-    }));
-
-    // 6. Reset builder
-    store.resetBuilder();
-    expect(useAppStore.getState().builderPhases).toHaveLength(0);
-  });
-
-  it("skips pipeline creation when builder has no phases", async () => {
-    // No phases added — simulate create with empty builder
-    expect(useAppStore.getState().builderPhases).toHaveLength(0);
-    await mockCommands.createProject("empty-project", "/tmp/empty");
-
-    // Pipeline creation should NOT have been called
-    expect(mockCommands.createPipeline).not.toHaveBeenCalled();
-  });
-
-  it("loads frameworks and filters by backend compatibility", async () => {
-    await useAppStore.getState().loadFrameworks();
-    const frameworks = useAppStore.getState().frameworks;
-    expect(frameworks).toHaveLength(2);
-
-    // Add a phase and check which frameworks are compatible
-    useAppStore.getState().addPhase("ideation", "Ideation");
-    const phase = useAppStore.getState().builderPhases[0];
-
-    // Claude backend: both superpowers and native available
-    const claudeCompat = frameworks.filter(
-      (f) => f.supported_backends.includes("claude") && f.supported_phases.includes(phase.phaseType),
-    );
-    expect(claudeCompat.length).toBeGreaterThanOrEqual(2);
-
-    // Switch to codex: only native available
-    useAppStore.getState().updatePhase(phase.id, { backend: "codex" });
-    const codexCompat = frameworks.filter(
-      (f) => f.supported_backends.includes("codex") && f.supported_phases.includes("ideation"),
-    );
-    expect(codexCompat).toHaveLength(1);
-    expect(codexCompat[0].id).toBe("native");
-  });
-});
-```
-
-- [ ] **Step 2: Run tests**
-
-Run: `npm run test:integration`
-Expected: All 3 tests pass.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add src/integration/project-workflow-flow.test.tsx
-git commit -m "test: add project-workflow creation flow integration tests"
-```
-
-### Task 3: Project reopen + hydration integration test
-
-**Files:**
-- Create: `src/integration/project-reopen-hydration.test.tsx`
-
-- [ ] **Step 1: Create test file**
-
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useAppStore } from "../stores";
-import { createMockCommands } from "./test-utils";
-
-const mockCommands = createMockCommands();
-
-vi.mock("../lib/tauri", () => ({ commands: mockCommands }));
-
-describe("Project reopen + pipeline hydration", () => {
-  beforeEach(() => {
-    useAppStore.setState({
-      projects: [],
-      activeProjectId: null,
-      currentView: "home",
-      builderPhases: [],
-      selectedPhaseId: null,
-      activePipelineRun: null,
-      agentSessions: new Map(),
-      activeSessionId: null,
-    });
-    vi.clearAllMocks();
-  });
-
-  it("loads projects from SQLite on app init", async () => {
-    mockCommands.listProjects.mockResolvedValue([
-      { id: "proj-1", name: "My Project", workspace_path: "/tmp/myproj", summary: "A project", created_at: "2026-04-12T00:00:00Z", updated_at: "2026-04-12T00:00:00Z" },
-    ]);
-
-    await useAppStore.getState().loadProjects();
-    const projects = useAppStore.getState().projects;
-    expect(projects).toHaveLength(1);
-    expect(projects[0].name).toBe("My Project");
-    expect(projects[0].activeSessionId).toBe(""); // Not persisted
-  });
-
-  it("hydrates pipeline when opening project", async () => {
-    // Seed a project
-    useAppStore.setState({
-      projects: [{ id: "proj-1", name: "Test", workspacePath: "/tmp/test", activeSessionId: "", summary: "", createdAt: "2026-04-12T00:00:00Z", linkedRepoIds: [], linkedSkillIds: [], linkedAgentNames: [] }],
-    });
-
-    mockCommands.getProjectPipeline.mockResolvedValue({
-      id: "pipeline-1", project_id: "proj-1", name: "Default",
-      created_at: "2026-04-12T00:00:00Z", updated_at: "2026-04-12T00:00:00Z",
-    });
-    mockCommands.getPipelinePhases.mockResolvedValue([
-      { id: "p-1", pipeline_id: "pipeline-1", position: 0, label: "Ideation", phase_type: "ideation", backend: "claude", framework: "superpowers", model: "opus", custom_prompt: null, gate_after: "gated" },
-      { id: "p-2", pipeline_id: "pipeline-1", position: 1, label: "Execution", phase_type: "execution", backend: "codex", framework: "native", model: "gpt-4.1", custom_prompt: null, gate_after: "auto" },
-    ]);
-
-    await useAppStore.getState().loadProjectPipeline("proj-1");
-
-    const phases = useAppStore.getState().builderPhases;
-    expect(phases).toHaveLength(2);
-    expect(phases[0].label).toBe("Ideation");
-    expect(phases[0].backend).toBe("claude");
-    expect(phases[1].label).toBe("Execution");
-    expect(phases[1].backend).toBe("codex");
-  });
-
-  it("creates fresh session when reopening project with empty sessionId", () => {
-    useAppStore.setState({
-      projects: [{ id: "proj-1", name: "Test", workspacePath: "/tmp/test", activeSessionId: "", summary: "", createdAt: "2026-04-12T00:00:00Z", linkedRepoIds: [], linkedSkillIds: [], linkedAgentNames: [] }],
-      agentSessions: new Map(),
-    });
-
-    // Simulate what HomeScreen.handleOpenProject does
-    const project = useAppStore.getState().projects[0];
-    let sessionId = project.activeSessionId;
-    if (!sessionId || !useAppStore.getState().agentSessions.has(sessionId)) {
-      sessionId = "fresh-session-id";
-      useAppStore.getState().createSessionLocal(sessionId, project.name);
-      useAppStore.setState((state) => ({
-        projects: state.projects.map((p) =>
-          p.id === project.id ? { ...p, activeSessionId: sessionId } : p,
-        ),
-      }));
-    }
-
-    expect(useAppStore.getState().agentSessions.has("fresh-session-id")).toBe(true);
-    expect(useAppStore.getState().projects[0].activeSessionId).toBe("fresh-session-id");
-  });
-
-  it("handles missing pipeline gracefully", async () => {
-    mockCommands.getProjectPipeline.mockResolvedValue(null);
-
-    // Pre-populate builder
-    useAppStore.getState().addPhase("ideation", "Ideation");
-    expect(useAppStore.getState().builderPhases).toHaveLength(1);
-
-    await useAppStore.getState().loadProjectPipeline("no-pipeline-proj");
-
-    // Builder should be cleared
-    expect(useAppStore.getState().builderPhases).toHaveLength(0);
-  });
-});
-```
+Key scenarios:
+- **Happy path:** name → next → create → commands called correctly
+- **Validation:** empty name shows error, button disabled
+- **Back button:** step 2 → back → step 1 preserves name
 
 - [ ] **Step 2: Run and commit**
 
 ```bash
 npm run test:integration
-git add src/integration/project-reopen-hydration.test.tsx
-git commit -m "test: add project reopen and pipeline hydration integration tests"
+git add src/integration/project-setup-flow.test.tsx
+git commit -m "test: add rendered ProjectSetupView flow integration test"
 ```
 
-### Task 4: Workflow event → UI sync integration test
+### Task 3: Rendered HomeScreen reopen test
 
 **Files:**
-- Create: `src/integration/workflow-event-ui-sync.test.tsx`
+- Create: `src/integration/project-reopen.test.tsx`
 
-- [ ] **Step 1: Create test file**
+This test validates the REAL reopen contract: `loadProjects` → projects appear → `openProject` → session created → pipeline hydrated.
 
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useAppStore } from "../stores";
-import { normalizeCliEvent, normalizeCliStatus } from "../lib/agentStreamNormalizer";
-import type { CliEventPayload, CliStatusPayload, StoreMutation } from "../lib/agentStreamNormalizer";
-import { createMockCommands } from "./test-utils";
+- [ ] **Step 1: Create test**
 
-// Import fixtures
-import cliClaudeStatus from "../test-fixtures/events/cli-claude-status.json";
-import cliClaudeThink from "../test-fixtures/events/cli-claude-think.json";
-import cliClaudeResult from "../test-fixtures/events/cli-claude-result.json";
-import phaseTransitionGated from "../test-fixtures/events/phase-transition-gated.json";
-import interactionRequest from "../test-fixtures/events/interaction-request.json";
+The test should:
+1. Mock `commands.listProjects` to return a saved project
+2. Call `loadProjects()` on the store
+3. Render HomeScreen (or test the store flow that HomeScreen.handleOpenProject exercises)
+4. Verify that opening a project with `activeSessionId: ""` triggers `createSessionLocal` with a new UUID
+5. Verify `loadProjectPipeline` is called
+6. Verify the store's `activeSessionId` is no longer empty
 
-const mockCommands = createMockCommands();
-vi.mock("../lib/tauri", () => ({ commands: mockCommands }));
+For the rendered version: render `<HomeScreen />`, find the project card, click it, assert `openProject` was called. Mock `openWorkspace` so it doesn't fail.
 
-/**
- * Apply store mutations the same way the hook does.
- * This tests the normalized mutations actually produce correct store state.
- */
-function applyMutations(mutations: StoreMutation[]) {
-  const store = useAppStore.getState();
-  for (const m of mutations) {
-    switch (m.type) {
-      case "createSession":
-        if (!store.agentSessions.has(m.sessionId)) {
-          store.createSessionLocal(m.sessionId, m.name, m.backend);
-        }
-        break;
-      case "setWorking":
-        store.setSessionWorking(m.sessionId, m.working);
-        break;
-      case "appendAssistant":
-        store.appendToSessionLastAssistant(m.sessionId, m.text);
-        break;
-      case "insertCard":
-        store.insertRichCard(m.sessionId, m.cardType, m.content, m.data);
-        break;
-      case "setError":
-        store.setSessionError(m.sessionId, m.error);
-        break;
-      case "finalizeActivity":
-        store.finalizeActivityLine(m.sessionId);
-        break;
-      case "addAgentEvent":
-        store.addSessionAgentEvent(m.sessionId, m.event);
-        break;
-      case "upsertActivity":
-        store.upsertActivityLine(m.sessionId, m.event);
-        break;
-      case "setApiMetrics":
-        store.setSessionApiMetrics(m.sessionId, m.metrics);
-        break;
-    }
-  }
-}
-
-describe("Workflow event → store state sync", () => {
-  beforeEach(() => {
-    useAppStore.setState({
-      agentSessions: new Map(),
-      activeSessionId: null,
-      activePipelineRun: null,
-    });
-  });
-
-  it("CLI status event creates session and sets working", () => {
-    const mutations = normalizeCliStatus(cliClaudeStatus as CliStatusPayload);
-    applyMutations(mutations);
-
-    const sessions = useAppStore.getState().agentSessions;
-    expect(sessions.has("test-session-1")).toBe(true);
-    expect(sessions.get("test-session-1")!.isWorking).toBe(true);
-    expect(sessions.get("test-session-1")!.backend).toBe("claude");
-  });
-
-  it("think event appends to assistant message in session", () => {
-    // Create session first
-    useAppStore.getState().createSessionLocal("test-session-1", "Test", "claude");
-    useAppStore.getState().setActiveSessionId("test-session-1");
-
-    const mutations = normalizeCliEvent(cliClaudeThink as CliEventPayload, null);
-    applyMutations(mutations);
-
-    const session = useAppStore.getState().agentSessions.get("test-session-1")!;
-    const lastMsg = session.chatMessages[session.chatMessages.length - 1];
-    expect(lastMsg.role).toBe("assistant");
-    expect(lastMsg.content).toContain("Let me analyze");
-  });
-
-  it("result event creates outcome card with metrics", () => {
-    useAppStore.getState().createSessionLocal("test-session-1", "Test", "claude");
-
-    const mutations = normalizeCliEvent(cliClaudeResult as CliEventPayload, null);
-    applyMutations(mutations);
-
-    const session = useAppStore.getState().agentSessions.get("test-session-1")!;
-    expect(session.isWorking).toBe(false);
-
-    const outcomeCard = session.chatMessages.find((m) => m.cardType === "outcome");
-    expect(outcomeCard).toBeDefined();
-    expect(outcomeCard!.content).toContain("Task completed");
-
-    expect(session.apiMetrics).not.toBeNull();
-    expect(session.apiMetrics!.inputTokens).toBe(1500);
-    expect(session.apiMetrics!.cost).toBe(0.025);
-  });
-
-  it("gated phase_transition creates gate-prompt card", () => {
-    useAppStore.getState().createSessionLocal("test-session-1", "Test", "claude");
-
-    const mutations = normalizeCliEvent(phaseTransitionGated as CliEventPayload, null);
-    applyMutations(mutations);
-
-    const session = useAppStore.getState().agentSessions.get("test-session-1")!;
-    const gateCard = session.chatMessages.find((m) => m.cardType === "gate-prompt");
-    expect(gateCard).toBeDefined();
-    expect(gateCard!.content).toContain("Planning");
-    expect(gateCard!.cardData?.gate).toBe("awaiting");
-  });
-
-  it("interaction_request creates interaction card with options", () => {
-    useAppStore.getState().createSessionLocal("test-session-1", "Test", "claude");
-
-    const mutations = normalizeCliEvent(interactionRequest as CliEventPayload, null);
-    applyMutations(mutations);
-
-    const session = useAppStore.getState().agentSessions.get("test-session-1")!;
-    const interactionCard = session.chatMessages.find((m) => m.cardType === "interaction");
-    expect(interactionCard).toBeDefined();
-    expect(interactionCard!.content).toContain("technology stack");
-    expect((interactionCard!.cardData as any)?.options).toContain("React + TypeScript");
-  });
-
-  it("result triggers pipeline refresh when active run exists", () => {
-    useAppStore.getState().createSessionLocal("test-session-1", "Test", "claude");
-
-    const mutations = normalizeCliEvent(cliClaudeResult as CliEventPayload, "run-123");
-    const refreshMutation = mutations.find((m) => m.type === "refreshPipelineRun");
-    expect(refreshMutation).toBeDefined();
-    if (refreshMutation?.type === "refreshPipelineRun") {
-      expect(refreshMutation.pipelineRunId).toBe("run-123");
-    }
-  });
-});
-```
+Key scenario that tests the REAL bug: projects loaded from SQLite have `activeSessionId: ""`. When opened, a fresh session must be created. Assert that `agentSessions` gains a new entry.
 
 - [ ] **Step 2: Run and commit**
 
 ```bash
-npm run test:integration
-git add src/integration/workflow-event-ui-sync.test.tsx
-git commit -m "test: add workflow event to UI state sync integration tests"
+git add src/integration/project-reopen.test.tsx
+git commit -m "test: add rendered HomeScreen project reopen integration test"
+```
+
+### Task 4: ClaudeChat workflow card rendering via live useAgentStream
+
+**Files:**
+- Create: `src/integration/chat-workflow-cards.test.tsx`
+
+This is the key test that was missing: fire events through the REAL useAgentStream listener and assert that cards render in ClaudeChat.
+
+- [ ] **Step 1: Create test**
+
+The test should:
+1. Mock `../../lib/tauri` with full commands
+2. Set up a session in the store
+3. Render a component that mounts useAgentStream (the hook is mounted in App.tsx; in tests, render a minimal wrapper that calls `useAgentStream()` + renders the session's chat messages)
+4. Use `getAgentStreamFirer()` to get the listener callback
+5. Fire a CLI status event → assert session created, working state set
+6. Fire a think event → assert assistant message appears
+7. Fire a result event → assert outcome card appears
+8. Fire a phase_transition gated event → assert gate-prompt card appears
+9. Fire an interaction_request event → assert interaction card appears
+
+Since rendering full ClaudeChat is complex (many dependencies), the implementer can either:
+- Mock enough of ClaudeChat's dependencies to render it
+- OR render a thin wrapper that reads from the store and renders cards (testing the hook + store integration, with card rendering tested separately in Phase A component tests)
+
+The critical thing: events flow through the REAL `listen` callback → REAL `useAgentStream` hook → REAL store → assert correct state.
+
+- [ ] **Step 2: Run and commit**
+
+```bash
+git add src/integration/chat-workflow-cards.test.tsx
+git commit -m "test: add live useAgentStream to store card rendering integration test"
 ```
 
 ---
 
-## Phase C: Error + Cancellation + Persistence Hardening
+## Phase C: Hardening
 
-### Task 5: Error and cancellation tests
+### Task 5: Interaction response routing test
 
 **Files:**
-- Create: `src/integration/error-cancellation.test.tsx`
+- Create: `src/integration/interaction-response.test.tsx`
 
-- [ ] **Step 1: Create test file**
+Tests the ClaudeChat InteractionCard answer path: clicking an answer calls either `sendMessage` or `startClaude` depending on whether the session has a `conversationId`.
 
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useAppStore } from "../stores";
-import { normalizeCliEvent, normalizeCliStatus } from "../lib/agentStreamNormalizer";
-import type { CliEventPayload, CliStatusPayload, StoreMutation } from "../lib/agentStreamNormalizer";
-import { createMockCommands } from "./test-utils";
+- [ ] **Step 1: Create test**
 
-const mockCommands = createMockCommands();
-vi.mock("../lib/tauri", () => ({ commands: mockCommands }));
+Two scenarios:
+1. **With conversationId:** Set up a session with `conversationId: "conv-123"`. Insert an interaction card into the session. Render the InteractionCard (or ClaudeChat). Click an option. Assert `commands.sendMessage` was called with the answer and conversationId.
+2. **Without conversationId:** Set up a session with `conversationId: null`. Same flow. Assert `commands.startClaude` was called with the answer as message.
 
-function applyMutations(mutations: StoreMutation[]) {
-  const store = useAppStore.getState();
-  for (const m of mutations) {
-    switch (m.type) {
-      case "createSession":
-        if (!store.agentSessions.has(m.sessionId)) store.createSessionLocal(m.sessionId, m.name, m.backend);
-        break;
-      case "setWorking": store.setSessionWorking(m.sessionId, m.working); break;
-      case "appendAssistant": store.appendToSessionLastAssistant(m.sessionId, m.text); break;
-      case "insertCard": store.insertRichCard(m.sessionId, m.cardType, m.content, m.data); break;
-      case "setError": store.setSessionError(m.sessionId, m.error); break;
-      case "finalizeActivity": store.finalizeActivityLine(m.sessionId); break;
-      case "addAgentEvent": store.addSessionAgentEvent(m.sessionId, m.event); break;
-      case "upsertActivity": store.upsertActivityLine(m.sessionId, m.event); break;
-      case "setApiMetrics": store.setSessionApiMetrics(m.sessionId, m.metrics); break;
-    }
-  }
-}
-
-describe("Error and cancellation handling", () => {
-  beforeEach(() => {
-    useAppStore.setState({
-      agentSessions: new Map(),
-      activeSessionId: null,
-      activePipelineRun: null,
-    });
-  });
-
-  it("error event sets session error and creates error card", () => {
-    useAppStore.getState().createSessionLocal("s1", "Test", "claude");
-
-    const payload: CliEventPayload = {
-      type: "agent_event",
-      source: "cli-claude",
-      sessionId: "s1",
-      event: { event_type: "error", content: "Backend crashed", timestamp: "2026-04-12T00:00:00Z" },
-    };
-    applyMutations(normalizeCliEvent(payload, null));
-
-    const session = useAppStore.getState().agentSessions.get("s1")!;
-    expect(session.agentError).toBe("Backend crashed");
-    expect(session.status).toBe("error");
-    const errorCard = session.chatMessages.find((m) => m.cardType === "error");
-    expect(errorCard).toBeDefined();
-  });
-
-  it("cancellation status sets working=false", () => {
-    useAppStore.getState().createSessionLocal("s1", "Test", "claude");
-    useAppStore.getState().setSessionWorking("s1", true);
-
-    const payload: CliStatusPayload = {
-      type: "status", source: "cli-claude", sessionId: "s1", status: "cancelled",
-    };
-    applyMutations(normalizeCliStatus(payload));
-
-    expect(useAppStore.getState().agentSessions.get("s1")!.isWorking).toBe(false);
-  });
-
-  it("error after working state clears working and shows error", () => {
-    useAppStore.getState().createSessionLocal("s1", "Test", "codex");
-    useAppStore.getState().setSessionWorking("s1", true);
-
-    const errorPayload: CliEventPayload = {
-      type: "agent_event",
-      source: "cli-codex",
-      sessionId: "s1",
-      event: { event_type: "error", content: "Model not found", timestamp: "2026-04-12T00:00:00Z" },
-    };
-    applyMutations(normalizeCliEvent(errorPayload, null));
-
-    const session = useAppStore.getState().agentSessions.get("s1")!;
-    // Error sets the error state — isWorking is not explicitly cleared by error event
-    // but the session status derives to "error" which is the important thing
-    expect(session.status).toBe("error");
-    expect(session.agentError).toBe("Model not found");
-  });
-
-  it("pipeline run failure does not crash store", async () => {
-    mockCommands.startPipeline.mockRejectedValue(new Error("Spawn failed"));
-
-    await useAppStore.getState().startPipelineRun("bad-pipeline");
-
-    // activePipelineRun should remain null (the error was caught)
-    expect(useAppStore.getState().activePipelineRun).toBeNull();
-  });
-
-  it("gate advance failure does not corrupt state", async () => {
-    mockCommands.advanceGate.mockRejectedValue(new Error("No gate to advance"));
-
-    useAppStore.setState({
-      activePipelineRun: {
-        pipelineRunId: "run-1", status: "running",
-        currentPhase: { phaseRunId: "pr-1", phaseId: "p-1", label: "Phase 1", status: "awaiting_gate" },
-        completedPhases: [],
-      },
-    });
-
-    await useAppStore.getState().advancePipelineGate("run-1");
-
-    // State should not have been corrupted
-    expect(useAppStore.getState().activePipelineRun).not.toBeNull();
-  });
-
-  it("sequential events accumulate correctly without duplicates", () => {
-    useAppStore.getState().createSessionLocal("s1", "Test", "claude");
-
-    // Send multiple think events
-    for (let i = 0; i < 3; i++) {
-      const payload: CliEventPayload = {
-        type: "agent_event", source: "cli-claude", sessionId: "s1",
-        event: { event_type: "think", content: `Part ${i + 1}. `, timestamp: `2026-04-12T00:00:0${i}Z` },
-      };
-      applyMutations(normalizeCliEvent(payload, null));
-    }
-
-    const session = useAppStore.getState().agentSessions.get("s1")!;
-    // All parts should be in one assistant message (appended)
-    const assistantMsgs = session.chatMessages.filter((m) => m.role === "assistant");
-    expect(assistantMsgs).toHaveLength(1);
-    expect(assistantMsgs[0].content).toBe("Part 1. Part 2. Part 3. ");
-  });
-});
-```
+The implementer should read `src/components/panels/ClaudeChat.tsx` lines ~332-377 to understand the onRespond handler, then write tests that exercise both branches.
 
 - [ ] **Step 2: Run and commit**
 
 ```bash
-npm run test:integration
-git add src/integration/error-cancellation.test.tsx
-git commit -m "test: add error, cancellation, and failure hardening integration tests"
+git add src/integration/interaction-response.test.tsx
+git commit -m "test: add interaction response routing test (sendMessage vs startClaude)"
 ```
 
-### Task 6: Pipeline persistence edge case tests
+### Task 6: Error, malformed event, and cancellation hardening
+
+**Files:**
+- Create: `src/integration/error-malformed-cancellation.test.tsx`
+
+Tests through the REAL useAgentStream listener path.
+
+- [ ] **Step 1: Create test**
+
+Scenarios:
+1. **Error event → error card + session error state:** Fire an error event through the listener. Assert `agentError` is set and an error card appears in the session.
+2. **Cancellation → working=false:** Fire a working status, then a cancelled status. Assert isWorking goes true → false.
+3. **Malformed payload → no crash:** Fire the malformed.json fixture through the listener. Assert no exception thrown, store state unchanged (no new sessions created, no cards inserted).
+4. **Error after active work → proper cleanup:** Fire working → think → error. Assert the session has the think text AND the error state, no orphaned activity.
+5. **Sequential events accumulate correctly:** Fire 3 think events. Assert one assistant message with all 3 parts concatenated.
+
+All events fire through `getAgentStreamFirer()` to test the real listener path.
+
+- [ ] **Step 2: Run and commit**
+
+```bash
+git add src/integration/error-malformed-cancellation.test.tsx
+git commit -m "test: add error, malformed event, and cancellation hardening tests"
+```
+
+### Task 7: Pipeline persistence edge cases
 
 **Files:**
 - Create: `src/stores/slices/pipelineSlice.persistence.test.ts`
 
-- [ ] **Step 1: Create test file**
+- [ ] **Step 1: Create test**
 
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { useAppStore } from "../index";
-import { createMockCommands } from "../../integration/test-utils";
+Scenarios:
+1. **Refresh after command failure recovers gracefully**
+2. **loadFrameworks handles failure silently**
+3. **loadProjectPipeline handles phases query failure**
+4. **Multiple rapid gate advances don't corrupt state**
 
-const mockCommands = createMockCommands();
-vi.mock("../../lib/tauri", () => ({ commands: mockCommands }));
-
-describe("pipelineSlice persistence edge cases", () => {
-  beforeEach(() => {
-    useAppStore.setState({
-      builderPhases: [],
-      selectedPhaseId: null,
-      frameworks: [],
-      activePipelineRun: null,
-    });
-    vi.clearAllMocks();
-  });
-
-  it("refresh recovers after command failure", async () => {
-    mockCommands.getPipelineRunStatus
-      .mockRejectedValueOnce(new Error("Network error"))
-      .mockResolvedValueOnce({
-        pipeline_run_id: "run-1", status: "completed",
-        current_phase: null, completed_phases: [],
-      });
-
-    // First refresh fails silently
-    await useAppStore.getState().refreshPipelineRun("run-1");
-    expect(useAppStore.getState().activePipelineRun).toBeNull();
-
-    // Set an initial run state
-    useAppStore.setState({
-      activePipelineRun: { pipelineRunId: "run-1", status: "running", currentPhase: null, completedPhases: [] },
-    });
-
-    // Second refresh succeeds
-    await useAppStore.getState().refreshPipelineRun("run-1");
-    expect(useAppStore.getState().activePipelineRun?.status).toBe("completed");
-  });
-
-  it("loadFrameworks handles command failure gracefully", async () => {
-    mockCommands.listFrameworks.mockRejectedValue(new Error("Failed"));
-
-    await useAppStore.getState().loadFrameworks();
-    // Should not crash, frameworks stays empty
-    expect(useAppStore.getState().frameworks).toEqual([]);
-  });
-
-  it("loadProjectPipeline handles phases query failure", async () => {
-    mockCommands.getProjectPipeline.mockResolvedValue({
-      id: "pipeline-1", project_id: "proj-1", name: "Default",
-      created_at: "2026-04-12T00:00:00Z", updated_at: "2026-04-12T00:00:00Z",
-    });
-    mockCommands.getPipelinePhases.mockRejectedValue(new Error("DB error"));
-
-    await useAppStore.getState().loadProjectPipeline("proj-1");
-    // Should not crash, builder stays empty
-    expect(useAppStore.getState().builderPhases).toEqual([]);
-  });
-
-  it("multiple rapid gate advances do not corrupt state", async () => {
-    let callCount = 0;
-    mockCommands.advanceGate.mockImplementation(async () => { callCount++; });
-    mockCommands.getPipelineRunStatus.mockResolvedValue({
-      pipeline_run_id: "run-1", status: "running",
-      current_phase: { phase_run_id: "pr-2", phase_id: "p-2", label: "Phase 2", status: "running" },
-      completed_phases: [{ phaseRunId: "pr-1", phaseId: "p-1", label: "Phase 1", status: "completed", artifactPath: null, summary: null }],
-    });
-
-    useAppStore.setState({
-      activePipelineRun: { pipelineRunId: "run-1", status: "running", currentPhase: { phaseRunId: "pr-1", phaseId: "p-1", label: "Phase 1", status: "awaiting_gate" }, completedPhases: [] },
-    });
-
-    // Fire 3 rapid advances
-    await Promise.all([
-      useAppStore.getState().advancePipelineGate("run-1"),
-      useAppStore.getState().advancePipelineGate("run-1"),
-      useAppStore.getState().advancePipelineGate("run-1"),
-    ]);
-
-    expect(callCount).toBe(3);
-    // State should reflect the latest refresh
-    expect(useAppStore.getState().activePipelineRun?.currentPhase?.label).toBe("Phase 2");
-  });
-});
-```
+These test the store directly (not rendered components) — appropriate since they're testing async state resilience.
 
 - [ ] **Step 2: Run and commit**
 
 ```bash
-npm run test:unit
 git add src/stores/slices/pipelineSlice.persistence.test.ts
 git commit -m "test: add pipeline persistence edge case and failure recovery tests"
 ```
@@ -794,76 +306,14 @@ git commit -m "test: add pipeline persistence edge case and failure recovery tes
 
 ## Phase D: Real CLI Smoke Documentation
 
-### Task 7: Formalize real CLI smoke procedure
+### Task 8: Formalize real CLI smoke procedure
 
 **Files:**
 - Create: `docs/testing/real-cli-smoke-procedure.md`
 
-- [ ] **Step 1: Create procedure doc**
+- [ ] **Step 1: Create doc**
 
-```markdown
-# Real CLI Smoke Test Procedure
-
-Optional validation against real Claude/Codex binaries. Not CI-blocking.
-
-## Prerequisites
-
-- Claude CLI installed: `npm install -g @anthropic-ai/claude-code`
-- Codex CLI installed: `npm install -g @openai/codex`
-- Valid authentication for both
-- App built: `npm run tauri build` or running in dev mode
-
-## Test Runs
-
-### 1. Claude Single Prompt
-```bash
-# Via app: open project, type a message, verify response appears
-# Via CLI directly: claude -p "say hello" --output-format stream-json
-```
-**Pass:** Response appears in chat, outcome card shows cost/tokens.
-
-### 2. Claude Cancellation
-Start a long prompt, click cancel button.
-**Pass:** Session stops, status returns to idle, no orphaned spinner.
-
-### 3. Codex Single Prompt
-```bash
-# Via app: create project with Codex backend phase, run pipeline
-# Via CLI directly: codex exec --json "say hello"
-```
-**Pass:** Response appears, tokens shown (cost may be null).
-
-### 4. Workflow Phase (Claude)
-Create a 2-phase pipeline (both Claude), run it.
-**Pass:** Phase 1 completes, phase 2 starts (or gates), PhaseIndicator updates.
-
-### 5. Workflow Phase (Codex)
-Create a pipeline with one Codex phase, run it.
-**Pass:** Codex CLI spawns, events stream, result appears.
-
-### 6. Gated Flow
-Create a 2-phase pipeline with gate between, run it.
-**Pass:** GatePromptCard appears after phase 1, Continue button advances to phase 2.
-
-### 7. Interaction Request (if applicable)
-Run a Superpowers brainstorming phase.
-**Pass:** If the framework asks questions, InteractionCard renders with options.
-
-## Artifacts to Capture on Failure
-
-- App console output (`npm run tauri dev` terminal)
-- Rust stderr logs (look for `[vibe-os]` prefix)
-- Screenshots of UI state
-- The raw event payloads (visible in browser DevTools Network/Console)
-
-## When to Run
-
-- Before major releases
-- After changing adapter spawn/emit logic
-- After changing useAgentStream event routing
-- After changing Tauri command signatures
-- Optionally: nightly on a machine with credentials
-```
+Document the manual procedure for testing against real Claude and Codex CLIs. Cover: prerequisites (CLI installed, authenticated), 7 test runs (Claude single prompt, Claude cancellation, Codex single prompt, workflow phase Claude, workflow phase Codex, gated flow, interaction request), artifacts to capture on failure, when to run.
 
 - [ ] **Step 2: Commit**
 
@@ -872,24 +322,18 @@ git add docs/testing/real-cli-smoke-procedure.md
 git commit -m "docs: add real CLI smoke test procedure"
 ```
 
-### Task 8: Final verification
+### Task 9: Final verification + push
 
-- [ ] **Step 1: Run all frontend tests**
+- [ ] **Step 1: Run all tests**
 
-Run: `npm run test:unit`
-Expected: ~170+ tests pass.
+```bash
+npm run test:unit
+npm run test:integration
+npx tsc --noEmit
+```
+Expected: All tests pass, tsc clean.
 
-- [ ] **Step 2: Run integration tests specifically**
-
-Run: `npm run test:integration`
-Expected: All integration tests pass.
-
-- [ ] **Step 3: TypeScript check**
-
-Run: `npx tsc --noEmit`
-Expected: Clean.
-
-- [ ] **Step 4: Push**
+- [ ] **Step 2: Push**
 
 ```bash
 git push origin main
