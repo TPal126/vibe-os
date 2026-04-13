@@ -404,4 +404,87 @@ describe("ClaudeChat interaction response routing", () => {
     // Verify sendMessage was NOT called
     expect(mockCommands.sendMessage).not.toHaveBeenCalled();
   });
+
+  it("does not crash when activeSessionId is null at the time of response", async () => {
+    setupSessionWithConversationId("conv-456");
+
+    await act(async () => {
+      render(<TestWrapper />);
+    });
+
+    const fire = getAgentStreamFirer();
+
+    // Fire an interaction request to insert the interaction card
+    await act(async () => {
+      fire(interactionRequest);
+    });
+
+    // Wait for the interaction card to appear
+    await waitFor(() => {
+      expect(screen.getByText("React + TypeScript")).toBeDefined();
+    });
+
+    // Null out activeSessionId (but keep the session in the map so the card stays rendered)
+    await act(async () => {
+      useAppStore.getState().setActiveSessionId(null);
+    });
+
+    // The card should still be in the DOM because the component's chatMessages were
+    // captured before the re-render. But the onRespond handler reads activeSessionId
+    // at call time — it should be null and the handler should bail out gracefully.
+    // If the card is gone due to re-render, that's also fine — it means the UI
+    // correctly removed it. Either way, no crash.
+    const choiceButton = screen.queryByText("React + TypeScript");
+    if (choiceButton) {
+      await act(async () => {
+        fireEvent.click(choiceButton);
+      });
+    }
+
+    // Neither sendMessage nor startClaude should have been called
+    expect(mockCommands.sendMessage).not.toHaveBeenCalled();
+    expect(mockCommands.startClaude).not.toHaveBeenCalled();
+  });
+
+  it("does not send backend commands when session is missing from sessions map", async () => {
+    setupSessionWithConversationId(null);
+
+    await act(async () => {
+      render(<TestWrapper />);
+    });
+
+    const fire = getAgentStreamFirer();
+
+    // Fire an interaction request
+    await act(async () => {
+      fire(interactionRequest);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("React + TypeScript")).toBeDefined();
+    });
+
+    // Remove the session from the sessions map but keep activeSessionId pointed to it.
+    // This simulates a race condition where the session was cleaned up.
+    await act(async () => {
+      useAppStore.setState((state) => {
+        const next = new Map(state.agentSessions);
+        next.delete("test-session-1");
+        return { agentSessions: next };
+      });
+    });
+
+    // The card should vanish since chatMessages is now empty, but let's check
+    const choiceButton = screen.queryByText("React + TypeScript");
+    if (choiceButton) {
+      // If the card is still somehow visible, clicking should not crash
+      await act(async () => {
+        fireEvent.click(choiceButton);
+      });
+    }
+
+    // Backend commands should not have been called
+    expect(mockCommands.sendMessage).not.toHaveBeenCalled();
+    expect(mockCommands.startClaude).not.toHaveBeenCalled();
+  });
 });

@@ -335,7 +335,6 @@ export function ClaudeChat() {
                     message={msg}
                     onRespond={(answer) => {
                       const store = useAppStore.getState();
-                      const sessions = store.agentSessions;
                       const activeId = store.activeSessionId;
                       if (!activeId) return;
 
@@ -361,14 +360,18 @@ export function ClaudeChat() {
                         return { agentSessions: next };
                       });
 
-                      // Send the answer to the backend
-                      const session = sessions.get(activeId);
+                      // Send the answer to the backend — re-read session from
+                      // current state to avoid stale references after setState
+                      const currentSessions = useAppStore.getState().agentSessions;
+                      const session = currentSessions.get(activeId);
+                      if (!session) return; // Session was removed — bail out
+
                       const project = store.projects.find(
                         (p) => p.id === store.activeProjectId,
                       );
                       const workingDir = project?.workspacePath || ".";
 
-                      if (session?.conversationId) {
+                      if (session.conversationId) {
                         // Resume existing conversation
                         commands.sendMessage({
                           message: answer,
