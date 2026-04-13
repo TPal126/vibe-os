@@ -12,9 +12,11 @@ vi.mock("../../stores", () => ({
   useAppStore: (selector: (s: any) => any) => selector(mockStore),
 }));
 
+const mockGetProjectPipeline = vi.hoisted(() => vi.fn().mockResolvedValue({ id: "pipeline-1" }));
+
 vi.mock("../../lib/tauri", () => ({
   commands: {
-    getProjectPipeline: vi.fn().mockResolvedValue({ id: "pipeline-1" }),
+    getProjectPipeline: mockGetProjectPipeline,
   },
 }));
 
@@ -77,5 +79,25 @@ describe("PhaseIndicator", () => {
     };
     render(<PhaseIndicator />);
     expect(screen.getByTitle("Review: awaiting_gate")).toBeDefined();
+  });
+
+  it("returns to Run Pipeline state after getProjectPipeline rejects", async () => {
+    mockStore.activeProjectId = "proj-1";
+    mockGetProjectPipeline.mockRejectedValueOnce(new Error("DB connection lost"));
+
+    render(<PhaseIndicator />);
+
+    const button = await screen.findByText("Run Pipeline");
+    fireEvent.click(button);
+
+    // Should show "Starting..." briefly
+    await vi.waitFor(() => {
+      expect(screen.getByText("Starting...")).toBeDefined();
+    });
+
+    // After the rejection resolves, button should return to "Run Pipeline"
+    await vi.waitFor(() => {
+      expect(screen.getByText("Run Pipeline")).toBeDefined();
+    });
   });
 });
